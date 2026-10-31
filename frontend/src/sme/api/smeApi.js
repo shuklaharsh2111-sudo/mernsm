@@ -14,7 +14,6 @@ const request = async (path, { method = 'GET', body, token } = {}) => {
   return data;
 };
 
-export const registerSme = (body) => request('/auth/register', { method: 'POST', body });
 export const getSmeMe = (token) => request('/auth/me', { token });
 export const updateSmeAvatar = (token, avatar) =>
   request('/auth/avatar', { method: 'PUT', body: { avatar }, token });

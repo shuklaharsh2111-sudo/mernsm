@@ -39,7 +39,7 @@ export default function SmeSidebar() {
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPick} />
         <h2>{sme.name}</h2>
         <p className="admin-profile-email">{sme.email}</p>
-        <span className="sme-role-pill">SME · {sme.department}</span>
+        <span className="sme-role-pill">{sme.roleLabel} · {sme.userId}</span>
         {error && <p className="admin-error">{error}</p>}
       </div>
 

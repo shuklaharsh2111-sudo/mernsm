@@ -12,7 +12,7 @@ const TABS = [
 ];
 
 export default function SmeSops() {
-  const { sme, token } = useSmeAuth();
+  const { token } = useSmeAuth();
   const [sops, setSops] = useState([]);
   const [tab, setTab] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -74,7 +74,7 @@ export default function SmeSops() {
         <button
           type="button"
           className="admin-btn sop-new"
-          onClick={() => setForm({ title: '', department: sme.department, description: '', content: '' })}
+          onClick={() => setForm({ title: '', department: '', description: '', content: '' })}
         >
           + New SOP
         </button>

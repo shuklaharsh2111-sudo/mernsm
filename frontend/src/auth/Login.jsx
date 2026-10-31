@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import AuthCard from '../admin/components/AuthCard';
 import Field from '../admin/components/Field';
 import { loginUser } from './authApi';
@@ -13,7 +13,7 @@ const ROLES = {
 
 export default function Login() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ identifier: '', password: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -41,17 +41,11 @@ export default function Login() {
   return (
     <AuthCard
       title="Login"
-      subtitle="Sign in as an admin or an SME"
-      footer={
-        <>
-          New here? <Link to="/sme/register">Register as SME</Link>
-          {' · '}
-          <Link to="/admin/register">Register as admin</Link>
-        </>
-      }
+      subtitle="Sign in with your email or User ID"
+      footer="No account? Ask your admin to create one for you."
     >
       <form onSubmit={onSubmit}>
-        <Field label="Email" type="email" name="email" value={form.email} onChange={onChange} required autoComplete="email" />
+        <Field label="Email or User ID" name="identifier" value={form.identifier} onChange={onChange} required autoComplete="username" />
         <Field label="Password" type="password" name="password" value={form.password} onChange={onChange} required autoComplete="current-password" />
         {error && <p className="admin-error" role="alert">{error}</p>}
         <button className="admin-btn" disabled={busy}>{busy ? 'Signing in…' : 'Login'}</button>

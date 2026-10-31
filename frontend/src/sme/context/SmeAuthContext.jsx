@@ -25,12 +25,6 @@ export function SmeAuthProvider({ children }) {
     };
   }, [token]);
 
-  const saveSession = ({ token: newToken, user }) => {
-    localStorage.setItem(TOKEN_KEY, newToken);
-    setSme(user);
-    setToken(newToken);
-  };
-
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
@@ -38,7 +32,7 @@ export function SmeAuthProvider({ children }) {
   };
 
   return (
-    <SmeAuthContext.Provider value={{ sme, token, loading, saveSession, logout, setSme }}>
+    <SmeAuthContext.Provider value={{ sme, token, loading, logout, setSme }}>
       {children}
     </SmeAuthContext.Provider>
   );
