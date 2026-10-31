@@ -37,6 +37,7 @@ import {
   CalendarDays,
   AlertCircle
 } from 'lucide-react';
+
 const SLOTS = 5;
 const initialTaskForm = {
   companyId: '',
@@ -65,8 +66,6 @@ const initials = (name) =>
   name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('');
 const avatarColor = (name) => AVATAR_COLORS[[...name].reduce((n, ch) => n + ch.charCodeAt(0), 0) % AVATAR_COLORS.length];
 
-const SLOTS = 5; // a user can have at most 5 companies
-
 const SmeDashboard = () => {
   const { user } = useAuth();
   const [companies, setCompanies] = useState([]);
@@ -74,6 +73,7 @@ const SmeDashboard = () => {
   const [error, setError] = useState('');
   const [typeTab, setTypeTab] = useState('all');
   const [savingIds, setSavingIds] = useState([]);
+  
   // TASK STATES
   const [startingTaskId, setStartingTaskId] = useState('');
   const [endingTaskId, setEndingTaskId] = useState('');
@@ -84,34 +84,15 @@ const SmeDashboard = () => {
   const [taskForm, setTaskForm] = useState(initialTaskForm);
   const [taskError, setTaskError] = useState('');
   const [creatingTask, setCreatingTask] = useState(false);
-  // INITIAL DATA
-  useEffect(() => {
-    let cancelled = false;
-    const loadDashboard = async () => {
-      try {
-        const [c, a] = await Promise.all([
-          api.get('/sme/companies'),
-          api.get('/sme/sop-assignments', {
-            params: { today: todayStr() }
-          })
-        ]);
-        if (cancelled) return;
-        setCompanies(c.data.companies || []);
-        setAssigned(a.data.assignments || []);
-      } catch (err) {
-        if (!cancelled) {
-          setError(errMsg(err));
-        }
-      }
-    };
-    loadDashboard();
+
+  // MEETING STATES
   const [meetings, setMeetings] = useState(null);
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [joiningIds, setJoiningIds] = useState([]);
-  const [detailId, setDetailId] = useState(null); // meeting whose details are open
-  const [momMeeting, setMomMeeting] = useState(null); // meeting whose MOM is being written
-  const [savingIds, setSavingIds] = useState([]); // ticks being written right now
+  const [detailId, setDetailId] = useState(null);
+  const [momMeeting, setMomMeeting] = useState(null);
 
+  // INITIAL DATA LOADING
   useEffect(() => {
     let cancelled = false;
     Promise.all([
@@ -121,15 +102,16 @@ const SmeDashboard = () => {
     ])
       .then(([c, a, m]) => {
         if (cancelled) return;
-        setCompanies(c.data.companies);
-        setAssigned(a.data.assignments);
-        setMeetings(m.data.meetings);
+        setCompanies(c.data.companies || []);
+        setAssigned(a.data.assignments || []);
+        setMeetings(m.data.meetings || []);
       })
       .catch((err) => !cancelled && setError(errMsg(err)));
     return () => {
       cancelled = true;
     };
   }, []);
+
   // LOAD TASKS
   useEffect(() => {
     let cancelled = false;
@@ -154,13 +136,16 @@ const SmeDashboard = () => {
       cancelled = true;
     };
   }, []);
+
   const slots = Array.from(
     { length: SLOTS },
     (_, i) => companies[i] || null
   );
+
   const shownSops = (assigned || []).filter(
     (a) => typeTab === 'all' || a.type === typeTab
   );
+
   // SOP TICK
   const toggleTick = async (a) => {
     if (savingIds.includes(a.id)) return;
@@ -194,6 +179,7 @@ const SmeDashboard = () => {
       );
     }
   };
+
   // LIVE CLOCK
   const [currentDate, setCurrentDate] = useState(new Date());
   useEffect(() => {
@@ -202,6 +188,7 @@ const SmeDashboard = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
   const hour = currentDate.getHours();
   const greeting =
     hour < 12
@@ -209,18 +196,21 @@ const SmeDashboard = () => {
       : hour < 17
         ? 'Good Afternoon'
         : 'Good Evening';
+
   const formattedDate = currentDate.toLocaleDateString('en-IN', {
     weekday: 'long',
     day: '2-digit',
     month: 'long',
     year: 'numeric'
   });
+
   const formattedTime = currentDate.toLocaleTimeString('en-IN', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
     hour12: true
   });
+
   const newTasks = tasks.filter((task) => task.status === 'new');
   const inProgressTasks = tasks.filter((task) => task.status === 'in-progress');
   const recurringTasks = tasks.filter((task) => task.category === 'recurring');
@@ -232,6 +222,7 @@ const SmeDashboard = () => {
     { title: 'Recurring Tasks', count: recurringTasks.length, icon: Repeat, color: 'orange', description: 'All recurring tasks', items: recurringTasks },
     { title: 'Completed Tasks', count: completedTasks.length, icon: CheckCircle2, color: 'green', description: 'Successfully completed tasks', items: completedTasks }
   ];
+
   // OPEN TASK MODAL
   const handleAddTask = () => {
     setTaskForm({
@@ -241,12 +232,14 @@ const SmeDashboard = () => {
     setTaskError('');
     setShowTaskModal(true);
   };
+
   // CLOSE TASK MODAL
   const closeTaskModal = () => {
     if (creatingTask) return;
     setShowTaskModal(false);
     setTaskError('');
   };
+
   // ESCAPE KEY
   useEffect(() => {
     if (!showTaskModal) return;
@@ -260,6 +253,7 @@ const SmeDashboard = () => {
       window.removeEventListener('keydown', handleEscape);
     };
   }, [showTaskModal, creatingTask]);
+
   // FORM INPUT CHANGE
   const handleTaskChange = (event) => {
     const { name, value } = event.target;
@@ -278,6 +272,7 @@ const SmeDashboard = () => {
     });
     setTaskError('');
   };
+
   // CREATE TASK
   const handleCreateTask = async (event) => {
     event.preventDefault();
@@ -318,7 +313,6 @@ const SmeDashboard = () => {
         '/sme/tasks',
         payload
       );
-      // Immediately update dashboard
       setTasks((prev) => [
         response.data.task,
         ...prev
@@ -332,17 +326,6 @@ const SmeDashboard = () => {
       setCreatingTask(false);
     }
   };
-  const formatTaskTime = (date) => {
-    if (!date) return 'Not recorded';
-    return new Date(date).toLocaleString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
 
   const updateTask = (updatedTask) => {
     setTasks((prev) => prev.map((task) =>
@@ -350,76 +333,8 @@ const SmeDashboard = () => {
     ));
   };
 
-  const handleStartTask = async (taskId) => {
-    try {
-      setStartingTaskId(taskId);
-      const response = await api.patch(`/sme/tasks/${taskId}/start`);
-      updateTask(response.data.task);
-    } catch (err) {
-      setError(errMsg(err));
-    } finally {
-      setStartingTaskId('');
-    }
-  };
-
-  const handleEndTask = async (taskId) => {
-    if (!window.confirm('Are you sure you want to complete this task?')) return;
-
-    try {
-      setEndingTaskId(taskId);
-      const response = await api.patch(`/sme/tasks/${taskId}/end`);
-      updateTask(response.data.task);
-    } catch (err) {
-      setError(errMsg(err));
-    } finally {
-      setEndingTaskId('');
-    }
-  };
-
-  const handleTaskAttachments = async (event, taskId) => {
-    const files = Array.from(event.target.files || []);
-    if (!files.length) return;
-
-    if (files.some((file) => !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type))) {
-      setError('Please select image files only.');
-      event.target.value = '';
-      return;
-    }
-
-    if (files.some((file) => file.size > 5 * 1024 * 1024)) {
-      setError('Each image must be smaller than 5 MB.');
-      event.target.value = '';
-      return;
-    }
-
-    if (files.length > 5) {
-      setError('You can upload a maximum of 5 images at a time.');
-      event.target.value = '';
-      return;
-    }
-
-    const formData = new FormData();
-    files.forEach((file) => formData.append('files', file));
-
-    try {
-      setUploadingTaskId(taskId);
-      setError('');
-      const response = await api.post(`/sme/tasks/${taskId}/attachments`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      updateTask(response.data.task);
-    } catch (err) {
-      setError(errMsg(err));
-    } finally {
-      setUploadingTaskId('');
-      event.target.value = '';
-    }
-  };
-  const handleAddMeeting = () => {
-    alert('Add Meeting feature coming soon!');
   const handleAddMeeting = () => setShowMeetingModal(true);
 
-  // Meetings whose MOM is approved are saved under Records; the rest stay active here.
   const activeMeetings = (meetings || []).filter((m) => m.mom?.status !== 'approved');
 
   const onMeetingSaved = (meeting) => {
@@ -437,10 +352,9 @@ const SmeDashboard = () => {
     setMomMeeting(null);
   };
 
-  // Join Now: open the meeting, then remember that I joined (this shows the Send MOM button).
   const handleJoin = async (m) => {
     if (!hasStarted(m) || joiningIds.includes(m.id)) return;
-    window.open(m.link, '_blank', 'noopener,noreferrer'); // opened straight from the click so it isn't popup-blocked
+    window.open(m.link, '_blank', 'noopener,noreferrer');
     setError('');
     setJoiningIds((ids) => [...ids, m.id]);
     try {
@@ -456,13 +370,13 @@ const SmeDashboard = () => {
     }
   };
 
-  // A meeting has started once its date + time has passed (clock ticks every second).
   const hasStarted = (m) => currentDate >= new Date(`${m.date}T${m.time}:00`);
 
   const fmtTime = (t) => {
     const [h, m] = t.split(':').map(Number);
     return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
+
   return (
     <div className="dashboard-content scrollable">
       {/* TOPBAR */}
@@ -494,6 +408,7 @@ const SmeDashboard = () => {
           </div>
         </div>
       </div>
+
       {/* MY COMPANIES */}
       <div className="company-row" aria-label="Your companies">
         {slots.map((c, i) =>
@@ -513,11 +428,13 @@ const SmeDashboard = () => {
           )
         )}
       </div>
+
       {error && (
         <p className="error-message" role="alert">
           {error}
         </p>
       )}
+
       <div className="sop-meeting-row">
         {/* SOP PANEL */}
         <div className="glass-panel sop-panel">
@@ -554,8 +471,7 @@ const SmeDashboard = () => {
               {shownSops.map((a) => (
                 <label
                   key={a.id}
-                  className={`sme-sop tick ${a.done ? 'done' : ''
-                    } ${a.active ? '' : 'upcoming'}`}
+                  className={`sme-sop tick ${a.done ? 'done' : ''} ${a.active ? '' : 'upcoming'}`}
                 >
                   <input
                     type="checkbox"
@@ -587,7 +503,8 @@ const SmeDashboard = () => {
             </div>
           )}
         </div>
-        {/* MEETINGS */}
+
+        {/* MEETINGS PANEL */}
         <div className="glass-panel meeting-panel">
           <div className="meeting-header">
             <h2>Meetings</h2>
@@ -600,102 +517,96 @@ const SmeDashboard = () => {
               Add Meeting
             </button>
           </div>
-          <p className="muted">
-            No meetings scheduled yet.
-          </p>
-        </div>
-      </div>
-      {/* TASK MANAGER */}
-        {!meetings ? (
-          <p className="muted">Loading…</p>
-        ) : activeMeetings.length === 0 ? (
-          <p className="muted">No meetings scheduled yet.</p>
-        ) : (
-          <div className="meeting-list">
-            {activeMeetings.map((m) => (
-              <div
-                className="meeting-item clickable"
-                key={m.id}
-                role="button"
-                tabIndex={0}
-                title="Click to view details or add attendees"
-                onClick={() => setDetailId(m.id)}
-                onKeyDown={(e) => {
-                  if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
-                    e.preventDefault();
-                    setDetailId(m.id);
-                  }
-                }}
-              >
-                <div className="meeting-item-top">
-                  <div className="meeting-item-main">
-                    <span className="meeting-company">{m.company.name}</span>
-                    {m.priority && (
-                      <span className={`prio-pill ${m.priority}`} title="Scheduled from the previous meeting's MOM">
-                        <Flag size={11} /> {m.priority}
-                      </span>
-                    )}
-                    <h3 className="meeting-title">{m.subject}</h3>
-                  </div>
-                  <div className="meeting-item-when">
-                    <span>{fmtDay(m.date)}</span>
-                    <span>{fmtTime(m.time)}</span>
-                  </div>
-                </div>
 
-                <div className="meeting-item-bottom">
-                  <button
-                    type="button"
-                    className="join-now-btn"
-                    disabled={!hasStarted(m) || joiningIds.includes(m.id)}
-                    title={hasStarted(m) ? 'Join the meeting' : `Available from ${fmtDay(m.date)}, ${fmtTime(m.time)}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleJoin(m);
-                    }}
-                  >
-                    <Video size={15} /> Join Now
-                  </button>
+          {!meetings ? (
+            <p className="muted">Loading…</p>
+          ) : activeMeetings.length === 0 ? (
+            <p className="muted">No meetings scheduled yet.</p>
+          ) : (
+            <div className="meeting-list">
+              {activeMeetings.map((m) => (
+                <div
+                  className="meeting-item clickable"
+                  key={m.id}
+                  role="button"
+                  tabIndex={0}
+                  title="Click to view details or add attendees"
+                  onClick={() => setDetailId(m.id)}
+                  onKeyDown={(e) => {
+                    if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      setDetailId(m.id);
+                    }
+                  }}
+                >
+                  <div className="meeting-item-top">
+                    <div className="meeting-item-main">
+                      <span className="meeting-company">{m.company.name}</span>
+                      {m.priority && (
+                        <span className={`prio-pill ${m.priority}`} title="Scheduled from the previous meeting's MOM">
+                          <Flag size={11} /> {m.priority}
+                        </span>
+                      )}
+                      <h3 className="meeting-title">{m.subject}</h3>
+                    </div>
+                    <div className="meeting-item-when">
+                      <span>{fmtDay(m.date)}</span>
+                      <span>{fmtTime(m.time)}</span>
+                    </div>
+                  </div>
 
-                  {m.joined && (
+                  <div className="meeting-item-bottom">
                     <button
                       type="button"
-                      className={`send-mom-btn ${m.mom ? m.mom.status : ''}`}
+                      className="join-now-btn"
+                      disabled={!hasStarted(m) || joiningIds.includes(m.id)}
+                      title={hasStarted(m) ? 'Join the meeting' : `Available from ${fmtDay(m.date)}, ${fmtTime(m.time)}`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setMomMeeting(m);
+                        handleJoin(m);
                       }}
-                      title={MOM_BTN[m.mom?.status || 'none'].title}
                     >
-                      {MOM_BTN[m.mom?.status || 'none'].icon}
-                      {MOM_BTN[m.mom?.status || 'none'].label}
+                      <Video size={15} /> Join Now
                     </button>
-                  )}
 
-                  <div className="avatar-stack" aria-label="Attendees">
-                    {m.attendees.slice(0, MAX_AVATARS).map((a, i) => (
-                      <span
-                        key={`${a.name}-${i}`}
-                        className="avatar"
-                        style={{ background: avatarColor(a.name) }}
-                        title={a.designation ? `${a.name} — ${a.designation}` : a.name}
+                    {m.joined && (
+                      <button
+                        type="button"
+                        className={`send-mom-btn ${m.mom ? m.mom.status : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMomMeeting(m);
+                        }}
+                        title={MOM_BTN[m.mom?.status || 'none'].title}
                       >
-                        {initials(a.name)}
-                      </span>
-                    ))}
-                    {m.attendees.length > MAX_AVATARS && (
-                      <span className="avatar avatar-more" title={m.attendees.slice(MAX_AVATARS).map((a) => a.name).join(', ')}>
-                        +{m.attendees.length - MAX_AVATARS}
-                      </span>
+                        {MOM_BTN[m.mom?.status || 'none'].icon}
+                        {MOM_BTN[m.mom?.status || 'none'].label}
+                      </button>
                     )}
+
+                    <div className="avatar-stack" aria-label="Attendees">
+                      {m.attendees.slice(0, MAX_AVATARS).map((a, i) => (
+                        <span
+                          key={`${a.name}-${i}`}
+                          className="avatar"
+                          style={{ background: avatarColor(a.name) }}
+                          title={a.designation ? `${a.name} — ${a.designation}` : a.name}
+                        >
+                          {initials(a.name)}
+                        </span>
+                      ))}
+                      {m.attendees.length > MAX_AVATARS && (
+                        <span className="avatar avatar-more" title={m.attendees.slice(MAX_AVATARS).map((a) => a.name).join(', ')}>
+                          +{m.attendees.length - MAX_AVATARS}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {showMeetingModal && (
@@ -706,8 +617,7 @@ const SmeDashboard = () => {
 
       {momMeeting && <SendMomModal meeting={momMeeting} onSaved={onMomSaved} onClose={() => setMomMeeting(null)} />}
 
-      {/* Task Manager */}
-
+      {/* TASK MANAGER SECTION */}
       <section className="sme-task-manager">
         <div className="sme-task-header">
           <div className="sme-task-heading">
@@ -722,6 +632,7 @@ const SmeDashboard = () => {
             </div>
           </div>
         </div>
+
         <div className="sme-task-grid">
           {taskCategories.map((task, index) => {
             const Icon = task.icon;
@@ -758,6 +669,7 @@ const SmeDashboard = () => {
             );
           })}
         </div>
+
         {/* NEW TASK LIST */}
         <div className="sme-created-tasks">
           <div className="sme-created-tasks-header">
@@ -821,6 +733,7 @@ const SmeDashboard = () => {
           )}
         </div>
       </section>
+
       {/* ADD TASK MODAL */}
       {showTaskModal && createPortal(
         <div
@@ -897,6 +810,7 @@ const SmeDashboard = () => {
                   </small>
                 )}
               </div>
+
               {/* TASK TITLE */}
               <div className="sme-form-group">
                 <label htmlFor="task-title">
@@ -913,6 +827,7 @@ const SmeDashboard = () => {
                   required
                 />
               </div>
+
               {/* TASK CATEGORY */}
               <div className="sme-form-group">
                 <label htmlFor="task-category">
@@ -933,16 +848,18 @@ const SmeDashboard = () => {
                   </option>
                 </select>
               </div>
+
               {/* RECURRING FREQUENCY */}
               {taskForm.category === 'recurring' && (
                 <div className="sme-form-group">
-                  <label htmlFor="task-tat">Turnaround Time (TAT) <span>*</span></label>
+                  <label htmlFor="task-frequency">Frequency Days <span>*</span></label>
                   <div className="sme-input-with-suffix">
-                    <input type="number" id="task-tat" name="tatDays" placeholder="Enter number of days" value={taskForm.tatDays} onChange={handleTaskChange} min="1" max="3650" required />
+                    <input type="number" id="task-frequency" name="frequencyDays" placeholder="Enter frequency in days" value={taskForm.frequencyDays} onChange={handleTaskChange} min="1" max="3650" required />
                     <span>Days</span>
                   </div>
                 </div>
               )}
+
               {/* TAT */}
               <div className="sme-form-group">
                 <label htmlFor="task-tat">
@@ -964,6 +881,7 @@ const SmeDashboard = () => {
                   <span>Days</span>
                 </div>
               </div>
+
               {/* TASK TYPE */}
               <div className="sme-form-group">
                 <label htmlFor="task-type">
@@ -999,6 +917,7 @@ const SmeDashboard = () => {
                   </option>
                 </select>
               </div>
+
               {/* OBJECTIVE */}
               <div className="sme-form-group">
                 <label htmlFor="task-objective">
@@ -1028,6 +947,7 @@ const SmeDashboard = () => {
                   </option>
                 </select>
               </div>
+
               {/* CUSTOM OBJECTIVE */}
               {taskForm.objective === 'Others' && (
                 <div className="sme-form-group">
@@ -1046,20 +966,7 @@ const SmeDashboard = () => {
                   />
                 </div>
               )}
-              <div className="sme-form-group">
-                <label htmlFor="task-brief">Brief</label>
-                <textarea id="task-brief" name="brief" placeholder="Enter task brief or additional instructions" value={taskForm.brief} onChange={handleTaskChange} maxLength={1000} rows={4} />
-              </div>
-              <div className="sme-form-group">
-                <label htmlFor="task-assigned-to">Assign To</label>
-                <select id="task-assigned-to" name="assignedTo" value={taskForm.assignedTo} onChange={handleTaskChange}>
-                  <option value="">Select Assignee</option>
-                  <option value="Admin">Admin</option>
-                  <option value="SME">SME</option>
-                  <option value="SMI">SMI</option>
-                  <option value="Designer">Designer</option>
-                </select>
-              </div>
+
               {/* PRIORITY */}
               <div className="sme-form-group">
                 <label htmlFor="task-priority">
@@ -1086,6 +993,7 @@ const SmeDashboard = () => {
                   </option>
                 </select>
               </div>
+
               {/* FORM BUTTONS */}
               <div className="sme-task-form-actions">
                 <button
@@ -1108,9 +1016,11 @@ const SmeDashboard = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
 };
+
 export default SmeDashboard;
