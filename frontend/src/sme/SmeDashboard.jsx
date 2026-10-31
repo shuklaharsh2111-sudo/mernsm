@@ -1,7 +1,10 @@
-
 import { useAuth } from '../AuthContext';
 import { useEffect, useState } from 'react';
+import api from '../api';
+import { CompanyBadge, EmptyBadge } from '../components/CompanyBadge';
+import { PERIOD_WORD, SOP_TYPES, errMsg, fmtDay, todayStr, typeLabel } from '../sopUtils';
 import "../style.css";
+import "../styles/smedashboard.css";
 import {
   LayoutDashboard,
   Briefcase,
@@ -13,6 +16,8 @@ import {
   Repeat,
   CheckCircle2
 } from 'lucide-react';
+
+const SLOTS = 5; // a user can have at most 5 companies
 
 const SmeDashboard = () => {
   const { user } = useAuth();
@@ -130,7 +135,7 @@ const SmeDashboard = () => {
   };
 
   return (
-    <div className="dashboard-content">
+    <div className="dashboard-content scrollable">
 
       <div className="dashboard-topbar">
 
