@@ -6,7 +6,10 @@ import {
   updateMySop,
   deleteMySop,
 } from '../controllers/sop.controller.js';
+<<<<<<< HEAD
 import { myCompanies } from '../controllers/company.controller.js';
+=======
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
 import { protectSme } from '../middleware/auth.js';
 
 const router = Router();
@@ -15,8 +18,11 @@ const router = Router();
 router.get('/auth/me', protectSme, me);
 router.put('/auth/avatar', protectSme, updateAvatar);
 
+<<<<<<< HEAD
 router.get('/companies', protectSme, myCompanies);
 
+=======
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
 router.get('/sops', protectSme, listMySops);
 router.post('/sops', protectSme, createMySop);
 router.put('/sops/:id', protectSme, updateMySop);

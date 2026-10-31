@@ -12,6 +12,10 @@ export const publicSme = (user) => ({
   role: user.role,
   roleLabel: roleLabel(user.role),
   reportingManager: user.reportingManager,
+<<<<<<< HEAD
+=======
+  assignedCompanies: user.assignedCompanies,
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
   avatar: user.avatar || '',
 });
 

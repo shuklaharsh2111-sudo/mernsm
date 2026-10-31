@@ -380,6 +380,7 @@
 .users-credentials dd, .sme-profile dd { margin: 2px 0 0; color: var(--text-h); }
 .users-credentials code { font-size: 15px; }
 .sme-profile { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+<<<<<<< HEAD
 
 /* ---------- Company badges ---------- */
 .company-badge { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
@@ -424,3 +425,5 @@
 
 .admin-panel a { color: var(--accent); text-decoration: none; }
 .admin-panel a:hover { text-decoration: underline; }
+=======
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896

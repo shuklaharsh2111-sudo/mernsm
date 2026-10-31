@@ -5,7 +5,10 @@ import AdminLayout from './components/AdminLayout';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminSops from './pages/AdminSops';
 import AdminUsers from './pages/AdminUsers';
+<<<<<<< HEAD
 import AdminCompanies from './pages/AdminCompanies';
+=======
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
 import './admin.css';
 
 export default function AdminRoutes() {
@@ -23,7 +26,10 @@ export default function AdminRoutes() {
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="sops" element={<AdminSops />} />
           <Route path="users" element={<AdminUsers />} />
+<<<<<<< HEAD
           <Route path="companies" element={<AdminCompanies />} />
+=======
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

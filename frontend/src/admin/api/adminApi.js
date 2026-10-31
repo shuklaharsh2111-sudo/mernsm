@@ -38,6 +38,7 @@ export const resetUserPassword = (token, id) =>
 export const setUserActive = (token, id, active) =>
   request(`/users/${id}/active`, { method: 'PATCH', body: { active }, token });
 export const deleteUser = (token, id) => request(`/users/${id}`, { method: 'DELETE', token });
+<<<<<<< HEAD
 
 // ---------- Companies ----------
 export const getCompanies = (token) => request('/companies', { token });
@@ -45,3 +46,5 @@ export const createCompany = (token, body) => request('/companies', { method: 'P
 export const updateCompany = (token, id, body) =>
   request(`/companies/${id}`, { method: 'PUT', body, token });
 export const deleteCompany = (token, id) => request(`/companies/${id}`, { method: 'DELETE', token });
+=======
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896

@@ -8,7 +8,10 @@ import {
   setUserActive,
   updateUser,
 } from '../api/adminApi';
+<<<<<<< HEAD
 import CompanyBadge from '../../shared/CompanyBadge';
+=======
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
 
 // Keep in sync with ROLES in backend/src/admin/models/User.js
 const ROLES = [{ value: 'sme', label: 'SME' }];
@@ -20,7 +23,11 @@ const EMPTY_FORM = {
   contact: '',
   role: ROLES[0].value,
   reportingManager: '',
+<<<<<<< HEAD
   companies: [],
+=======
+  companies: '',
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
   password: '',
 };
 
@@ -28,7 +35,10 @@ export default function AdminUsers() {
   const { token } = useAdminAuth();
   const [users, setUsers] = useState([]);
   const [managers, setManagers] = useState([]);
+<<<<<<< HEAD
   const [companies, setCompanies] = useState([]);
+=======
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
@@ -46,7 +56,10 @@ export default function AdminUsers() {
         setError('');
         setUsers(d.users);
         setManagers(d.managers);
+<<<<<<< HEAD
         setCompanies(d.companies);
+=======
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
       })
       .catch((err) => !cancelled && setError(err.message))
       .finally(() => !cancelled && setLoading(false));
@@ -69,7 +82,11 @@ export default function AdminUsers() {
       contact: u.contact,
       role: u.role,
       reportingManager: u.reportingManager || '',
+<<<<<<< HEAD
       companies: u.companies,
+=======
+      companies: u.assignedCompanies.join(', '),
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
       password: '',
     });
   };
@@ -79,7 +96,12 @@ export default function AdminUsers() {
     setBusy(true);
     setError('');
     try {
+<<<<<<< HEAD
       const { id, password, ...body } = form;
+=======
+      const { id, companies, password, ...rest } = form;
+      const body = { ...rest, assignedCompanies: companies };
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
       if (id) {
         await updateUser(token, id, body);
       } else {
@@ -149,6 +171,7 @@ export default function AdminUsers() {
     }
   };
 
+<<<<<<< HEAD
   const byId = Object.fromEntries(companies.map((c) => [c.id, c]));
   const toggleCompany = (id) =>
     setForm((f) => ({
@@ -160,6 +183,12 @@ export default function AdminUsers() {
   const shown = q
     ? users.filter((u) =>
         [u.name, u.email, u.userId, u.contact, u.reportingManager, ...u.companies.map((id) => byId[id]?.name || '')]
+=======
+  const q = query.trim().toLowerCase();
+  const shown = q
+    ? users.filter((u) =>
+        [u.name, u.email, u.userId, u.contact, u.reportingManager, ...u.assignedCompanies]
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
           .join(' ')
           .toLowerCase()
           .includes(q)
@@ -238,6 +267,13 @@ export default function AdminUsers() {
                 ))}
               </select>
             </label>
+<<<<<<< HEAD
+=======
+            <label className="admin-field">
+              <span>Assigned companies (comma separated)</span>
+              <input value={form.companies} placeholder="Acme Ltd, Globex" onChange={(e) => setForm({ ...form, companies: e.target.value })} />
+            </label>
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
             {!form.id && (
               <label className="admin-field">
                 <span>Password (leave empty to auto-generate)</span>
@@ -245,6 +281,7 @@ export default function AdminUsers() {
               </label>
             )}
           </div>
+<<<<<<< HEAD
           <div className="company-field">
             <p className="company-field-label">Assigned companies</p>
             {companies.length === 0 ? (
@@ -261,6 +298,8 @@ export default function AdminUsers() {
               </div>
             )}
           </div>
+=======
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
           <div className="sop-actions">
             <button className="admin-btn sop-inline" disabled={busy}>
               {busy ? 'Saving…' : form.id ? 'Save changes' : 'Add user'}
@@ -313,10 +352,15 @@ export default function AdminUsers() {
                   <td>{u.email}</td>
                   <td>{roleLabel(u.role)}</td>
                   <td>
+<<<<<<< HEAD
                     {u.companies.filter((id) => byId[id]).length
                       ? u.companies.filter((id) => byId[id]).map((id) => (
                           <span key={id} className="chip">{byId[id].name}</span>
                         ))
+=======
+                    {u.assignedCompanies.length
+                      ? u.assignedCompanies.map((c) => <span key={c} className="chip">{c}</span>)
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
                       : '—'}
                   </td>
                   <td>
