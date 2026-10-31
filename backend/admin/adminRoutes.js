@@ -7,6 +7,8 @@ import Sme from '../sme/Sme.js';
 import Company, { MAX_ASSIGNED } from '../company/Company.js';
 import SopAssignment, { SOP_TYPE_VALUES } from '../sop/SopAssignment.js';
 import { isRealDate } from '../sop/period.js';
+import Meeting from '../meeting/Meeting.js';
+import { momView, generateMeetingLink } from '../meeting/momHelpers.js';
 
 const router = express.Router();
 router.use(protect(['admin']));
@@ -163,5 +165,80 @@ router.delete('/users/:id/sop-assignments/:sopId', async (req, res) => {
   if (!doc) return res.status(404).json({ message: 'SOP not found' });
   res.json({ message: 'SOP deleted' });
 });
+
+// ---------------- MOM approvals ----------------
+const momItemView = (m) => ({
+  id: m._id,
+  subject: m.subject,
+  date: m.date,
+  time: m.time,
+  company: m.company ? { id: m.company._id, name: m.company.name } : { id: '', name: 'Removed company' },
+  sme: m.user ? { id: m.user._id, name: m.user.name || m.user.fullname || m.user.email, email: m.user.email } : { id: '', name: 'Removed user', email: '' },
+  mom: momView(m.mom),
+});
+
+// Every MOM an SME has submitted, newest first.
+router.get('/moms', async (req, res) => {
+  const list = await Meeting.find({ 'mom.submittedAt': { $exists: true } })
+    .sort({ 'mom.submittedAt': -1 })
+    .limit(300)
+    .populate('company', 'name')
+    .populate('user', 'name fullname email');
+  res.json({ moms: list.map(momItemView) });
+});
+
+// action: 'approve' | 'send-back' | 'reject'. Send back / reject need a reason.
+const REVIEW = {
+  approve: { status: 'approved', needsNote: false },
+  'send-back': { status: 'sent_back', needsNote: true },
+  reject: { status: 'rejected', needsNote: true },
+};
+
+const reviewMom = async (req, res, action) => {
+  const { status, needsNote } = REVIEW[action];
+  if (!validId(req.params.id)) return res.status(404).json({ message: 'MOM not found' });
+  const meeting = await Meeting.findOne({ _id: req.params.id, 'mom.submittedAt': { $exists: true } })
+    .populate('company', 'name')
+    .populate('user', 'name fullname email');
+  if (!meeting) return res.status(404).json({ message: 'MOM not found' });
+  if (meeting.mom.status !== 'pending') {
+    return res.status(400).json({ message: `This MOM is not waiting for review (it is ${meeting.mom.status.replace('_', ' ')})` });
+  }
+
+  const note = String(req.body?.note || '').trim();
+  if (needsNote && note.length < 3) {
+    return res.status(400).json({ message: 'Give a reason (at least 3 characters)' });
+  }
+
+  // Approving schedules the next meeting for the SME, so it shows up active on their dashboard.
+  let nextScheduled = false;
+  if (status === 'approved' && meeting.company && meeting.user && meeting.mom.nextMeeting) {
+    if (!(await Meeting.exists({ fromMeeting: meeting._id }))) {
+      const nm = meeting.mom.nextMeeting;
+      await Meeting.create({
+        user: meeting.user._id,
+        company: meeting.company._id,
+        subject: String(nm.agenda).slice(0, 200),
+        date: nm.date,
+        time: nm.time,
+        link: generateMeetingLink(nm.agenda),
+        attendees: meeting.attendees.map((a) => ({ name: a.name, designation: a.designation })),
+        priority: nm.priority,
+        fromMeeting: meeting._id,
+      });
+    }
+    nextScheduled = true;
+  }
+
+  meeting.mom.status = status;
+  meeting.mom.reviewedAt = new Date();
+  meeting.mom.reviewNote = needsNote ? note : '';
+  await meeting.save();
+  res.json({ mom: momItemView(meeting), nextScheduled });
+};
+
+router.put('/moms/:id/approve', (req, res) => reviewMom(req, res, 'approve'));
+router.put('/moms/:id/send-back', (req, res) => reviewMom(req, res, 'send-back'));
+router.put('/moms/:id/reject', (req, res) => reviewMom(req, res, 'reject'));
 
 export default router;

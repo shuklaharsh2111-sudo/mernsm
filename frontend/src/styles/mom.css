@@ -1,0 +1,133 @@
+/* =========================================
+   MOM: form (SME) + approval cards (admin)
+========================================= */
+
+.mom-meta { font-size: 13px; color: var(--lavender-light); }
+.mom-meta b { color: #fff; }
+
+.mom-banner { padding: 10px 14px; font-size: 13px; border-radius: 10px; border: 1px solid; }
+.mom-banner.pending { color: #ffe3a3; background: rgba(230, 155, 58, 0.14); border-color: rgba(230, 155, 58, 0.45); }
+.mom-banner.approved { color: #9cf0cf; background: rgba(121, 220, 186, 0.12); border-color: rgba(121, 220, 186, 0.45); }
+.mom-banner.rejected { color: #ffc2d0; background: rgba(255, 110, 150, 0.12); border-color: rgba(255, 151, 178, 0.45); }
+
+.mom-fieldset { display: flex; flex-direction: column; gap: 22px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.mom-fieldset:disabled { opacity: 0.85; }
+.mom-fieldset:disabled button { cursor: not-allowed; }
+.mom-section { display: flex; flex-direction: column; gap: 10px; padding-top: 18px; border-top: 1px solid rgba(226, 218, 255, 0.14); }
+.mom-section:first-child { padding-top: 0; border-top: 0; }
+
+.mom-row { display: grid; gap: 10px; align-items: center; }
+.mom-row.point { grid-template-columns: 26px 1fr 32px; }
+.mom-row.step { grid-template-columns: 1fr 170px 32px; }
+.mom-row input {
+  width: 100%; min-width: 0; padding: 12px 14px;
+  font-size: 14px; color: #fff; color-scheme: dark;
+  background: rgba(24, 35, 103, 0.42);
+  border: 1px solid rgba(226, 218, 255, 0.2);
+  border-radius: 11px; outline: none;
+}
+.mom-row input:focus { border-color: var(--lavender-light); box-shadow: 0 0 0 3px rgba(183, 164, 255, 0.12); }
+.mom-row input.invalid { border-color: rgba(255, 143, 171, 0.7); }
+.mom-row input::placeholder { color: rgba(230, 224, 255, 0.5); }
+.mom-num { font-size: 13px; font-weight: 700; color: var(--lavender-light); text-align: center; }
+
+/* attendance */
+.mom-attendee {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  background: rgba(24, 35, 103, 0.35);
+  border: 1px solid rgba(226, 218, 255, 0.18);
+  border-radius: 12px;
+}
+.mom-attendee.absent { border-color: rgba(255, 143, 171, 0.5); background: rgba(255, 110, 150, 0.08); }
+.mom-attendee.absent .mom-attendee-text b { color: #ffc2d0; text-decoration: line-through; text-decoration-color: rgba(255, 143, 171, 0.7); }
+.mom-avatar { margin-left: 0; background: #7c5cff; flex-shrink: 0; }
+.mom-attendee.absent .mom-avatar { background: #6b5a78; }
+.mom-attendee-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mom-attendee-text b { color: #fff; font-size: 14px; overflow-wrap: anywhere; }
+.mom-attend-toggle { display: flex; gap: 8px; }
+.mom-attend-toggle button {
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--lavender-light);
+  background: rgba(24, 35, 103, 0.5);
+  border: 1px solid rgba(226, 218, 255, 0.25);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+.mom-attend-toggle button.present.on { color: #fff; background: #1fa971; border-color: #5fe0aa; }
+.mom-attend-toggle button.absent.on { color: #fff; background: #d6456b; border-color: #ff8fab; }
+.mom-attend-toggle button:hover:not(:disabled) { border-color: #fff; }
+
+/* priority */
+.priority-group { display: flex; flex-wrap: wrap; gap: 10px; }
+.priority-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px;
+  font-size: 13px; font-weight: 700; color: var(--lavender-light);
+  background: rgba(24, 35, 103, 0.42);
+  border: 1px solid rgba(226, 218, 255, 0.22);
+  border-radius: 999px;
+  transition: all 0.2s ease;
+}
+.priority-btn.high svg { color: #ff6b8b; }
+.priority-btn.medium svg { color: #ffb84d; }
+.priority-btn.low svg { color: #5fe0aa; }
+.priority-btn:hover:not(:disabled) { border-color: #fff; color: #fff; }
+.priority-btn.high.on { color: #fff; background: rgba(255, 91, 125, 0.28); border-color: #ff6b8b; }
+.priority-btn.medium.on { color: #fff; background: rgba(255, 184, 77, 0.25); border-color: #ffb84d; }
+.priority-btn.low.on { color: #fff; background: rgba(95, 224, 170, 0.22); border-color: #5fe0aa; }
+.priority-btn.on svg { fill: currentColor; }
+
+@media (max-width: 600px) {
+  .mom-row.step { grid-template-columns: 1fr 32px; }
+  .mom-row.step input[type="date"] { grid-column: 1; grid-row: 2; }
+  .mom-attendee { flex-wrap: wrap; }
+}
+
+/* ---------- admin approval cards ---------- */
+.mom-list { display: flex; flex-direction: column; gap: 16px; }
+.mom-card { margin-bottom: 0; }
+.mom-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.mom-card-title { margin: 4px 0 0; font-size: 20px; font-weight: 700; color: #fff; }
+.mom-card-company { font-size: 12px; font-weight: 700; color: #c4b5fd; letter-spacing: 0.3px; }
+.mom-card-sub { margin-top: 6px; font-size: 12px; color: var(--lavender-light); }
+.mom-card-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; text-align: right; font-size: 12px; color: var(--lavender-light); }
+
+.status-pill { padding: 3px 12px; font-size: 11px; font-weight: 800; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.4px; }
+.status-pill.pending { color: #ffe3a3; background: rgba(230, 155, 58, 0.2); }
+.status-pill.approved { color: #a8f1d4; background: rgba(121, 220, 186, 0.2); }
+.status-pill.sent_back { color: #ffd1ad; background: rgba(255, 150, 80, 0.2); }
+.status-pill.rejected { color: #ffc2d0; background: rgba(255, 110, 150, 0.2); }
+
+.mom-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 28px; margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(226, 218, 255, 0.16); }
+.mom-block h4 { margin: 0 0 8px; font-size: 12px; font-weight: 800; color: var(--lavender-light); text-transform: uppercase; letter-spacing: 0.6px; }
+.mom-block ol, .mom-block ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: #fff; }
+.mom-block ul.plain { list-style: none; padding-left: 0; }
+.mom-block li { line-height: 1.45; overflow-wrap: anywhere; }
+.mom-block li .muted { margin-left: 6px; }
+.att-mark { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-right: 8px; border-radius: 50%; vertical-align: -5px; }
+.att-mark.in { color: #fff; background: #1fa971; }
+.att-mark.out { color: #fff; background: #d6456b; }
+.att-out-text { color: #ffc2d0; text-decoration: line-through; text-decoration-color: rgba(255, 143, 171, 0.7); }
+.mom-next { padding: 12px 14px; background: rgba(24, 35, 103, 0.35); border: 1px solid rgba(226, 218, 255, 0.18); border-radius: 12px; font-size: 14px; color: #fff; display: flex; flex-direction: column; gap: 6px; }
+.mom-next-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.prio-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 11px; font-size: 11px; font-weight: 800; border-radius: 999px; text-transform: uppercase; }
+.prio-pill.high { color: #ffc2d0; background: rgba(255, 91, 125, 0.22); }
+.prio-pill.medium { color: #ffe3a3; background: rgba(255, 184, 77, 0.2); }
+.prio-pill.low { color: #a8f1d4; background: rgba(95, 224, 170, 0.18); }
+.prio-pill svg { fill: currentColor; }
+
+.mom-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(226, 218, 255, 0.16); }
+.mom-reject-box { flex: 1 1 100%; display: flex; flex-direction: column; gap: 10px; }
+.mom-note.sent_back { color: #ffd1ad; background: rgba(255, 150, 80, 0.1); border-color: rgba(255, 170, 110, 0.4); }
+.mom-note.approved { display: flex; align-items: center; gap: 8px; color: #9cf0cf; background: rgba(121, 220, 186, 0.1); border-color: rgba(121, 220, 186, 0.4); }
+.btn-ghost.warn { color: #ffd1ad; border-color: rgba(255, 170, 110, 0.45); }
+.btn-ghost.warn:hover:not(:disabled) { background: rgba(255, 150, 80, 0.2); }
+.mom-note { margin-top: 14px; padding: 10px 14px; font-size: 13px; color: #ffc2d0; background: rgba(255, 110, 150, 0.1); border: 1px solid rgba(255, 151, 178, 0.35); border-radius: 10px; }
+.btn-approve { background: linear-gradient(135deg, #1fa971, #2bb3a3) !important; }
+
+@media (max-width: 800px) {
+  .mom-grid { grid-template-columns: 1fr; }
+  .mom-card-side { align-items: flex-start; text-align: left; }
+}
