@@ -19,6 +19,7 @@ import AdminMeetings from './admin/AdminMeetings';
 import SmeDashboard from './sme/SmeDashboard';
 import SmeSaved from './sme/SmeSaved';
 import SmeRecords from './sme/SmeRecords';
+import SmeCalendar from './sme/SmeCalendar';
 
 const ProtectedRoute = ({ role }) => {
   const { user, loading } = useAuth();
@@ -86,6 +87,7 @@ const AppRoutes = () => {
       <Route element={<ProtectedRoute role="sme" />}>
         <Route element={<DashboardLayout />}>
           <Route path="/sme" element={<SmeDashboard />} />
+          <Route path="/sme/calendar" element={<SmeCalendar />} />
           <Route path="/sme/saved" element={<SmeSaved />} />
           <Route path="/sme/records" element={<SmeRecords />} />
         </Route>
