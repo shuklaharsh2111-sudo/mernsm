@@ -38,6 +38,10 @@ export const resetUserPassword = (token, id) =>
 export const setUserActive = (token, id, active) =>
   request(`/users/${id}/active`, { method: 'PATCH', body: { active }, token });
 export const deleteUser = (token, id) => request(`/users/${id}`, { method: 'DELETE', token });
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> c86954fd1b281ba1f0f38af41524f26256ebf5f0
 
 // ---------- Companies ----------
 export const getCompanies = (token) => request('/companies', { token });
@@ -45,3 +49,8 @@ export const createCompany = (token, body) => request('/companies', { method: 'P
 export const updateCompany = (token, id, body) =>
   request(`/companies/${id}`, { method: 'PUT', body, token });
 export const deleteCompany = (token, id) => request(`/companies/${id}`, { method: 'DELETE', token });
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
+>>>>>>> c86954fd1b281ba1f0f38af41524f26256ebf5f0

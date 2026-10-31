@@ -44,7 +44,14 @@ export default function Sidebar() {
 
       <nav className="admin-nav">
         <NavLink to="/admin/dashboard">Dashboard</NavLink>
+<<<<<<< HEAD
         <NavLink to="/admin/companies">Companies</NavLink>
+=======
+<<<<<<< HEAD
+        <NavLink to="/admin/companies">Companies</NavLink>
+=======
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
+>>>>>>> c86954fd1b281ba1f0f38af41524f26256ebf5f0
         <NavLink to="/admin/users">Users</NavLink>
         <NavLink to="/admin/sops">SOP Review</NavLink>
       </nav>

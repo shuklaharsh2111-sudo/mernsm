@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSmeAuth } from '../context/SmeAuthContext';
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> c86954fd1b281ba1f0f38af41524f26256ebf5f0
 import { getMyCompanies, getMySops } from '../api/smeApi';
 import { STATUS_LABEL, fmt } from '../../shared/sop';
 import CompanyBadge, { EmptyBadge } from '../../shared/CompanyBadge';
@@ -33,21 +37,46 @@ function Clock() {
     </div>
   );
 }
+<<<<<<< HEAD
+=======
+=======
+import { getMySops } from '../api/smeApi';
+import { STATUS_LABEL, fmt } from '../../shared/sop';
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
+>>>>>>> c86954fd1b281ba1f0f38af41524f26256ebf5f0
 
 export default function SmeDashboard() {
   const { sme, token } = useSmeAuth();
   const [data, setData] = useState(null);
+<<<<<<< HEAD
   const [companies, setCompanies] = useState([]);
+=======
+<<<<<<< HEAD
+  const [companies, setCompanies] = useState([]);
+=======
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
+>>>>>>> c86954fd1b281ba1f0f38af41524f26256ebf5f0
   const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> c86954fd1b281ba1f0f38af41524f26256ebf5f0
     Promise.all([getMySops(token), getMyCompanies(token)])
       .then(([sops, comps]) => {
         if (cancelled) return;
         setData(sops);
         setCompanies(comps.companies);
       })
+<<<<<<< HEAD
+=======
+=======
+    getMySops(token)
+      .then((d) => !cancelled && setData(d))
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
+>>>>>>> c86954fd1b281ba1f0f38af41524f26256ebf5f0
       .catch((err) => !cancelled && setError(err.message));
     return () => {
       cancelled = true;
@@ -57,6 +86,10 @@ export default function SmeDashboard() {
   const counts = data?.counts || { pending: 0, approved: 0, rejected: 0, revision: 0 };
   const total = counts.pending + counts.approved + counts.rejected + counts.revision;
   const attention = (data?.sops || []).filter((s) => s.status === 'revision' || s.status === 'rejected');
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> c86954fd1b281ba1f0f38af41524f26256ebf5f0
   const slots = Array.from({ length: SLOTS }, (_, i) => companies[i] || null);
 
   return (
@@ -82,6 +115,31 @@ export default function SmeDashboard() {
             <EmptyBadge key={`empty-${i}`} size={72} showName />
           )
         )}
+<<<<<<< HEAD
+=======
+=======
+
+  return (
+    <>
+      <h1 className="admin-title">SME Dashboard</h1>
+
+      <div className="admin-panel">
+        <h2>Welcome, {sme.name}</h2>
+        <p>{sme.roleLabel} · User ID <code>{sme.userId}</code></p>
+        <dl className="sme-profile">
+          <div><dt>Reporting manager</dt><dd>{sme.reportingManager || '—'}</dd></div>
+          <div><dt>Contact</dt><dd>{sme.contact}</dd></div>
+          <div>
+            <dt>Assigned companies</dt>
+            <dd>
+              {sme.assignedCompanies?.length
+                ? sme.assignedCompanies.map((c) => <span key={c} className="chip">{c}</span>)
+                : '—'}
+            </dd>
+          </div>
+        </dl>
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
+>>>>>>> c86954fd1b281ba1f0f38af41524f26256ebf5f0
       </div>
 
       {error && <p className="admin-error" role="alert">{error}</p>}

@@ -13,8 +13,17 @@ const userSchema = new mongoose.Schema(
     contact: { type: String, required: true, trim: true, maxlength: 20 },
     role: { type: String, enum: ROLE_VALUES, required: true },
     reportingManager: { type: String, default: '', trim: true, maxlength: 80 },
+<<<<<<< HEAD
     // Companies the admin assigned (max 5 exist). Shown as badges on the user's dashboard.
     companies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Company' }],
+=======
+<<<<<<< HEAD
+    // Companies the admin assigned (max 5 exist). Shown as badges on the user's dashboard.
+    companies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Company' }],
+=======
+    assignedCompanies: { type: [String], default: [] },
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
+>>>>>>> c86954fd1b281ba1f0f38af41524f26256ebf5f0
     password: { type: String, required: true, select: false },
     avatar: { type: String, default: '' },
     active: { type: Boolean, default: true },
