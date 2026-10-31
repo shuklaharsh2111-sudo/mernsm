@@ -1,42 +1,18 @@
 import { useAuth } from '../AuthContext';
 import { useEffect, useState } from 'react';
 import api from '../api';
-import AddMeetingModal from '../components/AddMeetingModal';
-import SendMomModal from '../components/SendMomModal';
-import MeetingDetailsModal from '../components/MeetingDetailsModal';
 import { CompanyBadge, EmptyBadge } from '../components/CompanyBadge';
 import { PERIOD_WORD, SOP_TYPES, errMsg, fmtDay, todayStr, typeLabel } from '../sopUtils';
 import "../style.css";
 import "../styles/smedashboard.css";
 import {
   Clock3,
-  Video,
-  FileText,
-  Check,
-  XCircle,
-  Undo2,
-  Flag,
   ListTodo,
   Plus,
   BriefcaseBusiness,
   Repeat,
   CheckCircle2
 } from 'lucide-react';
-
-// Send MOM button: label / icon per approval state.
-const MOM_BTN = {
-  none: { label: 'Send MOM', icon: <FileText size={15} />, title: 'Write the minutes of meeting' },
-  pending: { label: 'MOM Pending', icon: <Clock3 size={15} />, title: 'Waiting for admin approval — click to view or edit' },
-  approved: { label: 'MOM Approved', icon: <Check size={15} />, title: 'Approved by admin — click to view' },
-  sent_back: { label: 'Changes Needed', icon: <Undo2 size={15} />, title: 'The admin sent this back — click to edit and resubmit' },
-  rejected: { label: 'MOM Rejected', icon: <XCircle size={15} />, title: 'Rejected by admin — click to view' },
-};
-
-const MAX_AVATARS = 4;
-const AVATAR_COLORS = ['#7c5cff', '#2bb3a3', '#e0709a', '#e69b3a', '#4f8cff', '#8f6bd6'];
-const initials = (name) =>
-  name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('');
-const avatarColor = (name) => AVATAR_COLORS[[...name].reduce((n, ch) => n + ch.charCodeAt(0), 0) % AVATAR_COLORS.length];
 
 const SLOTS = 5; // a user can have at most 5 companies
 
@@ -47,25 +23,15 @@ const SmeDashboard = () => {
   const [assigned, setAssigned] = useState(null); // SOPs the admin assigned to me
   const [error, setError] = useState('');
   const [typeTab, setTypeTab] = useState('all');
-  const [meetings, setMeetings] = useState(null);
-  const [showMeetingModal, setShowMeetingModal] = useState(false);
-  const [joiningIds, setJoiningIds] = useState([]);
-  const [detailId, setDetailId] = useState(null); // meeting whose details are open
-  const [momMeeting, setMomMeeting] = useState(null); // meeting whose MOM is being written
   const [savingIds, setSavingIds] = useState([]); // ticks being written right now
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      api.get('/sme/companies'),
-      api.get('/sme/sop-assignments', { params: { today: todayStr() } }),
-      api.get('/sme/meetings'),
-    ])
-      .then(([c, a, m]) => {
+    Promise.all([api.get('/sme/companies'), api.get('/sme/sop-assignments', { params: { today: todayStr() } })])
+      .then(([c, a]) => {
         if (cancelled) return;
         setCompanies(c.data.companies);
         setAssigned(a.data.assignments);
-        setMeetings(m.data.meetings);
       })
       .catch((err) => !cancelled && setError(errMsg(err)));
     return () => {
@@ -165,51 +131,8 @@ const SmeDashboard = () => {
     alert('Add New Task feature coming soon!');
   };
 
-  const handleAddMeeting = () => setShowMeetingModal(true);
-
-  // Meetings whose MOM is approved are saved under Records; the rest stay active here.
-  const activeMeetings = (meetings || []).filter((m) => m.mom?.status !== 'approved');
-
-  const onMeetingSaved = (meeting) => {
-    setMeetings((list) =>
-      [...(list || []), meeting].sort((x, y) => `${x.date} ${x.time}`.localeCompare(`${y.date} ${y.time}`))
-    );
-    setShowMeetingModal(false);
-  };
-
-  const onMeetingUpdated = (meeting) => setMeetings((list) => list.map((m) => (m.id === meeting.id ? meeting : m)));
-  const detailMeeting = (meetings || []).find((m) => m.id === detailId) || null;
-
-  const onMomSaved = (meeting) => {
-    setMeetings((list) => list.map((m) => (m.id === meeting.id ? meeting : m)));
-    setMomMeeting(null);
-  };
-
-  // Join Now: open the meeting, then remember that I joined (this shows the Send MOM button).
-  const handleJoin = async (m) => {
-    if (!hasStarted(m) || joiningIds.includes(m.id)) return;
-    window.open(m.link, '_blank', 'noopener,noreferrer'); // opened straight from the click so it isn't popup-blocked
-    setError('');
-    setJoiningIds((ids) => [...ids, m.id]);
-    try {
-      const p = (x) => String(x).padStart(2, '0');
-      const n = new Date();
-      const now = `${todayStr()}T${p(n.getHours())}:${p(n.getMinutes())}`;
-      const res = await api.put(`/sme/meetings/${m.id}/join`, { now });
-      setMeetings((list) => list.map((x) => (x.id === m.id ? res.data.meeting : x)));
-    } catch (err) {
-      setError(errMsg(err));
-    } finally {
-      setJoiningIds((ids) => ids.filter((id) => id !== m.id));
-    }
-  };
-
-  // A meeting has started once its date + time has passed (clock ticks every second).
-  const hasStarted = (m) => currentDate >= new Date(`${m.date}T${m.time}:00`);
-
-  const fmtTime = (t) => {
-    const [h, m] = t.split(':').map(Number);
-    return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+  const handleAddMeeting = () => {
+    alert('Add Meeting feature coming soon!');
   };
 
   return (
@@ -311,105 +234,10 @@ const SmeDashboard = () => {
             Add Meeting
           </button>
         </div>
-        {!meetings ? (
-          <p className="muted">Loading…</p>
-        ) : activeMeetings.length === 0 ? (
-          <p className="muted">No meetings scheduled yet.</p>
-        ) : (
-          <div className="meeting-list">
-            {activeMeetings.map((m) => (
-              <div
-                className="meeting-item clickable"
-                key={m.id}
-                role="button"
-                tabIndex={0}
-                title="Click to view details or add attendees"
-                onClick={() => setDetailId(m.id)}
-                onKeyDown={(e) => {
-                  if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
-                    e.preventDefault();
-                    setDetailId(m.id);
-                  }
-                }}
-              >
-                <div className="meeting-item-top">
-                  <div className="meeting-item-main">
-                    <span className="meeting-company">{m.company.name}</span>
-                    {m.priority && (
-                      <span className={`prio-pill ${m.priority}`} title="Scheduled from the previous meeting's MOM">
-                        <Flag size={11} /> {m.priority}
-                      </span>
-                    )}
-                    <h3 className="meeting-title">{m.subject}</h3>
-                  </div>
-                  <div className="meeting-item-when">
-                    <span>{fmtDay(m.date)}</span>
-                    <span>{fmtTime(m.time)}</span>
-                  </div>
-                </div>
-
-                <div className="meeting-item-bottom">
-                  <button
-                    type="button"
-                    className="join-now-btn"
-                    disabled={!hasStarted(m) || joiningIds.includes(m.id)}
-                    title={hasStarted(m) ? 'Join the meeting' : `Available from ${fmtDay(m.date)}, ${fmtTime(m.time)}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleJoin(m);
-                    }}
-                  >
-                    <Video size={15} /> Join Now
-                  </button>
-
-                  {m.joined && (
-                    <button
-                      type="button"
-                      className={`send-mom-btn ${m.mom ? m.mom.status : ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMomMeeting(m);
-                      }}
-                      title={MOM_BTN[m.mom?.status || 'none'].title}
-                    >
-                      {MOM_BTN[m.mom?.status || 'none'].icon}
-                      {MOM_BTN[m.mom?.status || 'none'].label}
-                    </button>
-                  )}
-
-                  <div className="avatar-stack" aria-label="Attendees">
-                    {m.attendees.slice(0, MAX_AVATARS).map((a, i) => (
-                      <span
-                        key={`${a.name}-${i}`}
-                        className="avatar"
-                        style={{ background: avatarColor(a.name) }}
-                        title={a.designation ? `${a.name} — ${a.designation}` : a.name}
-                      >
-                        {initials(a.name)}
-                      </span>
-                    ))}
-                    {m.attendees.length > MAX_AVATARS && (
-                      <span className="avatar avatar-more" title={m.attendees.slice(MAX_AVATARS).map((a) => a.name).join(', ')}>
-                        +{m.attendees.length - MAX_AVATARS}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <p className="muted">No meetings scheduled yet.</p>
       </div>
 
       </div>
-
-      {showMeetingModal && (
-        <AddMeetingModal companies={companies} onSaved={onMeetingSaved} onClose={() => setShowMeetingModal(false)} />
-      )}
-
-      {detailMeeting && <MeetingDetailsModal meeting={detailMeeting} onUpdated={onMeetingUpdated} onClose={() => setDetailId(null)} />}
-
-      {momMeeting && <SendMomModal meeting={momMeeting} onSaved={onMomSaved} onClose={() => setMomMeeting(null)} />}
 
       {/* Task Manager */}
 
