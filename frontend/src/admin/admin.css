@@ -356,3 +356,27 @@
 @media (max-width: 600px) {
   .admin-grid-2 { grid-template-columns: 1fr; }
 }
+
+.admin-field select { width: 100%; box-sizing: border-box; padding: 10px 12px; font: inherit; font-size: 16px; color: var(--text-h); background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; }
+.admin-field select:focus { outline: none; border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-bg); }
+
+/* ---------- Users ---------- */
+.chip { display: inline-block; margin: 2px 4px 2px 0; padding: 2px 10px; font-size: 12px; color: var(--accent); background: var(--accent-bg); border-radius: 999px; white-space: nowrap; }
+.users-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.users-search { flex: 1; min-width: 220px; max-width: 360px; box-sizing: border-box; padding: 10px 12px; font: inherit; font-size: 15px; color: var(--text-h); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+.users-search:focus { outline: none; border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-bg); }
+.users-wrap { padding: 0; overflow-x: auto; }
+.users-table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
+.users-table th { padding: 12px 14px; font-size: 13px; color: var(--text-h); background: var(--bg-soft); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.users-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.users-table tbody tr:last-child td { border-bottom: 0; }
+.users-table tr.inactive td { opacity: 0.65; }
+.users-disabled { margin-left: 8px; }
+.users-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.users-actions .sop-btn { padding: 6px 10px; font-size: 13px; margin-left: 0 !important; }
+.users-credentials { margin-bottom: 20px; border-color: #2fa36b; background: #f1fbf5; }
+.users-credentials dl, .sme-profile { margin: 12px 0 0; display: grid; gap: 10px; }
+.users-credentials dt, .sme-profile dt { font-size: 12px; opacity: 0.8; }
+.users-credentials dd, .sme-profile dd { margin: 2px 0 0; color: var(--text-h); }
+.users-credentials code { font-size: 15px; }
+.sme-profile { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }

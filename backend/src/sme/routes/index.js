@@ -1,6 +1,5 @@
 import { Router } from 'express';
-import rateLimit from 'express-rate-limit';
-import { register, me, updateAvatar } from '../controllers/auth.controller.js';
+import { me, updateAvatar } from '../controllers/auth.controller.js';
 import {
   listMySops,
   createMySop,
@@ -11,13 +10,7 @@ import { protectSme } from '../middleware/auth.js';
 
 const router = Router();
 
-const registerLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  message: { message: 'Too many attempts, try again later' },
-});
-
-router.post('/auth/register', registerLimiter, register);
+// No self-registration: admins create these accounts from the Users page.
 router.get('/auth/me', protectSme, me);
 router.put('/auth/avatar', protectSme, updateAvatar);
 

@@ -25,12 +25,6 @@ export function AdminAuthProvider({ children }) {
     };
   }, [token]);
 
-  const saveSession = ({ token: newToken, admin: newAdmin }) => {
-    localStorage.setItem(TOKEN_KEY, newToken);
-    setAdmin(newAdmin);
-    setToken(newToken);
-  };
-
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
@@ -38,7 +32,7 @@ export function AdminAuthProvider({ children }) {
   };
 
   return (
-    <AdminAuthContext.Provider value={{ admin, token, loading, saveSession, logout, setAdmin }}>
+    <AdminAuthContext.Provider value={{ admin, token, loading, logout, setAdmin }}>
       {children}
     </AdminAuthContext.Provider>
   );

@@ -29,7 +29,7 @@ export const createMySop = async (req, res, next) => {
     }
     const sop = await Sop.create({
       title,
-      department: department?.trim() || req.sme.department,
+      department: department?.trim() || '',
       description,
       content,
       submittedBy: req.sme.name,

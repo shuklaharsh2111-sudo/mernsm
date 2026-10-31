@@ -1,9 +1,9 @@
 # mernsm – Admin auth
 
 ## Setup
-1. Backend: `cd backend && cp .env.example .env` → fill in `MONGO_URI`, `JWT_SECRET`, `ADMIN_SECRET_CODE`, then `npm install && npm run dev`
+1. Backend: `cd backend && cp .env.example .env` -> fill in `MONGO_URI`, `JWT_SECRET`, and `ADMIN_EMAIL` / `ADMIN_PASSWORD` (creates the first admin on first start), then `npm install && npm run dev`
 2. Frontend: `cd frontend && npm install && npm run dev`
-3. Open http://localhost:5173/admin/register (use your `ADMIN_SECRET_CODE`), then /admin/login
+3. Open http://localhost:5173/login and sign in with the admin email + password
 
 ## Structure
 backend/server.js
@@ -13,9 +13,9 @@ backend/src/admin/                  everything admin
 frontend/src/admin/                 everything admin (UI)
   api/ context/ components/ pages/ AdminRoutes.jsx admin.css
 
-## SME dashboard
-- Register as SME: http://localhost:5173/sme/register (no admin code)
-- One shared login for both roles: http://localhost:5173/login (admin -> /admin/dashboard, SME -> /sme/dashboard)
-- backend/src/sme/ (models, controllers, routes, middleware) and backend/src/auth/ (shared login)
-- frontend/src/sme/ (SME UI) and frontend/src/auth/ (shared login page)
-- SMEs write SOPs; admins review them under /admin/sops (approve / reject / redo with a reason)
+## Users & login
+- There is no register page. One login for everyone: http://localhost:5173/login (email or User ID + password)
+- The first admin is created from ADMIN_EMAIL / ADMIN_PASSWORD in backend/.env when the database has no admin
+- Admins add users under Admin > Users (Full Name, Reporting Manager, Contact, Email, Role, Assigned Companies); each gets an auto User ID (USR-0001...) and a generated temporary password shown once
+- Users log in at /login and land on their own dashboard (SME -> /sme/dashboard, where they write SOPs); admins review SOPs under Admin > SOP Review
+- backend/src/admin/ (models/User.js, controllers/users.controller.js), backend/src/sme/, backend/src/auth/, backend/src/config/seedAdmin.js
