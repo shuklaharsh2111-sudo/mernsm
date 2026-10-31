@@ -23,3 +23,13 @@ export const createMySop = (token, body) => request('/sops', { method: 'POST', b
 export const updateMySop = (token, id, body) =>
   request(`/sops/${id}`, { method: 'PUT', body, token });
 export const withdrawMySop = (token, id) => request(`/sops/${id}`, { method: 'DELETE', token });
+<<<<<<< HEAD
+
+export const getMyCompanies = (token) => request('/companies', { token });
+=======
+<<<<<<< HEAD
+
+export const getMyCompanies = (token) => request('/companies', { token });
+=======
+>>>>>>> adc7900227aadaf9e0a6f9f972499593c8ff0896
+>>>>>>> c86954fd1b281ba1f0f38af41524f26256ebf5f0
