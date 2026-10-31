@@ -14,8 +14,34 @@ const request = async (path, { method = 'GET', body, token } = {}) => {
   return data;
 };
 
-export const registerAdmin = (body) => request('/auth/register', { method: 'POST', body });
-export const loginAdmin = (body) => request('/auth/login', { method: 'POST', body });
 export const getMe = (token) => request('/auth/me', { token });
 export const updateAvatar = (token, avatar) =>
   request('/auth/avatar', { method: 'PUT', body: { avatar }, token });
+
+// ---------- SOPs ----------
+export const getSops = (token, status) =>
+  request(`/sops${status && status !== 'all' ? `?status=${status}` : ''}`, { token });
+export const createSop = (token, body) => request('/sops', { method: 'POST', body, token });
+export const updateSop = (token, id, body) =>
+  request(`/sops/${id}`, { method: 'PUT', body, token });
+export const reviewSop = (token, id, body) =>
+  request(`/sops/${id}/review`, { method: 'PATCH', body, token });
+export const deleteSop = (token, id) => request(`/sops/${id}`, { method: 'DELETE', token });
+
+// ---------- Users ----------
+export const getUsers = (token) => request('/users', { token });
+export const createUser = (token, body) => request('/users', { method: 'POST', body, token });
+export const updateUser = (token, id, body) =>
+  request(`/users/${id}`, { method: 'PUT', body, token });
+export const resetUserPassword = (token, id) =>
+  request(`/users/${id}/reset-password`, { method: 'POST', token });
+export const setUserActive = (token, id, active) =>
+  request(`/users/${id}/active`, { method: 'PATCH', body: { active }, token });
+export const deleteUser = (token, id) => request(`/users/${id}`, { method: 'DELETE', token });
+
+// ---------- Companies ----------
+export const getCompanies = (token) => request('/companies', { token });
+export const createCompany = (token, body) => request('/companies', { method: 'POST', body, token });
+export const updateCompany = (token, id, body) =>
+  request(`/companies/${id}`, { method: 'PUT', body, token });
+export const deleteCompany = (token, id) => request(`/companies/${id}`, { method: 'DELETE', token });
