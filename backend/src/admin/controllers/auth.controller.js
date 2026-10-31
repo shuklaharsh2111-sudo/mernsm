@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import Admin from '../models/Admin.js';
 import { signToken } from '../utils/token.js';
 import { isValidAdminCode } from '../utils/adminCode.js';
+import Sme from '../../sme/models/Sme.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -30,9 +31,11 @@ export const register = async (req, res, next) => {
       return res.status(403).json({ message: 'Invalid admin code' });
     }
 
-    const exists = await Admin.findOne({ email: email.toLowerCase() });
+    const exists =
+      (await Admin.findOne({ email: email.toLowerCase() })) ||
+      (await Sme.findOne({ email: email.toLowerCase() }));
     if (exists) {
-      return res.status(409).json({ message: 'An admin with this email already exists' });
+      return res.status(409).json({ message: 'An account with this email already exists' });
     }
 
     const hashed = await bcrypt.hash(password, 12);
