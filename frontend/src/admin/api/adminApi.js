@@ -19,3 +19,13 @@ export const loginAdmin = (body) => request('/auth/login', { method: 'POST', bod
 export const getMe = (token) => request('/auth/me', { token });
 export const updateAvatar = (token, avatar) =>
   request('/auth/avatar', { method: 'PUT', body: { avatar }, token });
+
+// ---------- SOPs ----------
+export const getSops = (token, status) =>
+  request(`/sops${status && status !== 'all' ? `?status=${status}` : ''}`, { token });
+export const createSop = (token, body) => request('/sops', { method: 'POST', body, token });
+export const updateSop = (token, id, body) =>
+  request(`/sops/${id}`, { method: 'PUT', body, token });
+export const reviewSop = (token, id, body) =>
+  request(`/sops/${id}/review`, { method: 'PATCH', body, token });
+export const deleteSop = (token, id) => request(`/sops/${id}`, { method: 'DELETE', token });

@@ -12,3 +12,10 @@ backend/src/admin/                  everything admin
   models/ controllers/ routes/ middleware/ utils/
 frontend/src/admin/                 everything admin (UI)
   api/ context/ components/ pages/ AdminRoutes.jsx admin.css
+
+## SME dashboard
+- Register as SME: http://localhost:5173/sme/register (no admin code)
+- One shared login for both roles: http://localhost:5173/login (admin -> /admin/dashboard, SME -> /sme/dashboard)
+- backend/src/sme/ (models, controllers, routes, middleware) and backend/src/auth/ (shared login)
+- frontend/src/sme/ (SME UI) and frontend/src/auth/ (shared login page)
+- SMEs write SOPs; admins review them under /admin/sops (approve / reject / redo with a reason)
