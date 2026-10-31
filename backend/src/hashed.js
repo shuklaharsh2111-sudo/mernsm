@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 
-const password = 'mithilesh123';
+const password = 'yourpswd';
 
 const hashedPassword = await bcrypt.hash(password, 10);
 

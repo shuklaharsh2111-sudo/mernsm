@@ -1,3 +1,8 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -37,6 +42,24 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/sme', smeRoutes);
+// Serve React frontend
+app.use(express.static(frontendDistPath));
+// React Router fallback
+app.use((req, res, next) => {
+  if (
+    req.method !== 'GET' ||
+    req.path === '/api' ||
+    req.path.startsWith('/api/')
+  ) {
+    return next();
+  }
+  res.sendFile(
+    path.join(frontendDistPath, 'index.html'),
+    (err) => {
+      if (err) next(err);
+    }
+  );
+});
 // 404 Handler
 app.use((req, res) => {
   res.status(404).json({
