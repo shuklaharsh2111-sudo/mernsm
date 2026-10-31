@@ -15,8 +15,10 @@ import Sidebar from './Sidebar';
 import AdminDashboard from './admin/AdminDashboard';
 import AdminUsers from './admin/AdminUsers';
 import AdminCompanies from './admin/AdminCompanies';
+import AdminMeetings from './admin/AdminMeetings';
 import SmeDashboard from './sme/SmeDashboard';
 import SmeSaved from './sme/SmeSaved';
+import SmeRecords from './sme/SmeRecords';
 
 const ProtectedRoute = ({ role }) => {
   const { user, loading } = useAuth();
@@ -77,6 +79,7 @@ const AppRoutes = () => {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/companies" element={<AdminCompanies />} />
+          <Route path="/admin/meetings" element={<AdminMeetings />} />
         </Route>
       </Route>
 
@@ -84,6 +87,7 @@ const AppRoutes = () => {
         <Route element={<DashboardLayout />}>
           <Route path="/sme" element={<SmeDashboard />} />
           <Route path="/sme/saved" element={<SmeSaved />} />
+          <Route path="/sme/records" element={<SmeRecords />} />
         </Route>
       </Route>
 

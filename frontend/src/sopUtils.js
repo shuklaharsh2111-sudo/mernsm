@@ -53,3 +53,10 @@ export const periodLabel = (type, key) => {
   }
   return fmtDay(key);
 };
+
+// 'HH:mm' -> '2:30 pm'
+export const fmtClock = (t) => {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+};
