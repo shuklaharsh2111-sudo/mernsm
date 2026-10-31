@@ -6,9 +6,6 @@ import { PERIOD_WORD, SOP_TYPES, errMsg, fmtDay, todayStr, typeLabel } from '../
 import "../style.css";
 import "../styles/smedashboard.css";
 import {
-  LayoutDashboard,
-  Briefcase,
-  Activity,
   Clock3,
   ListTodo,
   Plus,
@@ -134,6 +131,10 @@ const SmeDashboard = () => {
     alert('Add New Task feature coming soon!');
   };
 
+  const handleAddMeeting = () => {
+    alert('Add Meeting feature coming soon!');
+  };
+
   return (
     <div className="dashboard-content scrollable">
 
@@ -181,38 +182,7 @@ const SmeDashboard = () => {
 
       {error && <p className="error-message" role="alert">{error}</p>}
 
-      {/* Statistics */}
-
-      <div className="stats-grid">
-
-        <div className="stat-card">
-          <div className="stat-icon purple">
-            <LayoutDashboard />
-          </div>
-
-          <span>Dashboard</span>
-          <h2>SME</h2>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon blue">
-            <Briefcase />
-          </div>
-
-          <span>Workspace</span>
-          <h2>Active</h2>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon green">
-            <Activity />
-          </div>
-
-          <span>Account Status</span>
-          <h2>Active</h2>
-        </div>
-
-      </div>
+      <div className="sop-meeting-row">
 
       {/* SOPs assigned by the admin: tick to save */}
       <div className="glass-panel sop-panel">
@@ -255,15 +225,18 @@ const SmeDashboard = () => {
         )}
       </div>
 
-      {/* Welcome Card */}
+      {/* Meetings */}
+      <div className="glass-panel meeting-panel">
+        <div className="meeting-header">
+          <h2>Meetings</h2>
+          <button type="button" className="add-meeting-btn" onClick={handleAddMeeting}>
+            <Plus size={16} />
+            Add Meeting
+          </button>
+        </div>
+        <p className="muted">No meetings scheduled yet.</p>
+      </div>
 
-      <div className="welcome-card">
-        <h2>SME Dashboard</h2>
-
-        <p>
-          Your SME workspace is ready.
-          Your future modules will be added here.
-        </p>
       </div>
 
       {/* Task Manager */}
