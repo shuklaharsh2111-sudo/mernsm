@@ -1,0 +1,188 @@
+
+/* =================================
+   SME TASK MANAGER
+   Dark Purple / Indigo Theme
+================================= */
+
+.sme-task-manager {
+  width: 100%;
+  margin-top: 24px;
+  padding: 22px;
+  background: linear-gradient(145deg, #17152a, #211c3b);
+  border: 1px solid rgba(151, 130, 255, 0.16);
+  border-radius: 16px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+}
+
+.sme-task-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.sme-task-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.sme-task-heading-icon {
+  width: 43px;
+  height: 43px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: #b5a4ff;
+  background: rgba(129, 100, 255, 0.17);
+  border: 1px solid rgba(151, 130, 255, 0.15);
+}
+
+.sme-task-heading h2 {
+  margin: 0 0 5px;
+  color: #f4f1ff;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.sme-task-heading p {
+  margin: 0;
+  color: #a49fbd;
+  font-size: 12px;
+}
+
+/* Grid */
+
+.sme-task-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+}
+
+/* Cards */
+
+.sme-task-card {
+  min-width: 0;
+  min-height: 145px;
+  padding: 17px;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(171, 157, 255, 0.13);
+  border-radius: 13px;
+  transition: all 0.25s ease;
+}
+
+.sme-task-card:hover {
+  transform: translateY(-4px);
+  background: rgba(129, 100, 255, 0.09);
+  border-color: rgba(151, 130, 255, 0.38);
+  box-shadow: 0 9px 22px rgba(0, 0, 0, 0.17);
+}
+
+.sme-task-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sme-task-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+}
+
+.sme-task-icon.purple {
+  color: #b29aff;
+  background: rgba(139, 92, 246, 0.17);
+}
+
+.sme-task-icon.blue {
+  color: #75baff;
+  background: rgba(59, 130, 246, 0.16);
+}
+
+.sme-task-icon.orange {
+  color: #ffbd75;
+  background: rgba(249, 115, 22, 0.15);
+}
+
+.sme-task-icon.green {
+  color: #65dda1;
+  background: rgba(34, 197, 94, 0.15);
+}
+
+/* Add Button */
+
+.sme-add-task-btn {
+  width: 33px;
+  height: 33px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(181, 164, 255, 0.25);
+  border-radius: 9px;
+  color: #ffffff;
+  background: #7658db;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.sme-add-task-btn:hover {
+  background: #8a6bed;
+  transform: scale(1.08);
+}
+
+/* Task Information */
+
+.sme-task-info {
+  margin-top: 14px;
+}
+
+.sme-task-info h3 {
+  margin: 0 0 4px;
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 750;
+}
+
+.sme-task-info h4 {
+  margin: 0 0 6px;
+  color: #e8e3ff;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.sme-task-info p {
+  margin: 0;
+  color: #9994b2;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* Responsive */
+
+@media (max-width: 1100px) {
+  .sme-task-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .sme-task-manager {
+    padding: 15px;
+  }
+
+  .sme-task-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .sme-task-card {
+    min-height: 130px;
+  }
+}

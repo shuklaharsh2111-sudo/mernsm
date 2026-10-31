@@ -1,13 +1,21 @@
 
 import { useAuth } from '../AuthContext';
 import { useEffect, useState } from 'react';
-import "../style.css";
+
 import {
   LayoutDashboard,
   Briefcase,
   Activity,
-  Clock3
+  Clock3,
+  ListTodo,
+  Plus,
+  BriefcaseBusiness,
+  Repeat,
+  CheckCircle2
 } from 'lucide-react';
+
+import '../style.css';
+import '../styles/smedashboard.css';
 
 const SmeDashboard = () => {
   const { user } = useAuth();
@@ -45,10 +53,46 @@ const SmeDashboard = () => {
     hour12: true
   });
 
-  return (
-    <div className="dashboard-content">
+  const taskCategories = [
+    {
+      title: 'New Tasks',
+      count: '00',
+      icon: ListTodo,
+      color: 'purple',
+      description: 'Tasks waiting to be assigned'
+    },
+    {
+      title: 'Work In Progress',
+      count: '00',
+      icon: BriefcaseBusiness,
+      color: 'blue',
+      description: 'Currently ongoing tasks'
+    },
+    {
+      title: 'Recurring Tasks',
+      count: '00',
+      icon: Repeat,
+      color: 'orange',
+      description: 'Regularly scheduled tasks'
+    },
+    {
+      title: 'Completed Tasks',
+      count: '00',
+      icon: CheckCircle2,
+      color: 'green',
+      description: 'Successfully completed tasks'
+    }
+  ];
 
-      {/* Dashboard Top Header */}
+  const handleAddTask = () => {
+    alert('Add New Task feature coming soon!');
+  };
+
+  return (
+    <div className="dashboard-content sme-dashboard-content">
+
+      {/* Dashboard Header */}
+
       <div className="dashboard-topbar">
 
         <div className="dashboard-greeting">
@@ -85,6 +129,7 @@ const SmeDashboard = () => {
       </div>
 
       {/* Statistics */}
+
       <div className="stats-grid">
 
         <div className="stat-card">
@@ -117,6 +162,7 @@ const SmeDashboard = () => {
       </div>
 
       {/* Welcome Card */}
+
       <div className="welcome-card">
         <h2>SME Dashboard</h2>
 
@@ -125,6 +171,68 @@ const SmeDashboard = () => {
           Your future modules will be added here.
         </p>
       </div>
+
+      {/* Task Manager */}
+
+      <section className="sme-task-manager">
+
+        <div className="sme-task-header">
+
+          <div className="sme-task-heading">
+
+            <div className="sme-task-heading-icon">
+              <ListTodo size={21} />
+            </div>
+
+            <div>
+              <h2>Task Manager</h2>
+              <p>Manage and track your team's tasks.</p>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div className="sme-task-grid">
+
+          {taskCategories.map((task, index) => {
+            const Icon = task.icon;
+
+            return (
+              <div className="sme-task-card" key={task.title}>
+
+                <div className="sme-task-card-top">
+
+                  <div className={`sme-task-icon ${task.color}`}>
+                    <Icon size={21} />
+                  </div>
+
+                  {index === 0 && (
+                    <button
+                      type="button"
+                      className="sme-add-task-btn"
+                      onClick={handleAddTask}
+                      title="Add New Task"
+                    >
+                      <Plus size={19} />
+                    </button>
+                  )}
+
+                </div>
+
+                <div className="sme-task-info">
+                  <h3>{task.count}</h3>
+                  <h4>{task.title}</h4>
+                  <p>{task.description}</p>
+                </div>
+
+              </div>
+            );
+          })}
+
+        </div>
+
+      </section>
 
     </div>
   );

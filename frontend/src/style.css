@@ -1070,3 +1070,58 @@ body {
     font-size: 14px;
   }
 }
+
+/* =================================
+   MAIN CONTENT SCROLL FIX
+================================= */
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  overflow-x: hidden;
+  overflow-y: auto !important;
+}
+
+/* Dashboard content */
+
+.dashboard-content {
+  min-height: 100%;
+  height: auto;
+  overflow: visible;
+  padding-bottom: 30px;
+  box-sizing: border-box;
+}
+
+/* Common dashboard main wrappers */
+
+.main-content,
+.main-content-wrapper,
+.dashboard-main,
+.content-area {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #7860bd #17152a;
+}
+
+/* Chrome / Edge scrollbar */
+
+.main-content::-webkit-scrollbar,
+.main-content-wrapper::-webkit-scrollbar,
+.dashboard-main::-webkit-scrollbar,
+.content-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.main-content::-webkit-scrollbar-thumb,
+.main-content-wrapper::-webkit-scrollbar-thumb,
+.dashboard-main::-webkit-scrollbar-thumb,
+.content-area::-webkit-scrollbar-thumb {
+  background: #7860bd;
+  border-radius: 10px;
+}
