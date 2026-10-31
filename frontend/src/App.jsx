@@ -13,7 +13,10 @@ import Login from './Login';
 import Sidebar from './Sidebar';
 
 import AdminDashboard from './admin/AdminDashboard';
+import AdminUsers from './admin/AdminUsers';
+import AdminCompanies from './admin/AdminCompanies';
 import SmeDashboard from './sme/SmeDashboard';
+import SmeSaved from './sme/SmeSaved';
 
 const ProtectedRoute = ({ role }) => {
   const { user, loading } = useAuth();
@@ -72,12 +75,15 @@ const AppRoutes = () => {
       <Route element={<ProtectedRoute role="admin" />}>
         <Route element={<DashboardLayout />}>
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/companies" element={<AdminCompanies />} />
         </Route>
       </Route>
 
       <Route element={<ProtectedRoute role="sme" />}>
         <Route element={<DashboardLayout />}>
           <Route path="/sme" element={<SmeDashboard />} />
+          <Route path="/sme/saved" element={<SmeSaved />} />
         </Route>
       </Route>
 

@@ -22,6 +22,7 @@ const smeSchema = new mongoose.Schema(
       default: ''
     },
     profileImage: String,
+    companies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Company' }],
     role: {
       type: String,
       default: 'sme'
