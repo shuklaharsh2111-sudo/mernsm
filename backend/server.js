@@ -5,6 +5,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';
 import authRoutes, { protect } from './auth.js';
+import adminRoutes from './admin/adminRoutes.js';
+import smeRoutes from './sme/smeRoutes.js';
 dotenv.config();
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -23,6 +25,8 @@ app.get('/api/health', (req, res) => {
     });
 });
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/sme', smeRoutes);
 // ROLE PROTECTED EXAMPLE ROUTES
 app.get(
     '/api/admin/dashboard',
