@@ -16,10 +16,7 @@ const sopSchema = new mongoose.Schema(
     description: { type: String, default: '', trim: true, maxlength: 500 },
     content: { type: String, required: true, trim: true, maxlength: 20000 },
     submittedBy: { type: String, default: '', trim: true, maxlength: 80 },
-<<<<<<< HEAD
-=======
     submittedById: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
->>>>>>> 76349f266a7448cb76e45c91a353b5745cbf3f2e
     status: { type: String, enum: SOP_STATUSES, default: 'pending', index: true },
     // Why the SOP was rejected / sent back for redo (or an optional approval note)
     reviewReason: { type: String, default: '', trim: true, maxlength: 1000 },
