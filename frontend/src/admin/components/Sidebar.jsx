@@ -3,25 +3,7 @@ import { NavLink } from 'react-router-dom';
 import Avatar from './Avatar';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { updateAvatar } from '../api/adminApi';
-
-// Resize to a small square JPEG so it stays light in MongoDB.
-const toAvatarDataUrl = (file, size = 256) =>
-  new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = size;
-      const side = Math.min(img.width, img.height);
-      const sx = (img.width - side) / 2;
-      const sy = (img.height - side) / 2;
-      canvas.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, size, size);
-      URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL('image/jpeg', 0.85));
-    };
-    img.onerror = () => reject(new Error('Could not read that image'));
-    img.src = url;
-  });
+import { toAvatarDataUrl } from '../../shared/avatar';
 
 export default function Sidebar() {
   const { admin, token, setAdmin, logout } = useAdminAuth();
@@ -62,6 +44,9 @@ export default function Sidebar() {
 
       <nav className="admin-nav">
         <NavLink to="/admin/dashboard">Dashboard</NavLink>
+        <NavLink to="/admin/companies">Companies</NavLink>
+        <NavLink to="/admin/users">Users</NavLink>
+        <NavLink to="/admin/sops">SOP Review</NavLink>
       </nav>
 
       <button type="button" className="admin-logout" onClick={logout}>

@@ -34,7 +34,7 @@ export default function AdminRegister() {
     <AuthCard
       title="Admin register"
       subtitle="Only people with the admin code can create an account"
-      footer={<>Already an admin? <Link to="/admin/login">Login</Link></>}
+      footer={<>Already an admin? <Link to="/login">Login</Link></>}
     >
       <form onSubmit={onSubmit}>
         <Field label="Name" name="name" value={form.name} onChange={onChange} required autoComplete="name" />
