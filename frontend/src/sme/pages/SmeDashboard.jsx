@@ -29,10 +29,19 @@ export default function SmeDashboard() {
 
       <div className="admin-panel">
         <h2>Welcome, {sme.name}</h2>
-        <p>
-          {sme.department}
-          {sme.expertise && <> · {sme.expertise}</>}
-        </p>
+        <p>{sme.roleLabel} · User ID <code>{sme.userId}</code></p>
+        <dl className="sme-profile">
+          <div><dt>Reporting manager</dt><dd>{sme.reportingManager || '—'}</dd></div>
+          <div><dt>Contact</dt><dd>{sme.contact}</dd></div>
+          <div>
+            <dt>Assigned companies</dt>
+            <dd>
+              {sme.assignedCompanies?.length
+                ? sme.assignedCompanies.map((c) => <span key={c} className="chip">{c}</span>)
+                : '—'}
+            </dd>
+          </div>
+        </dl>
       </div>
 
       {error && <p className="admin-error" role="alert">{error}</p>}

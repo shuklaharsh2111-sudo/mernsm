@@ -2,7 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import Admin from '../admin/models/Admin.js';
-import Sme from '../sme/models/Sme.js';
+import User from '../admin/models/User.js';
 import { signToken } from '../admin/utils/token.js';
 import { signSmeToken } from '../sme/utils/token.js';
 import { publicSme } from '../sme/controllers/auth.controller.js';
@@ -15,14 +15,15 @@ const loginLimiter = rateLimit({
   message: { message: 'Too many attempts, try again later' },
 });
 
-// One login for every role. The account decides where the user lands.
+// One login for everyone. Admins sign in with email; users with email or User ID.
 router.post('/login', loginLimiter, async (req, res, next) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password are required' });
+    const identifier = String(req.body.identifier ?? req.body.email ?? '').trim();
+    const { password } = req.body;
+    if (!identifier || !password) {
+      return res.status(400).json({ message: 'Email / User ID and password are required' });
     }
-    const lower = String(email).toLowerCase();
+    const lower = identifier.toLowerCase();
 
     const admin = await Admin.findOne({ email: lower }).select('+password');
     if (admin && (await bcrypt.compare(password, admin.password))) {
@@ -33,12 +34,17 @@ router.post('/login', loginLimiter, async (req, res, next) => {
       });
     }
 
-    const sme = await Sme.findOne({ email: lower }).select('+password');
-    if (sme && (await bcrypt.compare(password, sme.password))) {
-      return res.json({ token: signSmeToken(sme._id), role: 'sme', user: publicSme(sme) });
+    const user = await User.findOne({
+      $or: [{ email: lower }, { userId: identifier.toUpperCase() }],
+    }).select('+password');
+    if (user && (await bcrypt.compare(password, user.password))) {
+      if (!user.active) {
+        return res.status(403).json({ message: 'Your account is disabled. Contact your admin.' });
+      }
+      return res.json({ token: signSmeToken(user._id), role: user.role, user: publicSme(user) });
     }
 
-    res.status(401).json({ message: 'Invalid email or password' });
+    res.status(401).json({ message: 'Invalid credentials' });
   } catch (err) {
     next(err);
   }
