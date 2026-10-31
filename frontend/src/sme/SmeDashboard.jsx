@@ -1,33 +1,97 @@
 
 import { useAuth } from '../AuthContext';
+import { useEffect, useState } from 'react';
+import "../style.css";
 import {
   LayoutDashboard,
   Briefcase,
-  Activity
+  Activity,
+  Clock3
 } from 'lucide-react';
 
 const SmeDashboard = () => {
   const { user } = useAuth();
 
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDate(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const hour = currentDate.getHours();
+
+  const greeting =
+    hour < 12
+      ? 'Good Morning'
+      : hour < 17
+      ? 'Good Afternoon'
+      : 'Good Evening';
+
+  const formattedDate = currentDate.toLocaleDateString('en-IN', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  const formattedTime = currentDate.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+
   return (
     <div className="dashboard-content">
 
-      <div className="page-header">
-        <div>
+      {/* Dashboard Top Header */}
+      <div className="dashboard-topbar">
+
+        <div className="dashboard-greeting">
           <span className="page-label">SME WORKSPACE</span>
-          <h1>Welcome, {user?.name}</h1>
-          <p>Manage your assigned work and activities.</p>
+
+          <h1>
+            {greeting}, {user?.name || 'User'}!
+          </h1>
+
+          <p>Welcome back! Here's your workspace overview.</p>
         </div>
 
-        <span className="header-role sme-role">SME</span>
+        <div className="dashboard-live-clock">
+
+          <div className="live-date">
+            {formattedDate}
+          </div>
+
+          <div className="live-time-row">
+            <Clock3 size={17} />
+
+            <span className="live-time">
+              {formattedTime}
+            </span>
+
+            <span className="live-indicator">
+              <span className="live-dot"></span>
+              LIVE
+            </span>
+          </div>
+
+        </div>
+
       </div>
 
+      {/* Statistics */}
       <div className="stats-grid">
 
         <div className="stat-card">
           <div className="stat-icon purple">
             <LayoutDashboard />
           </div>
+
           <span>Dashboard</span>
           <h2>SME</h2>
         </div>
@@ -36,6 +100,7 @@ const SmeDashboard = () => {
           <div className="stat-icon blue">
             <Briefcase />
           </div>
+
           <span>Workspace</span>
           <h2>Active</h2>
         </div>
@@ -44,14 +109,17 @@ const SmeDashboard = () => {
           <div className="stat-icon green">
             <Activity />
           </div>
+
           <span>Account Status</span>
           <h2>Active</h2>
         </div>
 
       </div>
 
+      {/* Welcome Card */}
       <div className="welcome-card">
         <h2>SME Dashboard</h2>
+
         <p>
           Your SME workspace is ready.
           Your future modules will be added here.
