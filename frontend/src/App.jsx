@@ -1,19 +1,126 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import AdminRoutes from './admin/AdminRoutes'
-import SmeRoutes from './sme/SmeRoutes'
-import Login from './auth/Login'
 
-function App() {
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet
+} from 'react-router-dom';
+
+import { AuthProvider, useAuth } from './AuthContext';
+
+import Login from './Login';
+import Sidebar from './Sidebar';
+
+import AdminDashboard from './admin/AdminDashboard';
+import SmeDashboard from './sme/SmeDashboard';
+
+const ProtectedRoute = ({ role }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="loading-screen">Loading...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role !== role) {
+    return (
+      <Navigate
+        to={user.role === 'admin' ? '/admin' : '/sme'}
+        replace
+      />
+    );
+  }
+
+  return <Outlet />;
+};
+
+const DashboardLayout = () => {
+  return (
+    <div className="dashboard-layout">
+      <Sidebar />
+
+      <main className="main-content">
+        <Outlet />
+      </main>
+    </div>
+  );
+};
+
+const AppRoutes = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="loading-screen">Loading...</div>;
+  }
+
+  return (
+    <Routes>
+
+      <Route
+        path="/login"
+        element={
+          user
+            ? <Navigate to={user.role === 'admin' ? '/admin' : '/sme'} replace />
+            : <Login />
+        }
+      />
+
+      <Route element={<ProtectedRoute role="admin" />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/admin" element={<AdminDashboard />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute role="sme" />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/sme" element={<SmeDashboard />} />
+        </Route>
+      </Route>
+
+      <Route
+        path="/"
+        element={
+          <Navigate
+            to={
+              user
+                ? user.role === 'admin' ? '/admin' : '/sme'
+                : '/login'
+            }
+            replace
+          />
+        }
+      />
+
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to={
+              user
+                ? user.role === 'admin' ? '/admin' : '/sme'
+                : '/login'
+            }
+            replace
+          />
+        }
+      />
+
+    </Routes>
+  );
+};
+
+const App = () => {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/admin/*" element={<AdminRoutes />} />
-        <Route path="/sme/*" element={<SmeRoutes />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
     </BrowserRouter>
-  )
-}
+  );
+};
 
-export default App
+export default App;

@@ -1,90 +1,69 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import connectDB from './config/db.js';
+import authRoutes, { protect } from './auth.js';
+dotenv.config();
+const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
-import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
-import connectDB from './src/config/db.js';
-import seedAdmin from './src/config/seedAdmin.js';
-import adminRoutes from './src/admin/routes/index.js';
-import smeRoutes from './src/sme/routes/index.js';
-import authRoutes from './src/auth/auth.routes.js';
-const required = ['MONGO_URI', 'JWT_SECRET'];
-const missing = required.filter((key) => !process.env[key]);
-if (missing.length) {
-  console.error(`Missing environment variables: ${missing.join(', ')}`);
-  process.exit(1);
-}
-const app = express();
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173'
-}));
-app.use(express.json({ limit: '200kb' }));
-// Root Route
-app.get('/', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'MERN Backend is running successfully!',
-    status: 'Live'
-  });
-});
-// Health Check
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    status: 'ok',
-    message: 'Server is healthy'
-  });
-});
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/sme', smeRoutes);
-// Serve React frontend
-app.use(express.static(frontendDistPath));
-// React Router fallback
-app.use((req, res, next) => {
-  if (
-    req.method !== 'GET' ||
-    req.path === '/api' ||
-    req.path.startsWith('/api/')
-  ) {
-    return next();
-  }
-  res.sendFile(
-    path.join(frontendDistPath, 'index.html'),
-    (err) => {
-      if (err) next(err);
-    }
-  );
-});
-// 404 Handler
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found',
-    path: req.originalUrl
-  });
-});
-// Global Error Handler
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({
-    success: false,
-    message: 'Something went wrong on the server'
-  });
-});
 const PORT = process.env.PORT || 5000;
-connectDB()
-  .then(() => seedAdmin())
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+// DATABASE
+await connectDB();
+// API ROUTES
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'success',
+        message: 'Creative Manager API is running'
     });
-  })
-  .catch((error) => {
-    console.error('Server startup failed:', error);
-    process.exit(1);
-  });
+});
+app.use('/api/auth', authRoutes);
+// ROLE PROTECTED EXAMPLE ROUTES
+app.get(
+    '/api/admin/dashboard',
+    protect(['admin']),
+    (req, res) => {
+        res.json({
+            message: 'Admin access granted'
+        });
+    }
+);
+app.get(
+    '/api/sme/dashboard',
+    protect(['sme']),
+    (req, res) => {
+        res.json({
+            message: 'SME access granted'
+        });
+    }
+);
+// FRONTEND BUILD
+const frontendPath = path.resolve(
+    __dirname,
+    '../frontend/dist'
+);
+app.use(express.static(frontendPath));
+// REACT ROUTING FALLBACK
+app.get(/.*/, (req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+        return next();
+    }
+    res.sendFile(
+        path.join(frontendPath, 'index.html')
+    );
+});
+// ERROR HANDLER
+app.use((err, req, res, next) => {
+    console.error(err);
+    res.status(500).json({
+        message: 'Internal server error'
+    });
+});
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
