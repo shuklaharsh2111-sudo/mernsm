@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import api from '../api';
 import '../styles/invoice.css';
-const [selectedInvoice, setSelectedInvoice] = useState(null);
 const emptyItem = () => ({
     id: crypto.randomUUID(),
     item: '',
@@ -59,6 +58,7 @@ const normalizeInvoice = (invoice) => ({
 
 const Invoice = () => {
     const [activeTab, setActiveTab] = useState('PFI');
+    const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [showDropdown, setShowDropdown] = useState(false);
     const [invoiceType, setInvoiceType] = useState('');
     const [invoices, setInvoices] = useState([]);
