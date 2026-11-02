@@ -91,13 +91,13 @@ const Pdf = ({ invoice, onClose }) => {
             <p><strong>PAN:</strong> {invoice.companyPan || '-'}</p>
           </div>
 
-          <div className="pdf-address-box">
-            <h3>Ship To</h3>
-            <h4>{invoice.shipTo || invoice.billTo || '-'}</h4>
-            <p>{addressText(invoice.shipToAddress || invoice.billToAddress)}</p>
-            <p><strong>GSTIN:</strong> {invoice.sameGstin ? invoice.billGstin : invoice.shipGstin || '-'}</p>
-            <p><strong>PAN:</strong> {invoice.companyPan || '-'}</p>
-          </div>
+<div className="pdf-address-box">
+    <h3>Ship To</h3>
+    <h4>{invoice.billTo || '-'}</h4>
+    <p>{addressText(invoice.shipTo)}</p>
+    <p><strong>GSTIN:</strong> {invoice.sameGstin ? invoice.billGstin : invoice.shipGstin || '-'}</p>
+    <p><strong>PAN:</strong> {invoice.companyPan || '-'}</p>
+</div>
         </div>
 
         <table className="pdf-date-table">
@@ -130,8 +130,8 @@ const Pdf = ({ invoice, onClose }) => {
             {(invoice.items || []).map((item, index) => (
               <tr key={item._id || index}>
                 <td>{index + 1}</td>
-                <td>{item.description || item.service || '-'}</td>
-                <td>{item.details || item.category || '-'}</td>
+<td>{item.item || item.service || '-'}</td>
+<td>{item.description || item.details || item.category || '-'}</td>
                 <td className="pdf-amount">{formatAmount(item.amount)}</td>
               </tr>
             ))}
