@@ -25,6 +25,7 @@ import Invoices from './components/Invoice';
 import SmePendingCreatives from './sme/SmePendingCreatives';
 import SmeSettings from './sme/SmeSettings';
 import SmeAnalytics from './sme/SmeAnalytics';
+import SmeMonthlyReports from './sme/SmeMonthlyReports';
 
 const ProtectedRoute = ({ role }) => {
   const { user, loading } = useAuth();
@@ -100,6 +101,7 @@ const AppRoutes = () => {
           <Route path="/sme/pending-creatives" element={<SmePendingCreatives />} />
           <Route path="/sme/settings" element={<SmeSettings />} />
           <Route path="/sme/analytics" element={<SmeAnalytics />} />
+          <Route path="/sme/monthly-reports" element={<SmeMonthlyReports />} />
         </Route>
       </Route>
 

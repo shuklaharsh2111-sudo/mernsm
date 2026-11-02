@@ -21,8 +21,20 @@ import {
   Clock3,
   Video,
   Flag,
-  Plus
+  Plus,
+  FileText,
+  CheckCircle2,
+  XCircle,
+  Undo2
 } from 'lucide-react';
+// Send MoM button: label / icon / tooltip by MoM status ('none' = not sent yet).
+const MOM_BTN = {
+  none: { label: 'Send MoM', icon: <FileText size={15} />, title: 'Send the minutes of this meeting to admin' },
+  pending: { label: 'MoM Pending', icon: <Clock3 size={15} />, title: 'Waiting for admin to review' },
+  approved: { label: 'MoM Approved', icon: <CheckCircle2 size={15} />, title: 'Admin approved this MoM' },
+  sent_back: { label: 'Edit MoM', icon: <Undo2 size={15} />, title: 'Admin asked for changes. Edit and resubmit' },
+  rejected: { label: 'MoM Rejected', icon: <XCircle size={15} />, title: 'Admin rejected this MoM' }
+};
 const MAX_AVATARS = 4;
 const MOM_BTN = {
   none: {
