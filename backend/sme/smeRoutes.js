@@ -10,6 +10,7 @@ import Meeting from '../meeting/Meeting.js';
 import { momView, buildMom, generateMeetingLink } from '../meeting/momHelpers.js';
 import { periodKey, resolveToday } from '../sop/period.js';
 import Task from './Tasks.js';
+import Creative, { CREATIVE_PLATFORMS, CREATIVE_STATUSES } from './Creative.js';
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 5 },
@@ -20,10 +21,10 @@ const upload = multer({
     cb(null, true);
   }
 });
-const uploadToCloudinary = (buffer) => {
+const uploadToCloudinary = (buffer, folder = 'creative-manager/tasks') => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream({
-      folder: 'creative-manager/tasks',
+      folder,
       resource_type: 'image'
     }, (error, result) => {
       if (error) return reject(error);
@@ -340,6 +341,180 @@ router.post('/tasks/:id/attachments', (req, res) => {
     }
   });
 });
+// =========================================
+// CALENDAR: REFERENCE CREATIVES
+// =========================================
+const creativeView = (c) => ({
+  id: c._id,
+  companyId: String(c.company?._id || c.company),
+  companyName: c.company?.name || '',
+  status: c.status,
+  reviewNote: c.reviewNote || '',
+  reviewedAt: c.reviewedAt,
+  createdAt: c.createdAt,
+  date: c.date,
+  referenceLinks: c.referenceLinks || [],
+  uploads: (c.uploads || []).map((u) => ({ url: u.url, name: u.originalName })),
+  contentPillar: {
+    title: c.contentPillar?.title || '',
+    caption: c.contentPillar?.caption || '',
+    hashtags: c.contentPillar?.hashtags || [],
+    keywords: c.contentPillar?.keywords || [],
+    platforms: c.contentPillar?.platforms || [],
+  },
+});
+
+// My creatives. Optional ?company=<id> and ?status=pending|approved|rejected (default: all).
+// The calendar asks for status=approved: a creative only lands there once the admin approves it.
+router.get('/creatives', async (req, res) => {
+  try {
+    const filter = { user: req.user.id };
+    if (req.query.company) {
+      if (!mongoose.Types.ObjectId.isValid(req.query.company)) return res.status(400).json({ message: 'Invalid company' });
+      filter.company = req.query.company;
+    }
+    if (req.query.status && req.query.status !== 'all') {
+      if (!CREATIVE_STATUSES.includes(req.query.status)) return res.status(400).json({ message: 'Invalid status' });
+      filter.status = req.query.status;
+    }
+    const list = await Creative.find(filter).sort({ date: 1, createdAt: 1 }).limit(1000).populate('company', 'name');
+    res.json({ creatives: list.map(creativeView) });
+  } catch (error) {
+    console.error('Fetch creatives error:', error);
+    res.status(500).json({ message: 'Unable to fetch creatives' });
+  }
+});
+
+// list fields arrive as JSON arrays inside multipart/form-data
+const parseList = (v) => {
+  if (typeof v === 'string') {
+    try { v = JSON.parse(v); } catch { v = [v]; }
+  }
+  return Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean) : [];
+};
+
+// Shared by "save" and "edit again": check and clean the text fields of a creative.
+// Returns { error } or { fields }.
+const readCreativeFields = (body) => {
+  const { title = '', caption = '' } = body;
+  const platforms = [...new Set(parseList(body.platforms))];
+  const hashtags = [...new Set(parseList(body.hashtags).map((h) => (h.startsWith('#') ? h : `#${h}`)))];
+  const keywords = [...new Set(parseList(body.keywords))];
+  const referenceLinks = parseList(body.referenceLinks);
+
+  if (!title.trim()) return { error: 'Content pillar title is required' };
+  if (!platforms.length || platforms.some((p) => !CREATIVE_PLATFORMS.includes(p))) return { error: 'Select at least one valid platform' };
+  if (caption.length > 2200) return { error: 'Caption is too long (max 2200 characters)' };
+  if (hashtags.length > 30 || hashtags.some((h) => h.length > 60 || /\s/.test(h))) return { error: 'Use up to 30 hashtags without spaces' };
+  if (keywords.length > 20 || keywords.some((k) => k.length > 60)) return { error: 'Use up to 20 keywords (60 characters each)' };
+  if (referenceLinks.length > 5 || referenceLinks.some((l) => !/^https?:\/\/\S+\.\S+$/i.test(l))) {
+    return { error: 'Add up to 5 valid links starting with http:// or https://' };
+  }
+  return { fields: { title: title.trim(), caption: caption.trim(), hashtags, keywords, platforms, referenceLinks } };
+};
+
+// Save a creative. It starts as 'pending' and waits for the admin. multipart/form-data: companyId, date, title, caption,
+// hashtags / keywords / referenceLinks / platforms (each a JSON array), files (reference images, max 5).
+router.post('/creatives', (req, res) => {
+  upload.array('files', 5)(req, res, async (uploadError) => {
+    if (uploadError) return res.status(400).json({ message: uploadError.message });
+    const uploaded = [];
+    try {
+      const { companyId, date } = req.body;
+      if (!mongoose.Types.ObjectId.isValid(companyId)) return res.status(400).json({ message: 'Please select a brand' });
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return res.status(400).json({ message: 'Invalid date' });
+      const { error, fields } = readCreativeFields(req.body);
+      if (error) return res.status(400).json({ message: error });
+
+      // the brand must be one assigned to this SME
+      const me = await Sme.findById(req.user.id);
+      if (!me) return res.status(401).json({ message: 'User not found' });
+      if (!(me.companies || []).map(String).includes(String(companyId))) {
+        return res.status(403).json({ message: 'This brand is not assigned to you' });
+      }
+
+      for (const file of req.files || []) {
+        const result = await uploadToCloudinary(file.buffer, 'creative-manager/creatives');
+        uploaded.push({ url: result.secure_url, publicId: result.public_id, originalName: file.originalname });
+      }
+
+      const creative = await Creative.create({
+        user: req.user.id,
+        company: companyId,
+        date,
+        status: 'pending',
+        referenceLinks: fields.referenceLinks,
+        uploads: uploaded,
+        contentPillar: { title: fields.title, caption: fields.caption, hashtags: fields.hashtags, keywords: fields.keywords, platforms: fields.platforms },
+      });
+      res.status(201).json({ creative: creativeView(creative), message: 'Sent to the admin for approval' });
+    } catch (error) {
+      await Promise.all(uploaded.map((u) => cloudinary.uploader.destroy(u.publicId).catch(() => null)));
+      console.error('Save creative error:', error);
+      res.status(500).json({ message: 'Unable to save creative' });
+    }
+  });
+});
+
+// Edit the SAME creative again after the admin asked for a redo (status 'rejected'), then send it back for approval.
+// multipart/form-data like the save route, plus keepUploads: JSON array of the image urls to keep (new images go in `files`).
+router.put('/creatives/:id', (req, res) => {
+  upload.array('files', 5)(req, res, async (uploadError) => {
+    if (uploadError) return res.status(400).json({ message: uploadError.message });
+    const uploaded = [];
+    try {
+      if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid id' });
+      const creative = await Creative.findOne({ _id: req.params.id, user: req.user.id });
+      if (!creative) return res.status(404).json({ message: 'Creative not found' });
+      if (creative.status !== 'rejected') {
+        return res.status(409).json({ message: 'Only a creative the admin asked to redo can be edited' });
+      }
+      const { error, fields } = readCreativeFields(req.body);
+      if (error) return res.status(400).json({ message: error });
+
+      // images: keep the ones still listed, add the new ones (max 5 in total)
+      const keepUrls = parseList(req.body.keepUploads);
+      const kept = creative.uploads.filter((u) => keepUrls.includes(u.url));
+      const removed = creative.uploads.filter((u) => !keepUrls.includes(u.url));
+      if (kept.length + (req.files || []).length > 5) return res.status(400).json({ message: 'You can have up to 5 images' });
+
+      for (const file of req.files || []) {
+        const result = await uploadToCloudinary(file.buffer, 'creative-manager/creatives');
+        uploaded.push({ url: result.secure_url, publicId: result.public_id, originalName: file.originalname });
+      }
+
+      creative.uploads = [...kept, ...uploaded];
+      creative.referenceLinks = fields.referenceLinks;
+      creative.contentPillar = { title: fields.title, caption: fields.caption, hashtags: fields.hashtags, keywords: fields.keywords, platforms: fields.platforms };
+      // back to the admin
+      creative.status = 'pending';
+      creative.reviewNote = '';
+      creative.reviewedAt = null;
+      await creative.save();
+
+      await Promise.all(removed.map((u) => u.publicId && cloudinary.uploader.destroy(u.publicId).catch(() => null)));
+      res.json({ creative: creativeView(creative), message: 'Sent back to the admin for approval' });
+    } catch (error) {
+      await Promise.all(uploaded.map((u) => cloudinary.uploader.destroy(u.publicId).catch(() => null)));
+      console.error('Edit creative error:', error);
+      res.status(500).json({ message: 'Unable to update creative' });
+    }
+  });
+});
+
+router.delete('/creatives/:id', async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid id' });
+    const c = await Creative.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+    if (!c) return res.status(404).json({ message: 'Creative not found' });
+    await Promise.all((c.uploads || []).map((u) => u.publicId && cloudinary.uploader.destroy(u.publicId).catch(() => null)));
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Delete creative error:', error);
+    res.status(500).json({ message: 'Unable to delete creative' });
+  }
+});
+
 const meetingView = (m) => ({
   id: m._id,
   subject: m.subject,

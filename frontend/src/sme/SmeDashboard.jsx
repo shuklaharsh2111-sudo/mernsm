@@ -37,7 +37,6 @@ import {
   CalendarDays,
   AlertCircle
 } from 'lucide-react';
-const SLOTS = 5;
 const initialTaskForm = {
   companyId: '',
   title: '',
@@ -73,7 +72,6 @@ const SmeDashboard = () => {
   const [assigned, setAssigned] = useState(null);
   const [error, setError] = useState('');
   const [typeTab, setTypeTab] = useState('all');
-  const [savingIds, setSavingIds] = useState([]);
   // TASK STATES
   const [startingTaskId, setStartingTaskId] = useState('');
   const [endingTaskId, setEndingTaskId] = useState('');
@@ -84,27 +82,6 @@ const SmeDashboard = () => {
   const [taskForm, setTaskForm] = useState(initialTaskForm);
   const [taskError, setTaskError] = useState('');
   const [creatingTask, setCreatingTask] = useState(false);
-  // INITIAL DATA
-  useEffect(() => {
-    let cancelled = false;
-    const loadDashboard = async () => {
-      try {
-        const [c, a] = await Promise.all([
-          api.get('/sme/companies'),
-          api.get('/sme/sop-assignments', {
-            params: { today: todayStr() }
-          })
-        ]);
-        if (cancelled) return;
-        setCompanies(c.data.companies || []);
-        setAssigned(a.data.assignments || []);
-      } catch (err) {
-        if (!cancelled) {
-          setError(errMsg(err));
-        }
-      }
-    };
-    loadDashboard();
   const [meetings, setMeetings] = useState(null);
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [joiningIds, setJoiningIds] = useState([]);
@@ -415,8 +392,6 @@ const SmeDashboard = () => {
       event.target.value = '';
     }
   };
-  const handleAddMeeting = () => {
-    alert('Add Meeting feature coming soon!');
   const handleAddMeeting = () => setShowMeetingModal(true);
 
   // Meetings whose MOM is approved are saved under Records; the rest stay active here.
@@ -600,12 +575,6 @@ const SmeDashboard = () => {
               Add Meeting
             </button>
           </div>
-          <p className="muted">
-            No meetings scheduled yet.
-          </p>
-        </div>
-      </div>
-      {/* TASK MANAGER */}
         {!meetings ? (
           <p className="muted">Loading…</p>
         ) : activeMeetings.length === 0 ? (
