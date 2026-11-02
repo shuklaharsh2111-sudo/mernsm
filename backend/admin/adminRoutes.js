@@ -290,6 +290,7 @@ const reviewCreative = async (req, res, action) => {
   creative.status = action === 'approve' ? 'approved' : 'rejected';
   creative.reviewNote = action === 'reject' ? note.slice(0, 500) : '';
   creative.reviewedAt = new Date();
+  if (action === 'reject') creative.rejectionCount = (creative.rejectionCount || 0) + 1;
   await creative.save();
   res.json({ creative: creativeItemView(creative) });
 };
