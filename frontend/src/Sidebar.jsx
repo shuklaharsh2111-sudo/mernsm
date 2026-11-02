@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from './AuthContext';
-import Invoices from './components/Invoice';
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
