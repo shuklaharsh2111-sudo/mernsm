@@ -1,4 +1,3 @@
-import React from 'react';
 import { X, Printer } from 'lucide-react';
 import '../styles/pdf.css';
 

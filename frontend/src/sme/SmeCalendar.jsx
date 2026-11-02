@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, X, Image as ImageIcon, CalendarDays, LayoutGrid, Smartphone } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Image as ImageIcon, CalendarDays, LayoutGrid, Smartphone } from 'lucide-react';
 import api from '../api';
 import { CompanyBadge } from '../components/CompanyBadge';
 import ReferenceCreativeModal from '../components/ReferenceCreativeModal';

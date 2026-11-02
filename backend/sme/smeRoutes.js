@@ -12,6 +12,7 @@ import { momView, buildMom, generateMeetingLink } from '../meeting/momHelpers.js
 import { periodKey, resolveToday } from '../sop/period.js';
 import Task from './Tasks.js';
 import Creative, { CREATIVE_PLATFORMS, CREATIVE_STATUSES } from './Creative.js';
+import SocialMetrics from './SocialMetrics.js';
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 5 },
@@ -606,6 +607,127 @@ router.get('/company-health', async (req, res) => {
   } catch (error) {
     console.error('Company health error:', error);
     res.status(500).json({ message: 'Unable to load company health' });
+  }
+});
+
+// =========================================
+// MONTHLY SOCIAL METRICS (typed in by the SME from platform insights)
+// =========================================
+const NUM_FIELDS = [
+  'followersStart', 'newFollowers', 'unfollowers', 'followersEnd',
+  'accountsReached', 'accountsEngaged', 'views', 'profileVisits', 'websiteVisits',
+  'posts', 'reels', 'stories',
+];
+const MONTH_RE = /^\d{4}-\d{2}$/;
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const prevMonthOf = (m) => {
+  const [y, mo] = m.split('-').map(Number);
+  const d = new Date(y, mo - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+const metricsView = (d) => {
+  if (!d) return null;
+  const o = d.toObject ? d.toObject() : d;
+  return {
+    id: o._id,
+    company: String(o.company),
+    month: o.month,
+    platform: o.platform,
+    periodFrom: o.periodFrom || '',
+    periodTo: o.periodTo || '',
+    ...Object.fromEntries(NUM_FIELDS.map((f) => [f, o[f] ?? null])),
+    nonFollowerInteractionPct: o.nonFollowerInteractionPct ?? null,
+    paidPromotion: !!o.paidPromotion,
+    paidNote: o.paidNote || '',
+    bestContent: o.bestContent || [],
+    keyInsights: o.keyInsights || [],
+    improvements: o.improvements || [],
+    summaryNote: o.summaryNote || '',
+    updatedAt: o.updatedAt,
+  };
+};
+const cleanNum = (v) => {
+  if (v === '' || v === null || v === undefined) return null;
+  const n = Number(String(v).replace(/,/g, ''));
+  if (!Number.isFinite(n) || n < 0) throw new Error('Numbers must be 0 or more');
+  return Math.round(n);
+};
+const cleanLines = (arr) =>
+  (Array.isArray(arr) ? arr : []).map((t) => String(t || '').trim()).filter(Boolean).slice(0, 10);
+
+// GET /social-metrics?company=<id>&month=YYYY-MM  ->  { current, previous, earlier }
+// "previous" is the month before, "earlier" the one before that (for the 3-month overview).
+router.get('/social-metrics', async (req, res) => {
+  try {
+    const { company, month } = req.query;
+    if (!mongoose.isValidObjectId(company)) return res.status(400).json({ message: 'Choose a company' });
+    if (!MONTH_RE.test(String(month || ''))) return res.status(400).json({ message: 'Invalid month' });
+    const me = await Sme.findById(req.user.id);
+    if (!me || !(me.companies || []).map(String).includes(String(company))) {
+      return res.status(403).json({ message: 'This company is not assigned to you' });
+    }
+    const m1 = prevMonthOf(month);
+    const m2 = prevMonthOf(m1);
+    const docs = await SocialMetrics.find({ user: req.user.id, company, month: { $in: [month, m1, m2] } });
+    const by = Object.fromEntries(docs.map((d) => [d.month, d]));
+    res.json({
+      current: metricsView(by[month]),
+      previous: metricsView(by[m1]),
+      earlier: metricsView(by[m2]),
+    });
+  } catch (error) {
+    console.error('Social metrics load error:', error);
+    res.status(500).json({ message: 'Unable to load social metrics' });
+  }
+});
+
+// PUT /social-metrics  { company, month, ...fields }  -> creates or updates that month
+router.put('/social-metrics', async (req, res) => {
+  try {
+    const b = req.body || {};
+    if (!mongoose.isValidObjectId(b.company)) return res.status(400).json({ message: 'Choose a company' });
+    if (!MONTH_RE.test(String(b.month || ''))) return res.status(400).json({ message: 'Invalid month' });
+    const me = await Sme.findById(req.user.id);
+    if (!me || !(me.companies || []).map(String).includes(String(b.company))) {
+      return res.status(403).json({ message: 'This company is not assigned to you' });
+    }
+    const set = {
+      platform: String(b.platform || 'Instagram').trim().slice(0, 30) || 'Instagram',
+      periodFrom: DAY_RE.test(b.periodFrom || '') ? b.periodFrom : '',
+      periodTo: DAY_RE.test(b.periodTo || '') ? b.periodTo : '',
+      paidPromotion: !!b.paidPromotion,
+      paidNote: String(b.paidNote || '').trim().slice(0, 400),
+      summaryNote: String(b.summaryNote || '').trim().slice(0, 1000),
+      keyInsights: cleanLines(b.keyInsights),
+      improvements: cleanLines(b.improvements),
+    };
+    for (const f of NUM_FIELDS) set[f] = cleanNum(b[f]);
+    const pctRaw = cleanNum(b.nonFollowerInteractionPct);
+    if (pctRaw !== null && pctRaw > 100) return res.status(400).json({ message: 'Percentage cannot be above 100' });
+    set.nonFollowerInteractionPct = pctRaw;
+    if (set.periodFrom && set.periodTo && set.periodFrom > set.periodTo) {
+      return res.status(400).json({ message: 'Period start must be before the end' });
+    }
+    set.bestContent = (Array.isArray(b.bestContent) ? b.bestContent : [])
+      .map((x) => ({
+        title: String(x?.title || '').trim().slice(0, 150),
+        note: String(x?.note || '').trim().slice(0, 400),
+        views: cleanNum(x?.views),
+        boosted: !!x?.boosted,
+      }))
+      .filter((x) => x.title)
+      .slice(0, 5);
+
+    const doc = await SocialMetrics.findOneAndUpdate(
+      { user: req.user.id, company: b.company, month: b.month },
+      { $set: set },
+      { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
+    );
+    res.json({ metrics: metricsView(doc) });
+  } catch (error) {
+    if (error.message === 'Numbers must be 0 or more') return res.status(400).json({ message: error.message });
+    console.error('Social metrics save error:', error);
+    res.status(500).json({ message: 'Unable to save social metrics' });
   }
 });
 
