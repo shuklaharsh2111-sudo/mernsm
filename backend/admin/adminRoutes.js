@@ -9,6 +9,7 @@ import SopAssignment, { SOP_TYPE_VALUES } from '../sop/SopAssignment.js';
 import { isRealDate } from '../sop/period.js';
 import Meeting from '../meeting/Meeting.js';
 import { momView, generateMeetingLink } from '../meeting/momHelpers.js';
+import Creative from '../sme/Creative.js';
 
 const router = express.Router();
 router.use(protect(['admin']));
@@ -240,5 +241,59 @@ const reviewMom = async (req, res, action) => {
 router.put('/moms/:id/approve', (req, res) => reviewMom(req, res, 'approve'));
 router.put('/moms/:id/send-back', (req, res) => reviewMom(req, res, 'send-back'));
 router.put('/moms/:id/reject', (req, res) => reviewMom(req, res, 'reject'));
+
+// ---------------- Creative approvals ----------------
+const creativeItemView = (c) => ({
+  id: c._id,
+  status: c.status,
+  reviewNote: c.reviewNote || '',
+  reviewedAt: c.reviewedAt,
+  submittedAt: c.createdAt,
+  date: c.date,
+  referenceLinks: c.referenceLinks || [],
+  uploads: (c.uploads || []).map((u) => ({ url: u.url, name: u.originalName })),
+  contentPillar: {
+    title: c.contentPillar?.title || '',
+    caption: c.contentPillar?.caption || '',
+    hashtags: c.contentPillar?.hashtags || [],
+    keywords: c.contentPillar?.keywords || [],
+    platforms: c.contentPillar?.platforms || [],
+  },
+  company: c.company ? { id: c.company._id, name: c.company.name } : { id: '', name: 'Removed company' },
+  sme: c.user ? { id: c.user._id, name: c.user.name || c.user.fullname || c.user.email, email: c.user.email } : { id: '', name: 'Removed user', email: '' },
+});
+
+// Every creative an SME has submitted, newest first.
+router.get('/creatives', async (req, res) => {
+  const list = await Creative.find({})
+    .sort({ createdAt: -1 })
+    .limit(500)
+    .populate('company', 'name')
+    .populate('user', 'name fullname email');
+  res.json({ creatives: list.map(creativeItemView) });
+});
+
+// Approve -> it appears on the SME's calendar. Reject needs a reason.
+const reviewCreative = async (req, res, action) => {
+  if (!validId(req.params.id)) return res.status(404).json({ message: 'Creative not found' });
+  const creative = await Creative.findById(req.params.id)
+    .populate('company', 'name')
+    .populate('user', 'name fullname email');
+  if (!creative) return res.status(404).json({ message: 'Creative not found' });
+  if (creative.status !== 'pending') {
+    return res.status(400).json({ message: `This creative is not waiting for review (it is ${creative.status})` });
+  }
+  const note = String(req.body?.note || '').trim();
+  if (action === 'reject' && note.length < 3) {
+    return res.status(400).json({ message: 'Give a reason (at least 3 characters)' });
+  }
+  creative.status = action === 'approve' ? 'approved' : 'rejected';
+  creative.reviewNote = action === 'reject' ? note.slice(0, 500) : '';
+  creative.reviewedAt = new Date();
+  await creative.save();
+  res.json({ creative: creativeItemView(creative) });
+};
+router.put('/creatives/:id/approve', (req, res) => reviewCreative(req, res, 'approve'));
+router.put('/creatives/:id/reject', (req, res) => reviewCreative(req, res, 'reject'));
 
 export default router;

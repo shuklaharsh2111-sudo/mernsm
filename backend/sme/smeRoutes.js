@@ -10,6 +10,7 @@ import Meeting from '../meeting/Meeting.js';
 import { momView, buildMom, generateMeetingLink } from '../meeting/momHelpers.js';
 import { periodKey, resolveToday } from '../sop/period.js';
 import Task from './Tasks.js';
+import Creative, { CREATIVE_PLATFORMS, CREATIVE_STATUSES } from './Creative.js';
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 5 },
@@ -20,10 +21,10 @@ const upload = multer({
     cb(null, true);
   }
 });
-const uploadToCloudinary = (buffer) => {
+const uploadToCloudinary = (buffer, folder = 'creative-manager/tasks') => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream({
-      folder: 'creative-manager/tasks',
+      folder,
       resource_type: 'image'
     }, (error, result) => {
       if (error) return reject(error);
@@ -89,25 +90,25 @@ router.put('/sop-assignments/completions', async (req, res) => {
   }
   res.json({ assignments: await listFor(req.user.id, today), today });
 });
-
 // =========================================
 // TASK MANAGER APIs
 // =========================================
-
 // GET: Logged-in SME ke saare tasks
 router.get('/tasks', async (req, res) => {
   try {
-    const tasks = await Task.find({ user: req.user.id })
+    const tasks = await Task.find({
+      user: req.user.id
+    })
       .populate('company', 'name')
       .sort({ createdAt: -1 });
-
-    return res.json({ tasks });
+    res.json({ tasks });
   } catch (error) {
     console.error('Fetch Tasks Error:', error);
-    return res.status(500).json({ message: 'Unable to fetch tasks' });
+    res.status(500).json({
+      message: 'Unable to fetch tasks'
+    });
   }
 });
-
 // POST: Create a new task
 router.post('/tasks', async (req, res) => {
   try {
@@ -120,54 +121,72 @@ router.post('/tasks', async (req, res) => {
       taskType,
       objective,
       customObjective,
-      priority,
-      brief,
-      assignedTo
-    } = req.body || {};
-
-    if (!companyId || !title?.trim() || !category || !taskType || !objective || !priority) {
-      return res.status(400).json({ message: 'Please fill all required fields' });
+      priority
+    } = req.body;
+    // Required fields
+    if (
+      !companyId ||
+      !title?.trim() ||
+      !category ||
+      !tatDays ||
+      !taskType ||
+      !objective ||
+      !priority
+    ) {
+      return res.status(400).json({
+        message: 'Please fill all required fields'
+      });
     }
-
+    // Validate company ID
     if (!mongoose.Types.ObjectId.isValid(companyId)) {
-      return res.status(400).json({ message: 'Invalid company selected' });
+      return res.status(400).json({
+        message: 'Invalid company selected'
+      });
     }
-
+    // Verify logged-in SME
     const me = await Sme.findById(req.user.id);
-
     if (!me) {
-      return res.status(401).json({ message: 'SME account not found' });
+      return res.status(401).json({
+        message: 'SME account not found'
+      });
     }
-
+    // Check whether company is assigned to this SME
     const isAssigned = (me.companies || []).some(
-      id => String(id) === String(companyId)
+      (id) => String(id) === String(companyId)
     );
-
     if (!isAssigned) {
-      return res.status(403).json({ message: 'You are not assigned to this company' });
+      return res.status(403).json({
+        message: 'You are not assigned to this company'
+      });
     }
-
+    // Validate category
     if (!['one-time', 'recurring'].includes(category)) {
-      return res.status(400).json({ message: 'Invalid task category' });
+      return res.status(400).json({
+        message: 'Invalid task category'
+      });
     }
-
+    // Validate frequency
     let selectedFrequency = null;
-    let selectedTat = null;
-
     if (category === 'recurring') {
       selectedFrequency = Number(frequencyDays);
-
       if (![7, 15, 30].includes(selectedFrequency)) {
-        return res.status(400).json({ message: 'Select a valid recurring frequency' });
-      }
-
-      selectedTat = Number(tatDays);
-
-      if (!Number.isInteger(selectedTat) || selectedTat < 1 || selectedTat > 3650) {
-        return res.status(400).json({ message: 'TAT must be a valid number of days' });
+        return res.status(400).json({
+          message: 'Select a valid recurring frequency'
+        });
       }
     }
-
+    // Validate TAT
+    const selectedTat = Number(tatDays);
+    if (
+      !Number.isInteger(selectedTat) ||
+      selectedTat < 1 ||
+      selectedTat > 3650
+    ) {
+      return res.status(400).json({
+        message: 'TAT must be a valid number of days'
+      });
+    }
+    // Validate task type
     const allowedTaskTypes = [
       'Strategy/Pitch Deck',
       'Mood Board',
@@ -176,36 +195,38 @@ router.post('/tasks', async (req, res) => {
       'Content Writing',
       'Influencer Collaboration'
     ];
-
     if (!allowedTaskTypes.includes(taskType)) {
-      return res.status(400).json({ message: 'Invalid task type' });
+      return res.status(400).json({
+        message: 'Invalid task type'
+      });
     }
-
+    // Validate objective
     const allowedObjectives = [
       'Brand Awareness',
       'Lead Generation',
       'Brand Positioning',
       'Others'
     ];
-
     if (!allowedObjectives.includes(objective)) {
-      return res.status(400).json({ message: 'Invalid objective' });
+      return res.status(400).json({
+        message: 'Invalid objective'
+      });
     }
-
-    if (objective === 'Others' && !customObjective?.trim()) {
-      return res.status(400).json({ message: 'Please enter your custom objective' });
+    if (
+      objective === 'Others' &&
+      !customObjective?.trim()
+    ) {
+      return res.status(400).json({
+        message: 'Please enter your custom objective'
+      });
     }
-
+    // Validate priority
     if (!['High', 'Low', 'Critical'].includes(priority)) {
-      return res.status(400).json({ message: 'Invalid priority' });
+      return res.status(400).json({
+        message: 'Invalid priority'
+      });
     }
-
-    const allowedAssignedTo = ['', 'Admin', 'SME', 'SMI', 'Designer'];
-
-    if (!allowedAssignedTo.includes(assignedTo || '')) {
-      return res.status(400).json({ message: 'Invalid assigned role' });
-    }
-
+    // Create task
     const task = await Task.create({
       user: req.user.id,
       company: companyId,
@@ -215,100 +236,53 @@ router.post('/tasks', async (req, res) => {
       tatDays: selectedTat,
       taskType,
       objective,
-      customObjective: objective === 'Others' ? customObjective.trim() : '',
+      customObjective:
+        objective === 'Others' ? customObjective.trim() : '',
       priority,
-      brief: String(brief || '').trim(),
-      assignedTo: assignedTo || '',
-      status: 'new',
-      startedAt: null,
-      endedAt: null
+      status: 'new'
     });
-
     await task.populate('company', 'name');
-
     return res.status(201).json({
       message: 'Task created successfully',
       task
     });
   } catch (error) {
     console.error('Create Task Error:', error);
-    return res.status(500).json({ message: 'Unable to create task' });
+    res.status(500).json({
+      message: 'Unable to create task'
+    });
   }
 });
-
-// START: Save actual task start date and time
+// Start task
 router.patch('/tasks/:id/start', async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: 'Invalid task ID' });
-    }
-
-    const task = await Task.findOne({
-      _id: req.params.id,
-      user: req.user.id
-    });
-
-    if (!task) {
-      return res.status(404).json({ message: 'Task not found' });
-    }
-
-    if (task.status !== 'new') {
-      return res.status(400).json({ message: 'Task cannot be started' });
-    }
-
+    const task = await Task.findOne({ _id: req.params.id, user: req.user.id, status: 'new' });
+    if (!task) return res.status(404).json({ message: 'Task not found or already started' });
     task.status = 'in-progress';
     task.startedAt = new Date();
-    task.endedAt = null;
-
     await task.save();
-    await task.populate('company', 'name');
-
-    return res.json({
-      message: 'Task started successfully',
-      task
-    });
+    const updatedTask = await Task.findById(task._id).populate('company', 'name');
+    res.json({ message: 'Task started successfully', task: updatedTask });
   } catch (error) {
-    console.error('Start Task Error:', error);
-    return res.status(500).json({ message: 'Unable to start task' });
+    console.error('Start task error:', error);
+    res.status(500).json({ message: 'Unable to start task' });
   }
 });
-
-// END: Save actual task completion date and time
+// End task
 router.patch('/tasks/:id/end', async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: 'Invalid task ID' });
-    }
-
-    const task = await Task.findOne({
-      _id: req.params.id,
-      user: req.user.id
-    });
-
-    if (!task) {
-      return res.status(404).json({ message: 'Task not found' });
-    }
-
-    if (task.status !== 'in-progress' || !task.startedAt) {
-      return res.status(400).json({ message: 'Task is not in progress' });
-    }
-
+    const task = await Task.findOne({ _id: req.params.id, user: req.user.id, status: 'in-progress' });
+    if (!task) return res.status(404).json({ message: 'Task not found or not in progress' });
     task.status = 'completed';
     task.endedAt = new Date();
-
     await task.save();
-    await task.populate('company', 'name');
-
-    return res.json({
-      message: 'Task completed successfully',
-      task
-    });
+    const updatedTask = await Task.findById(task._id).populate('company', 'name');
+    res.json({ message: 'Task completed successfully', task: updatedTask });
   } catch (error) {
-    console.error('End Task Error:', error);
-    return res.status(500).json({ message: 'Unable to complete task' });
+    console.error('End task error:', error);
+    res.status(500).json({ message: 'Unable to complete task' });
   }
 });
-
 // Upload task images to Cloudinary
 router.post('/tasks/:id/attachments', (req, res) => {
   upload.array('files', 5)(req, res, async (uploadError) => {
@@ -319,10 +293,6 @@ router.post('/tasks/:id/attachments', (req, res) => {
     const uploadedImages = [];
 
     try {
-      if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-        return res.status(400).json({ message: 'Invalid task ID' });
-      }
-
       const files = req.files || [];
 
       if (!files.length) {
@@ -338,10 +308,6 @@ router.post('/tasks/:id/attachments', (req, res) => {
         return res.status(404).json({ message: 'Task not found' });
       }
 
-      if (task.attachments.length + files.length > 5) {
-        return res.status(400).json({ message: 'A maximum of 5 images are allowed per task' });
-      }
-
       for (const file of files) {
         const result = await uploadToCloudinary(file.buffer);
 
@@ -355,23 +321,198 @@ router.post('/tasks/:id/attachments', (req, res) => {
 
       task.attachments.push(...uploadedImages);
       await task.save();
-      await task.populate('company', 'name');
+
+      const updatedTask = await Task.findById(task._id).populate('company', 'name');
 
       return res.json({
         message: 'Images uploaded successfully',
-        task
+        task: updatedTask
       });
+
     } catch (error) {
       await Promise.all(
-        uploadedImages.map(image =>
+        uploadedImages.map((image) =>
           cloudinary.uploader.destroy(image.publicId).catch(() => null)
         )
       );
 
-      console.error('Task Attachment Error:', error);
+      console.error('Task attachment error:', error);
       return res.status(500).json({ message: 'Unable to upload images' });
     }
   });
+});
+// =========================================
+// CALENDAR: REFERENCE CREATIVES
+// =========================================
+const creativeView = (c) => ({
+  id: c._id,
+  companyId: String(c.company?._id || c.company),
+  companyName: c.company?.name || '',
+  status: c.status,
+  reviewNote: c.reviewNote || '',
+  reviewedAt: c.reviewedAt,
+  createdAt: c.createdAt,
+  date: c.date,
+  referenceLinks: c.referenceLinks || [],
+  uploads: (c.uploads || []).map((u) => ({ url: u.url, name: u.originalName })),
+  contentPillar: {
+    title: c.contentPillar?.title || '',
+    caption: c.contentPillar?.caption || '',
+    hashtags: c.contentPillar?.hashtags || [],
+    keywords: c.contentPillar?.keywords || [],
+    platforms: c.contentPillar?.platforms || [],
+  },
+});
+
+// My creatives. Optional ?company=<id> and ?status=pending|approved|rejected (default: all).
+// The calendar asks for status=approved: a creative only lands there once the admin approves it.
+router.get('/creatives', async (req, res) => {
+  try {
+    const filter = { user: req.user.id };
+    if (req.query.company) {
+      if (!mongoose.Types.ObjectId.isValid(req.query.company)) return res.status(400).json({ message: 'Invalid company' });
+      filter.company = req.query.company;
+    }
+    if (req.query.status && req.query.status !== 'all') {
+      if (!CREATIVE_STATUSES.includes(req.query.status)) return res.status(400).json({ message: 'Invalid status' });
+      filter.status = req.query.status;
+    }
+    const list = await Creative.find(filter).sort({ date: 1, createdAt: 1 }).limit(1000).populate('company', 'name');
+    res.json({ creatives: list.map(creativeView) });
+  } catch (error) {
+    console.error('Fetch creatives error:', error);
+    res.status(500).json({ message: 'Unable to fetch creatives' });
+  }
+});
+
+// list fields arrive as JSON arrays inside multipart/form-data
+const parseList = (v) => {
+  if (typeof v === 'string') {
+    try { v = JSON.parse(v); } catch { v = [v]; }
+  }
+  return Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean) : [];
+};
+
+// Shared by "save" and "edit again": check and clean the text fields of a creative.
+// Returns { error } or { fields }.
+const readCreativeFields = (body) => {
+  const { title = '', caption = '' } = body;
+  const platforms = [...new Set(parseList(body.platforms))];
+  const hashtags = [...new Set(parseList(body.hashtags).map((h) => (h.startsWith('#') ? h : `#${h}`)))];
+  const keywords = [...new Set(parseList(body.keywords))];
+  const referenceLinks = parseList(body.referenceLinks);
+
+  if (!title.trim()) return { error: 'Content pillar title is required' };
+  if (!platforms.length || platforms.some((p) => !CREATIVE_PLATFORMS.includes(p))) return { error: 'Select at least one valid platform' };
+  if (caption.length > 2200) return { error: 'Caption is too long (max 2200 characters)' };
+  if (hashtags.length > 30 || hashtags.some((h) => h.length > 60 || /\s/.test(h))) return { error: 'Use up to 30 hashtags without spaces' };
+  if (keywords.length > 20 || keywords.some((k) => k.length > 60)) return { error: 'Use up to 20 keywords (60 characters each)' };
+  if (referenceLinks.length > 5 || referenceLinks.some((l) => !/^https?:\/\/\S+\.\S+$/i.test(l))) {
+    return { error: 'Add up to 5 valid links starting with http:// or https://' };
+  }
+  return { fields: { title: title.trim(), caption: caption.trim(), hashtags, keywords, platforms, referenceLinks } };
+};
+
+// Save a creative. It starts as 'pending' and waits for the admin. multipart/form-data: companyId, date, title, caption,
+// hashtags / keywords / referenceLinks / platforms (each a JSON array), files (reference images, max 5).
+router.post('/creatives', (req, res) => {
+  upload.array('files', 5)(req, res, async (uploadError) => {
+    if (uploadError) return res.status(400).json({ message: uploadError.message });
+    const uploaded = [];
+    try {
+      const { companyId, date } = req.body;
+      if (!mongoose.Types.ObjectId.isValid(companyId)) return res.status(400).json({ message: 'Please select a brand' });
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return res.status(400).json({ message: 'Invalid date' });
+      const { error, fields } = readCreativeFields(req.body);
+      if (error) return res.status(400).json({ message: error });
+
+      // the brand must be one assigned to this SME
+      const me = await Sme.findById(req.user.id);
+      if (!me) return res.status(401).json({ message: 'User not found' });
+      if (!(me.companies || []).map(String).includes(String(companyId))) {
+        return res.status(403).json({ message: 'This brand is not assigned to you' });
+      }
+
+      for (const file of req.files || []) {
+        const result = await uploadToCloudinary(file.buffer, 'creative-manager/creatives');
+        uploaded.push({ url: result.secure_url, publicId: result.public_id, originalName: file.originalname });
+      }
+
+      const creative = await Creative.create({
+        user: req.user.id,
+        company: companyId,
+        date,
+        status: 'pending',
+        referenceLinks: fields.referenceLinks,
+        uploads: uploaded,
+        contentPillar: { title: fields.title, caption: fields.caption, hashtags: fields.hashtags, keywords: fields.keywords, platforms: fields.platforms },
+      });
+      res.status(201).json({ creative: creativeView(creative), message: 'Sent to the admin for approval' });
+    } catch (error) {
+      await Promise.all(uploaded.map((u) => cloudinary.uploader.destroy(u.publicId).catch(() => null)));
+      console.error('Save creative error:', error);
+      res.status(500).json({ message: 'Unable to save creative' });
+    }
+  });
+});
+
+// Edit the SAME creative again after the admin asked for a redo (status 'rejected'), then send it back for approval.
+// multipart/form-data like the save route, plus keepUploads: JSON array of the image urls to keep (new images go in `files`).
+router.put('/creatives/:id', (req, res) => {
+  upload.array('files', 5)(req, res, async (uploadError) => {
+    if (uploadError) return res.status(400).json({ message: uploadError.message });
+    const uploaded = [];
+    try {
+      if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid id' });
+      const creative = await Creative.findOne({ _id: req.params.id, user: req.user.id });
+      if (!creative) return res.status(404).json({ message: 'Creative not found' });
+      if (creative.status !== 'rejected') {
+        return res.status(409).json({ message: 'Only a creative the admin asked to redo can be edited' });
+      }
+      const { error, fields } = readCreativeFields(req.body);
+      if (error) return res.status(400).json({ message: error });
+
+      // images: keep the ones still listed, add the new ones (max 5 in total)
+      const keepUrls = parseList(req.body.keepUploads);
+      const kept = creative.uploads.filter((u) => keepUrls.includes(u.url));
+      const removed = creative.uploads.filter((u) => !keepUrls.includes(u.url));
+      if (kept.length + (req.files || []).length > 5) return res.status(400).json({ message: 'You can have up to 5 images' });
+
+      for (const file of req.files || []) {
+        const result = await uploadToCloudinary(file.buffer, 'creative-manager/creatives');
+        uploaded.push({ url: result.secure_url, publicId: result.public_id, originalName: file.originalname });
+      }
+
+      creative.uploads = [...kept, ...uploaded];
+      creative.referenceLinks = fields.referenceLinks;
+      creative.contentPillar = { title: fields.title, caption: fields.caption, hashtags: fields.hashtags, keywords: fields.keywords, platforms: fields.platforms };
+      // back to the admin
+      creative.status = 'pending';
+      creative.reviewNote = '';
+      creative.reviewedAt = null;
+      await creative.save();
+
+      await Promise.all(removed.map((u) => u.publicId && cloudinary.uploader.destroy(u.publicId).catch(() => null)));
+      res.json({ creative: creativeView(creative), message: 'Sent back to the admin for approval' });
+    } catch (error) {
+      await Promise.all(uploaded.map((u) => cloudinary.uploader.destroy(u.publicId).catch(() => null)));
+      console.error('Edit creative error:', error);
+      res.status(500).json({ message: 'Unable to update creative' });
+    }
+  });
+});
+
+router.delete('/creatives/:id', async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid id' });
+    const c = await Creative.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+    if (!c) return res.status(404).json({ message: 'Creative not found' });
+    await Promise.all((c.uploads || []).map((u) => u.publicId && cloudinary.uploader.destroy(u.publicId).catch(() => null)));
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Delete creative error:', error);
+    res.status(500).json({ message: 'Unable to delete creative' });
+  }
 });
 
 const meetingView = (m) => ({
@@ -387,11 +528,13 @@ const meetingView = (m) => ({
   company: m.company ? { id: m.company._id, name: m.company.name } : { id: '', name: 'Removed company' },
   mom: momView(m.mom),
 });
+
 // My meetings, soonest first.
 router.get('/meetings', async (req, res) => {
   const list = await Meeting.find({ user: req.user.id }).sort({ date: 1, time: 1 }).limit(300).populate('company', 'name');
   res.json({ meetings: list.map(meetingView) });
 });
+
 // Create a meeting: { subject, company, date, time, link?, attendees: [{ name, designation }] }
 router.post('/meetings', async (req, res) => {
   const { subject, company, date, time, link } = req.body || {};
@@ -400,16 +543,19 @@ router.post('/meetings', async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(company)) return res.status(400).json({ message: 'Select a company' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return res.status(400).json({ message: 'Date is required' });
   if (!/^\d{2}:\d{2}$/.test(time || '')) return res.status(400).json({ message: 'Time is required' });
+
   // The company must be one the admin assigned to me.
   const me = await Sme.findById(req.user.id);
   if (!me) return res.status(401).json({ message: 'User not found' });
   if (!(me.companies || []).map(String).includes(String(company))) {
     return res.status(400).json({ message: 'That company is not assigned to you' });
   }
+
   const cleanLink = String(link || '').trim();
   if (cleanLink && !/^https?:\/\/\S+$/i.test(cleanLink)) {
     return res.status(400).json({ message: 'Meeting link must start with http:// or https://' });
   }
+
   const rawAttendees = Array.isArray(req.body.attendees) ? req.body.attendees.slice(0, 50) : [];
   const attendees = rawAttendees.map((a) => ({
     name: String(a?.name || '').trim(),
@@ -419,10 +565,12 @@ router.post('/meetings', async (req, res) => {
   if (attendees.some((a) => !a.name || !a.designation)) {
     return res.status(400).json({ message: 'Every attendee needs a name and a designation' });
   }
+
   const created = await Meeting.create({ user: req.user.id, company, subject: subj, date, time, link: cleanLink || generateMeetingLink(subj), attendees });
   await created.populate('company', 'name');
   res.status(201).json({ meeting: meetingView(created) });
 });
+
 // Add more attendees to a meeting: { attendees: [{ name, designation }] } (appended to the existing ones).
 // Locked once a MOM exists, because the MOM's attendance list is built from the attendees.
 router.put('/meetings/:id/attendees', async (req, res) => {
@@ -432,6 +580,7 @@ router.put('/meetings/:id/attendees', async (req, res) => {
   if (meeting.mom?.submittedAt) {
     return res.status(400).json({ message: 'Attendees cannot be changed after the MOM is submitted' });
   }
+
   const incoming = (Array.isArray(req.body?.attendees) ? req.body.attendees : []).slice(0, 50).map((a) => ({
     name: String(a?.name || '').trim(),
     designation: String(a?.designation || '').trim(),
@@ -443,16 +592,19 @@ router.put('/meetings/:id/attendees', async (req, res) => {
   if (meeting.attendees.length + incoming.length > 50) {
     return res.status(400).json({ message: 'A meeting can have at most 50 attendees' });
   }
+
   const key = (a) => `${a.name.toLowerCase()}|${a.designation.toLowerCase()}`;
   const existing = new Set(meeting.attendees.map(key));
   for (const a of incoming) {
     if (existing.has(key(a))) return res.status(400).json({ message: `${a.name} (${a.designation}) is already an attendee` });
     existing.add(key(a));
   }
+
   meeting.attendees.push(...incoming);
   await meeting.save();
   res.json({ meeting: meetingView(meeting) });
 });
+
 // Records: every meeting whose MOM the admin approved, newest first.
 router.get('/records', async (req, res) => {
   const list = await Meeting.find({ user: req.user.id, 'mom.status': 'approved' })
@@ -461,22 +613,26 @@ router.get('/records', async (req, res) => {
     .populate('company', 'name');
   res.json({ records: list.map(meetingView) });
 });
+
 // Join Now: only allowed from the meeting's date + time. Body: { now: 'YYYY-MM-DDTHH:mm' } (the user's local time).
 router.put('/meetings/:id/join', async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid meeting' });
   const meeting = await Meeting.findOne({ _id: req.params.id, user: req.user.id }).populate('company', 'name');
   if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+
   const now = String(req.body?.now || '');
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(now)) return res.status(400).json({ message: 'Invalid time' });
   if (now < `${meeting.date}T${meeting.time}`) {
     return res.status(400).json({ message: 'This meeting has not started yet' });
   }
+
   if (!meeting.joinedAt) {
     meeting.joinedAt = new Date();
     await meeting.save();
   }
   res.json({ meeting: meetingView(meeting) });
 });
+
 // Submit the minutes of a meeting for the admin's approval (re-submit after a rejection).
 router.put('/meetings/:id/mom', async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid meeting' });
@@ -486,10 +642,13 @@ router.put('/meetings/:id/mom', async (req, res) => {
   if (meeting.mom?.submittedAt && ['approved', 'rejected'].includes(meeting.mom.status)) {
     return res.status(400).json({ message: `This MOM is already ${meeting.mom.status} and cannot be changed` });
   }
+
   const { error, mom } = buildMom(req.body, meeting);
   if (error) return res.status(400).json({ message: error });
+
   meeting.mom = mom;
   await meeting.save();
   res.json({ meeting: meetingView(meeting) });
 });
+
 export default router;

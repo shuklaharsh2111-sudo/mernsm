@@ -1,21 +1,20 @@
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Image as ImageIcon, CalendarDays, LayoutGrid, Smartphone } from 'lucide-react';
 import api from '../api';
 import { CompanyBadge } from '../components/CompanyBadge';
-import { InstagramIcon, FacebookIcon, LinkedinIcon, XIcon, YoutubeIcon } from '../components/SocialIcons';
+import ReferenceCreativeModal from '../components/ReferenceCreativeModal';
+import CreativeViewModal from '../components/CreativeViewModal';
+import DayCreativesModal from '../components/DayCreativesModal';
+import CreativeStatusBadge from '../components/CreativeStatusBadge';
+import { PLATFORMS } from '../components/creativePlatforms';
+import { InstagramGrid, InstagramStories } from '../components/InstagramViews';
 import { errMsg, todayStr } from '../sopUtils';
 import '../style.css';
 import '../styles/smedashboard.css';
 import '../styles/calendar.css';
 
-const PLATFORMS = [
-  { key: 'instagram', label: 'Instagram', icon: InstagramIcon },
-  { key: 'facebook', label: 'Facebook', icon: FacebookIcon },
-  { key: 'linkedin', label: 'LinkedIn', icon: LinkedinIcon },
-  { key: 'x', label: 'X', icon: XIcon },
-  { key: 'youtube', label: 'YouTube', icon: YoutubeIcon },
-];
 
+const MAX_CHIPS = 2; // creatives shown inside one day box; the rest collapse into "+N more"
 const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 const p2 = (n) => String(n).padStart(2, '0');
 const ymd = (d) => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
@@ -31,8 +30,16 @@ const SmeCalendar = () => {
   const [companies, setCompanies] = useState([]);
   const [error, setError] = useState('');
   const [activeId, setActiveId] = useState('');
-  // platforms switched on, kept separately for each brand
-  const [platformsByBrand, setPlatformsByBrand] = useState({});
+  // each brand has its own set of platform calendars; remember which one is open per brand
+  const [platformByBrand, setPlatformByBrand] = useState({});
+  // Instagram has two extra views besides the month calendar: profile grid and stories
+  const [igView, setIgView] = useState('calendar'); // 'calendar' | 'grid' | 'story'
+  const [creatives, setCreatives] = useState([]);
+  const [notice, setNotice] = useState('');
+  const [viewing, setViewing] = useState(null); // saved creative open in the preview
+  const [modalDate, setModalDate] = useState(''); // day the 'reference creative' modal is open for
+  const [editing, setEditing] = useState(null); // creative sent back for a redo, open in the edit form
+  const [dayOpen, setDayOpen] = useState(''); // day box clicked: lists that day's creatives
   const now = new Date();
   const [cursor, setCursor] = useState({ y: now.getFullYear(), m: now.getMonth() });
 
@@ -50,15 +57,45 @@ const SmeCalendar = () => {
     };
   }, []);
 
-  const active = companies.find((c) => c.id === activeId) || null;
-  const activePlatforms = platformsByBrand[activeId] || PLATFORMS.map((p) => p.key);
+  // creatives of the selected brand: pending, approved and redo all show on the calendar
+  useEffect(() => {
+    if (!activeId) return;
+    let cancelled = false;
+    api.get('/sme/creatives', { params: { company: activeId } })
+      .then((r) => !cancelled && setCreatives(r.data.creatives))
+      .catch((err) => !cancelled && setError(errMsg(err)));
+    return () => {
+      cancelled = true;
+    };
+  }, [activeId]);
 
-  const togglePlatform = (key) =>
-    setPlatformsByBrand((prev) => {
-      const cur = prev[activeId] || PLATFORMS.map((p) => p.key);
-      const next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
-      return { ...prev, [activeId]: next };
-    });
+  const removeCreative = async (id) => {
+    if (!window.confirm('Delete this creative?')) return;
+    try {
+      await api.delete(`/sme/creatives/${id}`);
+      setCreatives((list) => list.filter((c) => c.id !== id));
+    } catch (err) {
+      setError(errMsg(err));
+    }
+  };
+
+  const active = companies.find((c) => c.id === activeId) || null;
+  const activePlatform = platformByBrand[activeId] || PLATFORMS[0].key;
+  const activePlatformMeta = PLATFORMS.find((p) => p.key === activePlatform) || PLATFORMS[0];
+  const brandIndex = Math.max(companies.findIndex((c) => c.id === activeId), 0);
+
+  // open one platform calendar of one brand (also switches to that brand)
+  const openCalendar = (brandId, key) => {
+    setActiveId(brandId);
+    setPlatformByBrand((prev) => ({ ...prev, [brandId]: key }));
+  };
+
+  // each calendar only shows the creatives planned for its platform
+  const visibleCreatives = creatives.filter((c) => c.contentPillar.platforms.includes(activePlatform));
+  const dayCreatives = (key) => visibleCreatives.filter((c) => c.date === key);
+  const isInstagram = activePlatform === 'instagram';
+  const view = isInstagram ? igView : 'calendar';
+  const countFor = (key) => creatives.filter((c) => c.contentPillar.platforms.includes(key)).length;
 
   const grid = buildGrid(cursor.y, cursor.m);
   const today = todayStr();
@@ -86,26 +123,6 @@ const SmeCalendar = () => {
                 >
                   <CompanyBadge company={c} size={72} showName />
                 </button>
-                {/* social platforms under the logo */}
-                <div className="cal-platforms" aria-label={`${c.name} platforms`}>
-                  {PLATFORMS.map(({ key, label, icon: Icon }) => {
-                    const on = isActive && activePlatforms.includes(key);
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        className={`cal-platform ${on ? 'on' : ''}`}
-                        title={label}
-                        aria-label={label}
-                        aria-pressed={on}
-                        disabled={!isActive}
-                        onClick={() => togglePlatform(key)}
-                      >
-                        <Icon size={20} />
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
             );
           })}
@@ -130,21 +147,65 @@ const SmeCalendar = () => {
       </div>
 
       {error && <p className="error-message" role="alert">{error}</p>}
+      {notice && <p className="success-message" role="status">{notice}</p>}
+
+      {/* Platform calendars of the selected brand */}
+      {active && (
+        <div className="cal-plat-tabs" role="tablist" aria-label={`${active.name} platform calendars`}>
+          {PLATFORMS.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              data-platform={key}
+              aria-selected={activePlatform === key}
+              className={activePlatform === key ? 'active' : ''}
+              onClick={() => openCalendar(activeId, key)}
+            >
+              <Icon size={15} />
+              {label}
+              <span className="cal-plat-count">{countFor(key)}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="cal-header">
-        <h2>Calendar{active ? ` · ${active.name}` : ''}</h2>
+        <h2>
+          Calendar{active ? ` · ${active.name}` : ''}
+          {` · ${activePlatformMeta.label}`}
+        </h2>
+        {isInstagram && (
+          <div className="cal-views" role="tablist" aria-label="Instagram views">
+            {[
+              { key: 'calendar', label: 'Calendar', icon: CalendarDays },
+              { key: 'grid', label: 'Grid view', icon: LayoutGrid },
+              { key: 'story', label: 'Story view', icon: Smartphone },
+            ].map(({ key, label, icon: Icon }) => (
+              <button key={key} type="button" role="tab" aria-selected={igView === key} className={igView === key ? 'active' : ''} onClick={() => setIgView(key)}>
+                <Icon size={15} />{label}
+              </button>
+            ))}
+          </div>
+        )}
+        {view === 'calendar' && (
         <div className="cal-nav">
           <button type="button" onClick={() => shift(-1)} aria-label="Previous month"><ChevronLeft size={16} /></button>
           <span className="cal-month">{monthLabel}</span>
           <button type="button" onClick={() => shift(1)} aria-label="Next month"><ChevronRight size={16} /></button>
           <button type="button" onClick={() => setCursor({ y: now.getFullYear(), m: now.getMonth() })}>Today</button>
         </div>
+        )}
       </div>
 
       {companies.length === 0 && !error ? (
         <p className="muted">No brands are assigned to you yet.</p>
+      ) : view === 'grid' ? (
+        <InstagramGrid creatives={visibleCreatives} company={active} onOpen={setViewing} />
+      ) : view === 'story' ? (
+        <InstagramStories creatives={visibleCreatives} company={active} onOpen={setViewing} />
       ) : (
-        <div className="cal-grid">
+        <div className="cal-grid" data-platform={activePlatform} style={{ '--brand-hue': (brandIndex * 57 + 225) % 360 }}>
           {WEEKDAYS.map((d) => (
             <div key={d} className="cal-dow">{d}</div>
           ))}
@@ -153,13 +214,107 @@ const SmeCalendar = () => {
             return (
               <div
                 key={key}
-                className={`cal-cell ${d.getMonth() !== cursor.m ? 'other' : ''} ${key === today ? 'today' : ''}`}
+                className={`cal-cell clickable ${d.getMonth() !== cursor.m ? 'other' : ''} ${key === today ? 'today' : ''}`}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open ${key}`}
+                onClick={() => setDayOpen(key)}
+                onKeyDown={(e) => e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setDayOpen(key))}
               >
-                <span className="cal-day">{d.getDate()}</span>
+                <div className="cal-cell-top">
+                  <span className="cal-day">{d.getDate()}</span>
+                  {active && (
+                    <button
+                      type="button"
+                      className="cal-add"
+                      title={`Add ${activePlatformMeta.label} creative`}
+                      aria-label={`Add reference creative on ${key}`}
+                      onClick={(e) => { e.stopPropagation(); setModalDate(key); }}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  )}
+                </div>
+                {dayCreatives(key).slice(0, MAX_CHIPS).map((c) => (
+                  <div key={c.id} className={`cal-creative ${c.status}`} title={`${c.contentPillar.title} · ${c.status === 'rejected' ? 'Redo' : c.status}`}>
+                    <span className="cal-creative-open">
+                      <span className="cal-creative-thumb">
+                        {c.uploads[0] ? <img src={c.uploads[0].url} alt="" /> : <ImageIcon size={14} />}
+                      </span>
+                      <span className="cal-creative-text">
+                        <span className="cal-creative-title">{c.contentPillar.title}</span>
+                        <span className="cal-creative-meta">
+                          <CreativeStatusBadge status={c.status} compact />
+                        </span>
+                      </span>
+                    </span>
+                  </div>
+                ))}
+                {dayCreatives(key).length > MAX_CHIPS && (
+                  <span className="cal-more">+{dayCreatives(key).length - MAX_CHIPS} more</span>
+                )}
               </div>
             );
           })}
         </div>
+      )}
+
+      {dayOpen && active && (
+        <DayCreativesModal
+          company={active}
+          platformLabel={activePlatformMeta.label}
+          date={dayOpen}
+          creatives={dayCreatives(dayOpen)}
+          platforms={PLATFORMS}
+          paused={!!viewing}
+          onOpen={setViewing}
+          onEdit={(c) => { setDayOpen(''); setEditing(c); }}
+          onAdd={() => { setModalDate(dayOpen); setDayOpen(''); }}
+          onDelete={removeCreative}
+          onClose={() => setDayOpen('')}
+        />
+      )}
+
+      {viewing && (
+        <CreativeViewModal
+          creative={viewing}
+          company={active}
+          platforms={PLATFORMS}
+          onEdit={(c) => { setViewing(null); setDayOpen(''); setEditing(c); }}
+          onClose={() => setViewing(null)}
+        />
+      )}
+
+      {editing && active && (
+        <ReferenceCreativeModal
+          company={active}
+          date={editing.date}
+          platforms={PLATFORMS}
+          editing={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(saved) => {
+            // same creative, updated: it goes back to Pending for the admin
+            setCreatives((list) => list.map((c) => (c.id === saved.id ? saved : c)));
+            setNotice('Creative updated and sent back to the admin. It shows as Pending again.');
+            setEditing(null);
+          }}
+        />
+      )}
+
+      {modalDate && active && (
+        <ReferenceCreativeModal
+          company={active}
+          date={modalDate}
+          platforms={PLATFORMS}
+          defaultPlatform={activePlatform}
+          onClose={() => setModalDate('')}
+          onSaved={(saved) => {
+            // it shows on the calendar straight away, marked Pending until the admin reviews it
+            if (saved && saved.companyId === activeId) setCreatives((list) => [...list, saved]);
+            setNotice('Creative sent to the admin for approval. It shows on the calendar as Pending until the admin approves it or asks for a redo.');
+            setModalDate('');
+          }}
+        />
       )}
     </div>
   );

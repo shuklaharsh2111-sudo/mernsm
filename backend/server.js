@@ -1,7 +1,7 @@
+import 'dotenv/config'; // load .env first, before any other module reads process.env
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
-dotenv.config()
 import path from 'path';
 import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';

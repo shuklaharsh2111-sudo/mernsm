@@ -16,11 +16,13 @@ import AdminDashboard from './admin/AdminDashboard';
 import AdminUsers from './admin/AdminUsers';
 import AdminCompanies from './admin/AdminCompanies';
 import AdminMeetings from './admin/AdminMeetings';
+import AdminCreatives from './admin/AdminCreatives';
 import SmeDashboard from './sme/SmeDashboard';
 import SmeSaved from './sme/SmeSaved';
 import SmeRecords from './sme/SmeRecords';
 import SmeCalendar from './sme/SmeCalendar';
 import Invoices from './components/Invoice';
+import SmePendingCreatives from './sme/SmePendingCreatives';
 
 const ProtectedRoute = ({ role }) => {
   const { user, loading } = useAuth();
@@ -83,6 +85,7 @@ const AppRoutes = () => {
           <Route path="/admin/companies" element={<AdminCompanies />} />
           <Route path="/admin/meetings" element={<AdminMeetings />} />
           <Route path="/admin/invoices" element={<Invoices />} />
+          <Route path="/admin/creatives" element={<AdminCreatives />} />
         </Route>
       </Route>
 
@@ -92,6 +95,7 @@ const AppRoutes = () => {
           <Route path="/sme/calendar" element={<SmeCalendar />} />
           <Route path="/sme/saved" element={<SmeSaved />} />
           <Route path="/sme/records" element={<SmeRecords />} />
+          <Route path="/sme/pending-creatives" element={<SmePendingCreatives />} />
         </Route>
       </Route>
 
