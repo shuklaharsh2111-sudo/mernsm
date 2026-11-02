@@ -36,33 +36,7 @@ const MOM_BTN = {
   rejected: { label: 'MoM Rejected', icon: <XCircle size={15} />, title: 'Admin rejected this MoM' }
 };
 const MAX_AVATARS = 4;
-const MOM_BTN = {
-  none: {
-    title: 'Send Meeting Minutes',
-    label: 'Send MOM',
-    icon: '📝'
-  },
-  draft: {
-    title: 'Edit Meeting Minutes',
-    label: 'Edit MOM',
-    icon: '📝'
-  },
-  pending: {
-    title: 'MOM Awaiting Approval',
-    label: 'MOM Pending',
-    icon: '⏳'
-  },
-  approved: {
-    title: 'MOM Approved',
-    label: 'MOM Approved',
-    icon: '✓'
-  },
-  rejected: {
-    title: 'MOM Rejected - Edit Required',
-    label: 'Revise MOM',
-    icon: '↻'
-  }
-};
+
 const AVATAR_COLORS = ['#7c5cff', '#2bb3a3', '#e0709a', '#e69b3a', '#4f8cff', '#8f6bd6'];
 const initials = (name) =>
   name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('');
