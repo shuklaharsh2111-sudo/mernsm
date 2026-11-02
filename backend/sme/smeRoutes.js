@@ -1,6 +1,7 @@
 import multer from 'multer';
 import cloudinary from '../config/cloudinary.js';
 import express from 'express';
+import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import { protect } from '../auth.js';
 import Sme from './Sme.js';
@@ -531,6 +532,176 @@ router.delete('/creatives/:id', async (req, res) => {
   } catch (error) {
     console.error('Delete creative error:', error);
     res.status(500).json({ message: 'Unable to delete creative' });
+  }
+});
+
+// =========================================
+// COMPANY HEALTH
+// =========================================
+// Health rules (any ONE matching number puts the company in that level; the worst level wins).
+//   healthy  = no delays, redo, rejections or overdue at all
+//   risk     = 2 delays, 4 redo, 2 rejections or 2 overdue
+//   critical = 3 delays, 5 redo, 3 rejections or 3 overdue
+// Any other problem (below the risk numbers) is still not healthy, so it counts as risk.
+const HEALTH_RULES = {
+  risk: { delays: 2, redo: 4, rejected: 2, overdue: 2 },
+  critical: { delays: 3, redo: 5, rejected: 3, overdue: 3 },
+};
+const healthOf = (m) => {
+  const hit = (rule) =>
+    m.delays >= rule.delays || m.redo >= rule.redo || m.rejected >= rule.rejected || m.overdue >= rule.overdue;
+  if (hit(HEALTH_RULES.critical)) return 'critical';
+  if (hit(HEALTH_RULES.risk)) return 'risk';
+  if (m.delays || m.redo || m.rejected || m.overdue) return 'risk';
+  return 'healthy';
+};
+
+// Per assigned company: total, approved, pending, redo (waiting for the SME to redo), rejected (times the admin
+// rejected, even if fixed since), delays (sent for approval after its planned date) and overdue (planned date
+// passed and not approved yet).
+router.get('/company-health', async (req, res) => {
+  try {
+    const me = await Sme.findById(req.user.id);
+    if (!me) return res.status(401).json({ message: 'User not found' });
+    const ids = (me.companies || []).map(String);
+    const found = await Company.find({ _id: { $in: ids } });
+    const byId = Object.fromEntries(found.map((c) => [String(c._id), c]));
+    const today = resolveToday(req.query.today);
+
+    const creatives = await Creative.find({ user: req.user.id, company: { $in: ids } })
+      .select('company date status createdAt rejectionCount')
+      .lean();
+
+    const stats = {};
+    ids.forEach((id) => {
+      stats[id] = { total: 0, approved: 0, pending: 0, redo: 0, rejected: 0, delays: 0, overdue: 0 };
+    });
+    for (const c of creatives) {
+      const m = stats[String(c.company)];
+      if (!m) continue;
+      m.total += 1;
+      if (c.status === 'approved') m.approved += 1;
+      else if (c.status === 'pending') m.pending += 1;
+      else if (c.status === 'rejected') m.redo += 1;
+      // old rejected creatives were saved before the counter existed, so count them at least once
+      m.rejected += Math.max(c.rejectionCount || 0, c.status === 'rejected' ? 1 : 0);
+      if (c.createdAt && c.createdAt.toISOString().slice(0, 10) > c.date) m.delays += 1;
+      if (c.status !== 'approved' && c.date < today) m.overdue += 1;
+    }
+
+    const companies = ids
+      .filter((id) => byId[id])
+      .map((id) => {
+        const m = stats[id];
+        return {
+          id,
+          name: byId[id].name,
+          ...m,
+          approvalRate: m.total ? Math.round((m.approved / m.total) * 100) : 0,
+          health: healthOf(m),
+        };
+      });
+    res.json({ companies, rules: HEALTH_RULES });
+  } catch (error) {
+    console.error('Company health error:', error);
+    res.status(500).json({ message: 'Unable to load company health' });
+  }
+});
+
+// =========================================
+// SETTINGS: PROFILE + PASSWORD
+// =========================================
+const profileView = (u) => ({
+  id: u._id,
+  name: u.name || u.fullname || u.email,
+  email: u.email,
+  avatar: u.avatar || u.profileImage || '',
+  role: 'sme'
+});
+
+router.get('/profile', async (req, res) => {
+  try {
+    const me = await Sme.findById(req.user.id);
+    if (!me) return res.status(401).json({ message: 'User not found' });
+    res.json({ user: profileView(me) });
+  } catch (error) {
+    console.error('Fetch profile error:', error);
+    res.status(500).json({ message: 'Unable to load profile' });
+  }
+});
+
+// Change name and/or profile image. multipart/form-data: name, avatar (file), removeAvatar ('true' to delete it).
+router.put('/profile', (req, res) => {
+  upload.single('avatar')(req, res, async (uploadError) => {
+    if (uploadError) return res.status(400).json({ message: uploadError.message });
+    let uploaded = null;
+    try {
+      // plain (lean) read + plain write: old records may hold badly stored dates that make Mongoose documents fail
+      const me = await Sme.findById(req.user.id).lean();
+      if (!me) return res.status(401).json({ message: 'User not found' });
+
+      const changes = {};
+      if (req.body.name !== undefined) {
+        const name = String(req.body.name).trim();
+        if (name.length < 2 || name.length > 60) {
+          return res.status(400).json({ message: 'Name must be 2 to 60 characters' });
+        }
+        changes.name = name;
+      }
+
+      const oldPublicId = me.avatarPublicId || '';
+      let replaced = false;
+      if (req.file) {
+        const result = await uploadToCloudinary(req.file.buffer, 'creative-manager/avatars');
+        uploaded = result;
+        changes.avatar = result.secure_url;
+        changes.profileImage = result.secure_url;
+        changes.avatarPublicId = result.public_id;
+        replaced = true;
+      } else if (req.body.removeAvatar === 'true') {
+        changes.avatar = '';
+        changes.profileImage = '';
+        changes.avatarPublicId = '';
+        replaced = true;
+      }
+
+      if (Object.keys(changes).length) {
+        await Sme.collection.updateOne({ _id: me._id }, { $set: changes });
+      }
+      if (replaced && oldPublicId) cloudinary.uploader.destroy(oldPublicId).catch(() => null);
+      res.json({ user: profileView({ ...me, ...changes }), message: 'Profile updated' });
+    } catch (error) {
+      if (uploaded) cloudinary.uploader.destroy(uploaded.public_id).catch(() => null);
+      console.error('Update profile error:', error);
+      res.status(500).json({ message: 'Unable to update profile' });
+    }
+  });
+});
+
+router.put('/password', async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Enter your current and new password' });
+    }
+    if (typeof newPassword !== 'string' || newPassword.length < 8 || newPassword.length > 72) {
+      return res.status(400).json({ message: 'New password must be 8 to 72 characters' });
+    }
+    const me = await Sme.findById(req.user.id).select('+password').lean();
+    if (!me || !me.password) return res.status(401).json({ message: 'User not found' });
+    if (!(await bcrypt.compare(currentPassword, me.password))) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+    if (await bcrypt.compare(newPassword, me.password)) {
+      return res.status(400).json({ message: 'New password must be different from the current one' });
+    }
+    const hashed = await bcrypt.hash(newPassword, 10);
+    // write straight to MongoDB so nothing else on the record is validated or touched
+    await Sme.collection.updateOne({ _id: me._id }, { $set: { password: hashed } });
+    res.json({ message: 'Password changed' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ message: 'Unable to change password' });
   }
 });
 

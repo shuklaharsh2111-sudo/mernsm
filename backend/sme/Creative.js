@@ -13,6 +13,8 @@ const creativeSchema = new mongoose.Schema(
     status: { type: String, enum: CREATIVE_STATUSES, default: 'pending', index: true },
     reviewNote: { type: String, trim: true, maxlength: 500, default: '' },
     reviewedAt: { type: Date, default: null },
+    // how many times the admin has rejected (sent back for redo) this creative; never reset
+    rejectionCount: { type: Number, default: 0, min: 0 },
     referenceLinks: { type: [{ type: String, trim: true, maxlength: 500 }], default: [] },
     // uploaded reference images (Cloudinary)
     uploads: [

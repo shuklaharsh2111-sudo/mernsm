@@ -22,6 +22,11 @@ const smeSchema = new mongoose.Schema(
       default: ''
     },
     profileImage: String,
+    // Cloudinary id of the uploaded avatar, so the old image can be deleted when it is replaced
+    avatarPublicId: {
+      type: String,
+      default: ''
+    },
     companies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Company' }],
     role: {
       type: String,

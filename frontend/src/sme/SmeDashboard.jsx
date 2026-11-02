@@ -6,6 +6,7 @@ import SendMomModal from '../components/SendMomModal';
 import MeetingDetailsModal from '../components/MeetingDetailsModal';
 import { CompanyBadge, EmptyBadge } from '../components/CompanyBadge';
 import TaskManager from '../components/TaskManager';
+import CompanyHealth from '../components/CompanyHealth';
 import {
   PERIOD_WORD,
   SOP_TYPES,
@@ -412,6 +413,7 @@ const SmeDashboard = () => {
       {momMeeting && <SendMomModal meeting={momMeeting} onSaved={onMomSaved} onClose={() => setMomMeeting(null)} />}
 
       <TaskManager />
+      <CompanyHealth />
     </div>
   );
 };
