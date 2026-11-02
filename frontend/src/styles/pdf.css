@@ -237,6 +237,27 @@
 }
 
 @media print {
+  /* Hide everything on the page except the invoice document */
+  body * {
+    visibility: hidden;
+  }
+
+  #invoice-print-document,
+  #invoice-print-document * {
+    visibility: visible;
+  }
+
+  #invoice-print-document {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 10mm;
+    box-shadow: none;
+    background: #fff !important;
+  }
+
   @page {
     size: A4;
     margin: 0;
@@ -248,22 +269,14 @@
   }
 
   .pdf-view-overlay {
-    position: static;
-    overflow: visible;
-    padding: 0;
-    background: #fff;
+    position: static !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: #fff !important;
   }
 
   .pdf-view-toolbar {
     display: none !important;
-  }
-
-  .pdf-document {
-    width: 210mm;
-    min-height: 297mm;
-    margin: 0;
-    padding: 12mm;
-    box-shadow: none;
   }
 
   .pdf-address-box,
