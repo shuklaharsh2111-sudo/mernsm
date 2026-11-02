@@ -372,6 +372,7 @@ const creativeView = (c) => ({
   reviewNote: c.reviewNote || '',
   reviewedAt: c.reviewedAt,
   createdAt: c.createdAt,
+  rejectionCount: c.rejectionCount || 0,
   date: c.date,
   referenceLinks: c.referenceLinks || [],
   uploads: (c.uploads || []).map((u) => ({ url: u.url, name: u.originalName })),
