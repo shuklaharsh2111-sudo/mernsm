@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-
 // SME -> a meeting they schedule for one of their companies.
 const attendeeSchema = new mongoose.Schema(
   {
@@ -8,12 +7,10 @@ const attendeeSchema = new mongoose.Schema(
   },
   { _id: false }
 );
-
 // pending = waiting for admin; sent_back = admin wants changes (SME can edit + resubmit);
 // approved / rejected are final.
 export const MOM_STATUSES = ['pending', 'approved', 'sent_back', 'rejected'];
 export const PRIORITIES = ['high', 'medium', 'low'];
-
 // Minutes of Meeting: written by the SME, then approved / rejected by the admin.
 const momSchema = new mongoose.Schema(
   {
@@ -57,7 +54,6 @@ const momSchema = new mongoose.Schema(
   },
   { _id: false }
 );
-
 const meetingSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'Sme', required: true, index: true },
@@ -77,5 +73,4 @@ const meetingSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
 export default mongoose.models.Meeting || mongoose.model('Meeting', meetingSchema);
