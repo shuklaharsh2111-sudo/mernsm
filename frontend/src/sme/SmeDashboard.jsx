@@ -24,6 +24,33 @@ import {
   Plus
 } from 'lucide-react';
 const MAX_AVATARS = 4;
+const MOM_BTN = {
+  none: {
+    title: 'Send Meeting Minutes',
+    label: 'Send MOM',
+    icon: '📝'
+  },
+  draft: {
+    title: 'Edit Meeting Minutes',
+    label: 'Edit MOM',
+    icon: '📝'
+  },
+  pending: {
+    title: 'MOM Awaiting Approval',
+    label: 'MOM Pending',
+    icon: '⏳'
+  },
+  approved: {
+    title: 'MOM Approved',
+    label: 'MOM Approved',
+    icon: '✓'
+  },
+  rejected: {
+    title: 'MOM Rejected - Edit Required',
+    label: 'Revise MOM',
+    icon: '↻'
+  }
+};
 const AVATAR_COLORS = ['#7c5cff', '#2bb3a3', '#e0709a', '#e69b3a', '#4f8cff', '#8f6bd6'];
 const initials = (name) =>
   name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('');
@@ -362,21 +389,22 @@ const SmeDashboard = () => {
                   >
                     <Video size={15} /> Join Now
                   </button>
-
-                  {m.joined && (
-                    <button
-                      type="button"
-                      className={`send-mom-btn ${m.mom ? m.mom.status : ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMomMeeting(m);
-                      }}
-                      title={MOM_BTN[m.mom?.status || 'none'].title}
-                    >
-                      {MOM_BTN[m.mom?.status || 'none'].icon}
-                      {MOM_BTN[m.mom?.status || 'none'].label}
-                    </button>
-                  )}
+{m.joined && (
+  <button
+    type="button"
+    className={`send-mom-btn ${m.mom?.status || ''}`}
+    onClick={(e) => {
+      e.stopPropagation();
+      setMomMeeting(m);
+    }}
+    title={MOM_BTN[m.mom?.status] 
+      ? MOM_BTN[m.mom.status].title 
+      : MOM_BTN.none.title}
+  >
+    {MOM_BTN[m.mom?.status]?.icon || MOM_BTN.none.icon}
+    {MOM_BTN[m.mom?.status]?.label || MOM_BTN.none.label}
+  </button>
+)}
 
                   <div className="avatar-stack" aria-label="Attendees">
                     {m.attendees.slice(0, MAX_AVATARS).map((a, i) => (
