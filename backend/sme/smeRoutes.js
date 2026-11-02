@@ -89,25 +89,25 @@ router.put('/sop-assignments/completions', async (req, res) => {
   }
   res.json({ assignments: await listFor(req.user.id, today), today });
 });
+
 // =========================================
 // TASK MANAGER APIs
 // =========================================
+
 // GET: Logged-in SME ke saare tasks
 router.get('/tasks', async (req, res) => {
   try {
-    const tasks = await Task.find({
-      user: req.user.id
-    })
+    const tasks = await Task.find({ user: req.user.id })
       .populate('company', 'name')
       .sort({ createdAt: -1 });
-    res.json({ tasks });
+
+    return res.json({ tasks });
   } catch (error) {
     console.error('Fetch Tasks Error:', error);
-    res.status(500).json({
-      message: 'Unable to fetch tasks'
-    });
+    return res.status(500).json({ message: 'Unable to fetch tasks' });
   }
 });
+
 // POST: Create a new task
 router.post('/tasks', async (req, res) => {
   try {
@@ -120,72 +120,54 @@ router.post('/tasks', async (req, res) => {
       taskType,
       objective,
       customObjective,
-      priority
-    } = req.body;
-    // Required fields
-    if (
-      !companyId ||
-      !title?.trim() ||
-      !category ||
-      !tatDays ||
-      !taskType ||
-      !objective ||
-      !priority
-    ) {
-      return res.status(400).json({
-        message: 'Please fill all required fields'
-      });
+      priority,
+      brief,
+      assignedTo
+    } = req.body || {};
+
+    if (!companyId || !title?.trim() || !category || !taskType || !objective || !priority) {
+      return res.status(400).json({ message: 'Please fill all required fields' });
     }
-    // Validate company ID
+
     if (!mongoose.Types.ObjectId.isValid(companyId)) {
-      return res.status(400).json({
-        message: 'Invalid company selected'
-      });
+      return res.status(400).json({ message: 'Invalid company selected' });
     }
-    // Verify logged-in SME
+
     const me = await Sme.findById(req.user.id);
+
     if (!me) {
-      return res.status(401).json({
-        message: 'SME account not found'
-      });
+      return res.status(401).json({ message: 'SME account not found' });
     }
-    // Check whether company is assigned to this SME
+
     const isAssigned = (me.companies || []).some(
-      (id) => String(id) === String(companyId)
+      id => String(id) === String(companyId)
     );
+
     if (!isAssigned) {
-      return res.status(403).json({
-        message: 'You are not assigned to this company'
-      });
+      return res.status(403).json({ message: 'You are not assigned to this company' });
     }
-    // Validate category
+
     if (!['one-time', 'recurring'].includes(category)) {
-      return res.status(400).json({
-        message: 'Invalid task category'
-      });
+      return res.status(400).json({ message: 'Invalid task category' });
     }
-    // Validate frequency
+
     let selectedFrequency = null;
+    let selectedTat = null;
+
     if (category === 'recurring') {
       selectedFrequency = Number(frequencyDays);
+
       if (![7, 15, 30].includes(selectedFrequency)) {
-        return res.status(400).json({
-          message: 'Select a valid recurring frequency'
-        });
+        return res.status(400).json({ message: 'Select a valid recurring frequency' });
+      }
+
+      selectedTat = Number(tatDays);
+
+      if (!Number.isInteger(selectedTat) || selectedTat < 1 || selectedTat > 3650) {
+        return res.status(400).json({ message: 'TAT must be a valid number of days' });
       }
     }
-    // Validate TAT
-    const selectedTat = Number(tatDays);
-    if (
-      !Number.isInteger(selectedTat) ||
-      selectedTat < 1 ||
-      selectedTat > 3650
-    ) {
-      return res.status(400).json({
-        message: 'TAT must be a valid number of days'
-      });
-    }
-    // Validate task type
+
     const allowedTaskTypes = [
       'Strategy/Pitch Deck',
       'Mood Board',
@@ -194,38 +176,36 @@ router.post('/tasks', async (req, res) => {
       'Content Writing',
       'Influencer Collaboration'
     ];
+
     if (!allowedTaskTypes.includes(taskType)) {
-      return res.status(400).json({
-        message: 'Invalid task type'
-      });
+      return res.status(400).json({ message: 'Invalid task type' });
     }
-    // Validate objective
+
     const allowedObjectives = [
       'Brand Awareness',
       'Lead Generation',
       'Brand Positioning',
       'Others'
     ];
+
     if (!allowedObjectives.includes(objective)) {
-      return res.status(400).json({
-        message: 'Invalid objective'
-      });
+      return res.status(400).json({ message: 'Invalid objective' });
     }
-    if (
-      objective === 'Others' &&
-      !customObjective?.trim()
-    ) {
-      return res.status(400).json({
-        message: 'Please enter your custom objective'
-      });
+
+    if (objective === 'Others' && !customObjective?.trim()) {
+      return res.status(400).json({ message: 'Please enter your custom objective' });
     }
-    // Validate priority
+
     if (!['High', 'Low', 'Critical'].includes(priority)) {
-      return res.status(400).json({
-        message: 'Invalid priority'
-      });
+      return res.status(400).json({ message: 'Invalid priority' });
     }
-    // Create task
+
+    const allowedAssignedTo = ['', 'Admin', 'SME', 'SMI', 'Designer'];
+
+    if (!allowedAssignedTo.includes(assignedTo || '')) {
+      return res.status(400).json({ message: 'Invalid assigned role' });
+    }
+
     const task = await Task.create({
       user: req.user.id,
       company: companyId,
@@ -235,74 +215,136 @@ router.post('/tasks', async (req, res) => {
       tatDays: selectedTat,
       taskType,
       objective,
-      customObjective:
-        objective === 'Others' ? customObjective.trim() : '',
+      customObjective: objective === 'Others' ? customObjective.trim() : '',
       priority,
-      status: 'new'
+      brief: String(brief || '').trim(),
+      assignedTo: assignedTo || '',
+      status: 'new',
+      startedAt: null,
+      endedAt: null
     });
+
     await task.populate('company', 'name');
+
     return res.status(201).json({
       message: 'Task created successfully',
       task
     });
   } catch (error) {
     console.error('Create Task Error:', error);
-    res.status(500).json({
-      message: 'Unable to create task'
-    });
+    return res.status(500).json({ message: 'Unable to create task' });
   }
 });
-// Start task
+
+// START: Save actual task start date and time
 router.patch('/tasks/:id/start', async (req, res) => {
   try {
-    const task = await Task.findOne({ _id: req.params.id, user: req.user.id, status: 'new' });
-    if (!task) return res.status(404).json({ message: 'Task not found or already started' });
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid task ID' });
+    }
+
+    const task = await Task.findOne({
+      _id: req.params.id,
+      user: req.user.id
+    });
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    if (task.status !== 'new') {
+      return res.status(400).json({ message: 'Task cannot be started' });
+    }
+
     task.status = 'in-progress';
     task.startedAt = new Date();
+    task.endedAt = null;
+
     await task.save();
-    const updatedTask = await Task.findById(task._id).populate('company', 'name');
-    res.json({ message: 'Task started successfully', task: updatedTask });
+    await task.populate('company', 'name');
+
+    return res.json({
+      message: 'Task started successfully',
+      task
+    });
   } catch (error) {
-    console.error('Start task error:', error);
-    res.status(500).json({ message: 'Unable to start task' });
+    console.error('Start Task Error:', error);
+    return res.status(500).json({ message: 'Unable to start task' });
   }
 });
-// End task
+
+// END: Save actual task completion date and time
 router.patch('/tasks/:id/end', async (req, res) => {
   try {
-    const task = await Task.findOne({ _id: req.params.id, user: req.user.id, status: 'in-progress' });
-    if (!task) return res.status(404).json({ message: 'Task not found or not in progress' });
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid task ID' });
+    }
+
+    const task = await Task.findOne({
+      _id: req.params.id,
+      user: req.user.id
+    });
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    if (task.status !== 'in-progress' || !task.startedAt) {
+      return res.status(400).json({ message: 'Task is not in progress' });
+    }
+
     task.status = 'completed';
     task.endedAt = new Date();
+
     await task.save();
-    const updatedTask = await Task.findById(task._id).populate('company', 'name');
-    res.json({ message: 'Task completed successfully', task: updatedTask });
+    await task.populate('company', 'name');
+
+    return res.json({
+      message: 'Task completed successfully',
+      task
+    });
   } catch (error) {
-    console.error('End task error:', error);
-    res.status(500).json({ message: 'Unable to complete task' });
+    console.error('End Task Error:', error);
+    return res.status(500).json({ message: 'Unable to complete task' });
   }
 });
+
 // Upload task images to Cloudinary
 router.post('/tasks/:id/attachments', (req, res) => {
   upload.array('files', 5)(req, res, async (uploadError) => {
     if (uploadError) {
       return res.status(400).json({ message: uploadError.message });
     }
+
     const uploadedImages = [];
+
     try {
+      if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid task ID' });
+      }
+
       const files = req.files || [];
+
       if (!files.length) {
         return res.status(400).json({ message: 'Please select at least one image' });
       }
+
       const task = await Task.findOne({
         _id: req.params.id,
         user: req.user.id
       });
+
       if (!task) {
         return res.status(404).json({ message: 'Task not found' });
       }
+
+      if (task.attachments.length + files.length > 5) {
+        return res.status(400).json({ message: 'A maximum of 5 images are allowed per task' });
+      }
+
       for (const file of files) {
         const result = await uploadToCloudinary(file.buffer);
+
         uploadedImages.push({
           url: result.secure_url,
           publicId: result.public_id,
@@ -310,24 +352,28 @@ router.post('/tasks/:id/attachments', (req, res) => {
           uploadedAt: new Date()
         });
       }
+
       task.attachments.push(...uploadedImages);
       await task.save();
-      const updatedTask = await Task.findById(task._id).populate('company', 'name');
+      await task.populate('company', 'name');
+
       return res.json({
         message: 'Images uploaded successfully',
-        task: updatedTask
+        task
       });
     } catch (error) {
       await Promise.all(
-        uploadedImages.map((image) =>
+        uploadedImages.map(image =>
           cloudinary.uploader.destroy(image.publicId).catch(() => null)
         )
       );
-      console.error('Task attachment error:', error);
+
+      console.error('Task Attachment Error:', error);
       return res.status(500).json({ message: 'Unable to upload images' });
     }
   });
 });
+
 const meetingView = (m) => ({
   id: m._id,
   subject: m.subject,
