@@ -556,3 +556,64 @@
     flex-wrap: wrap;
   }
 }
+
+.invoice-form {
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.invoice-form::-webkit-scrollbar {
+    width: 7px;
+}
+
+.invoice-form::-webkit-scrollbar-thumb {
+    background: #64748b;
+    border-radius: 10px;
+}
+
+.invoice-form::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+@media (max-width: 768px) {
+    .invoice-form {
+        max-height: calc(100vh - 140px);
+        padding: 14px;
+    }
+}
+
+.invoice-form {
+  display: block !important;
+  height: calc(100vh - 220px) !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+  overscroll-behavior: contain;
+}
+
+.invoice-form::-webkit-scrollbar {
+  width: 8px;
+}
+
+.invoice-form::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 10px;
+}
+
+.invoice-form::-webkit-scrollbar-track {
+  background: #111c2d;
+}
+
+@media (max-width: 768px) {
+  .invoice-form {
+    height: calc(100vh - 180px) !important;
+    padding: 14px !important;
+  }
+}

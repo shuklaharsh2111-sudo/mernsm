@@ -1,0 +1,306 @@
+.pdf-view-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #101827;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.pdf-view-toolbar {
+  display: flex;
+  justify-content: space-between;
+  max-width: 850px;
+  margin: 0 auto 20px;
+  gap: 12px;
+}
+
+.pdf-toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #475569;
+  border-radius: 7px;
+  padding: 10px 16px;
+  background: #1e293b;
+  color: #fff;
+  cursor: pointer;
+}
+
+.print-btn {
+  background: #4f46e5;
+  border-color: #4f46e5;
+}
+
+.pdf-document {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 15mm;
+  box-sizing: border-box;
+  background: #fff;
+  color: #111;
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.pdf-company-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 12px;
+}
+
+.pdf-company-logo {
+  width: 130px;
+  max-height: 100px;
+  object-fit: contain;
+}
+
+.pdf-company-info {
+  flex: 1;
+}
+
+.pdf-company-info h2 {
+  margin: 0 0 5px;
+  font-size: 18px;
+}
+
+.pdf-company-info p {
+  margin: 2px 0;
+  white-space: pre-line;
+}
+
+.pdf-invoice-heading {
+  text-align: center;
+  margin: 18px 0;
+}
+
+.pdf-invoice-heading h1 {
+  margin: 0;
+  font-size: 22px;
+  text-transform: uppercase;
+}
+
+.pdf-invoice-heading h3 {
+  margin: 5px 0 0;
+  font-size: 14px;
+}
+
+.pdf-address-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.pdf-address-box {
+  border: 1px solid #ccc;
+  padding: 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pdf-address-box h3 {
+  margin: 0 0 8px;
+  background: #f1f1f1;
+  padding: 5px;
+  font-size: 12px;
+}
+
+.pdf-address-box h4 {
+  margin: 4px 0;
+  font-size: 12px;
+}
+
+.pdf-address-box p {
+  margin: 4px 0;
+  white-space: pre-line;
+}
+
+.pdf-date-table,
+.pdf-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+.pdf-date-table th,
+.pdf-date-table td,
+.pdf-items-table th,
+.pdf-items-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.pdf-date-table th,
+.pdf-items-table th {
+  background: #f1f1f1;
+  font-weight: bold;
+}
+
+.pdf-date-table td {
+  text-align: center;
+}
+
+.pdf-amount {
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.pdf-total-section {
+  width: 55%;
+  margin-left: auto;
+  margin-top: 15px;
+}
+
+.pdf-total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.pdf-balance {
+  border-top: 1px solid #111;
+  font-size: 12px;
+}
+
+.pdf-words {
+  margin: 15px 0;
+  padding: 8px;
+  border: 1px solid #ddd;
+}
+
+.pdf-bank-details {
+  margin-top: 20px;
+}
+
+.pdf-bank-details h3 {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.pdf-bank-details p {
+  margin: 4px 0;
+}
+
+.pdf-thankyou {
+  text-align: center;
+  font-weight: bold;
+  margin: 22px 0;
+}
+
+.pdf-signature-section {
+  text-align: right;
+  margin-top: 25px;
+  min-height: 130px;
+}
+
+.pdf-signature-images {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.pdf-signature-images img {
+  max-width: 100px;
+  max-height: 75px;
+  object-fit: contain;
+}
+
+.pdf-signature-section p {
+  margin: 2px 0;
+}
+
+.pdf-disclaimer {
+  border-top: 1px solid #ccc;
+  margin-top: 25px;
+  padding-top: 8px;
+  font-size: 9px;
+}
+
+.pdf-disclaimer h4 {
+  margin: 0 0 5px;
+  font-size: 10px;
+}
+
+.pdf-disclaimer p {
+  margin: 0;
+  text-align: justify;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body {
+    margin: 0 !important;
+    background: #fff !important;
+  }
+
+  .pdf-view-overlay {
+    position: static;
+    overflow: visible;
+    padding: 0;
+    background: #fff;
+  }
+
+  .pdf-view-toolbar {
+    display: none !important;
+  }
+
+  .pdf-document {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
+    padding: 12mm;
+    box-shadow: none;
+  }
+
+  .pdf-address-box,
+  .pdf-bank-details,
+  .pdf-signature-section,
+  .pdf-total-section,
+  .pdf-disclaimer {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .pdf-items-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+@media (max-width: 768px) {
+  .pdf-document {
+    width: 100%;
+    min-height: auto;
+    padding: 15px;
+  }
+
+  .pdf-address-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pdf-company-header {
+    flex-direction: column;
+  }
+
+  .pdf-company-logo {
+    width: 100px;
+  }
+
+  .pdf-total-section {
+    width: 100%;
+  }
+}
