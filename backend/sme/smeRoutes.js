@@ -288,28 +288,21 @@ router.post('/tasks/:id/attachments', (req, res) => {
     if (uploadError) {
       return res.status(400).json({ message: uploadError.message });
     }
-
     const uploadedImages = [];
-
     try {
       const files = req.files || [];
-
       if (!files.length) {
         return res.status(400).json({ message: 'Please select at least one image' });
       }
-
       const task = await Task.findOne({
         _id: req.params.id,
         user: req.user.id
       });
-
       if (!task) {
         return res.status(404).json({ message: 'Task not found' });
       }
-
       for (const file of files) {
         const result = await uploadToCloudinary(file.buffer);
-
         uploadedImages.push({
           url: result.secure_url,
           publicId: result.public_id,
@@ -317,24 +310,19 @@ router.post('/tasks/:id/attachments', (req, res) => {
           uploadedAt: new Date()
         });
       }
-
       task.attachments.push(...uploadedImages);
       await task.save();
-
       const updatedTask = await Task.findById(task._id).populate('company', 'name');
-
       return res.json({
         message: 'Images uploaded successfully',
         task: updatedTask
       });
-
     } catch (error) {
       await Promise.all(
         uploadedImages.map((image) =>
           cloudinary.uploader.destroy(image.publicId).catch(() => null)
         )
       );
-
       console.error('Task attachment error:', error);
       return res.status(500).json({ message: 'Unable to upload images' });
     }
@@ -353,13 +341,11 @@ const meetingView = (m) => ({
   company: m.company ? { id: m.company._id, name: m.company.name } : { id: '', name: 'Removed company' },
   mom: momView(m.mom),
 });
-
 // My meetings, soonest first.
 router.get('/meetings', async (req, res) => {
   const list = await Meeting.find({ user: req.user.id }).sort({ date: 1, time: 1 }).limit(300).populate('company', 'name');
   res.json({ meetings: list.map(meetingView) });
 });
-
 // Create a meeting: { subject, company, date, time, link?, attendees: [{ name, designation }] }
 router.post('/meetings', async (req, res) => {
   const { subject, company, date, time, link } = req.body || {};
@@ -368,19 +354,16 @@ router.post('/meetings', async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(company)) return res.status(400).json({ message: 'Select a company' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return res.status(400).json({ message: 'Date is required' });
   if (!/^\d{2}:\d{2}$/.test(time || '')) return res.status(400).json({ message: 'Time is required' });
-
   // The company must be one the admin assigned to me.
   const me = await Sme.findById(req.user.id);
   if (!me) return res.status(401).json({ message: 'User not found' });
   if (!(me.companies || []).map(String).includes(String(company))) {
     return res.status(400).json({ message: 'That company is not assigned to you' });
   }
-
   const cleanLink = String(link || '').trim();
   if (cleanLink && !/^https?:\/\/\S+$/i.test(cleanLink)) {
     return res.status(400).json({ message: 'Meeting link must start with http:// or https://' });
   }
-
   const rawAttendees = Array.isArray(req.body.attendees) ? req.body.attendees.slice(0, 50) : [];
   const attendees = rawAttendees.map((a) => ({
     name: String(a?.name || '').trim(),
@@ -390,12 +373,10 @@ router.post('/meetings', async (req, res) => {
   if (attendees.some((a) => !a.name || !a.designation)) {
     return res.status(400).json({ message: 'Every attendee needs a name and a designation' });
   }
-
   const created = await Meeting.create({ user: req.user.id, company, subject: subj, date, time, link: cleanLink || generateMeetingLink(subj), attendees });
   await created.populate('company', 'name');
   res.status(201).json({ meeting: meetingView(created) });
 });
-
 // Add more attendees to a meeting: { attendees: [{ name, designation }] } (appended to the existing ones).
 // Locked once a MOM exists, because the MOM's attendance list is built from the attendees.
 router.put('/meetings/:id/attendees', async (req, res) => {
@@ -405,7 +386,6 @@ router.put('/meetings/:id/attendees', async (req, res) => {
   if (meeting.mom?.submittedAt) {
     return res.status(400).json({ message: 'Attendees cannot be changed after the MOM is submitted' });
   }
-
   const incoming = (Array.isArray(req.body?.attendees) ? req.body.attendees : []).slice(0, 50).map((a) => ({
     name: String(a?.name || '').trim(),
     designation: String(a?.designation || '').trim(),
@@ -417,19 +397,16 @@ router.put('/meetings/:id/attendees', async (req, res) => {
   if (meeting.attendees.length + incoming.length > 50) {
     return res.status(400).json({ message: 'A meeting can have at most 50 attendees' });
   }
-
   const key = (a) => `${a.name.toLowerCase()}|${a.designation.toLowerCase()}`;
   const existing = new Set(meeting.attendees.map(key));
   for (const a of incoming) {
     if (existing.has(key(a))) return res.status(400).json({ message: `${a.name} (${a.designation}) is already an attendee` });
     existing.add(key(a));
   }
-
   meeting.attendees.push(...incoming);
   await meeting.save();
   res.json({ meeting: meetingView(meeting) });
 });
-
 // Records: every meeting whose MOM the admin approved, newest first.
 router.get('/records', async (req, res) => {
   const list = await Meeting.find({ user: req.user.id, 'mom.status': 'approved' })
@@ -438,26 +415,22 @@ router.get('/records', async (req, res) => {
     .populate('company', 'name');
   res.json({ records: list.map(meetingView) });
 });
-
 // Join Now: only allowed from the meeting's date + time. Body: { now: 'YYYY-MM-DDTHH:mm' } (the user's local time).
 router.put('/meetings/:id/join', async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid meeting' });
   const meeting = await Meeting.findOne({ _id: req.params.id, user: req.user.id }).populate('company', 'name');
   if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
-
   const now = String(req.body?.now || '');
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(now)) return res.status(400).json({ message: 'Invalid time' });
   if (now < `${meeting.date}T${meeting.time}`) {
     return res.status(400).json({ message: 'This meeting has not started yet' });
   }
-
   if (!meeting.joinedAt) {
     meeting.joinedAt = new Date();
     await meeting.save();
   }
   res.json({ meeting: meetingView(meeting) });
 });
-
 // Submit the minutes of a meeting for the admin's approval (re-submit after a rejection).
 router.put('/meetings/:id/mom', async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid meeting' });
@@ -467,13 +440,10 @@ router.put('/meetings/:id/mom', async (req, res) => {
   if (meeting.mom?.submittedAt && ['approved', 'rejected'].includes(meeting.mom.status)) {
     return res.status(400).json({ message: `This MOM is already ${meeting.mom.status} and cannot be changed` });
   }
-
   const { error, mom } = buildMom(req.body, meeting);
   if (error) return res.status(400).json({ message: error });
-
   meeting.mom = mom;
   await meeting.save();
   res.json({ meeting: meetingView(meeting) });
 });
-
 export default router;
