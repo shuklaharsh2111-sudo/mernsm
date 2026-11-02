@@ -121,14 +121,15 @@ router.post('/tasks', async (req, res) => {
       taskType,
       objective,
       customObjective,
-      priority
+      priority,
+      brief,
+      assignedTo
     } = req.body;
     // Required fields
     if (
       !companyId ||
       !title?.trim() ||
       !category ||
-      !tatDays ||
       !taskType ||
       !objective ||
       !priority
@@ -175,16 +176,19 @@ router.post('/tasks', async (req, res) => {
         });
       }
     }
-    // Validate TAT
-    const selectedTat = Number(tatDays);
-    if (
-      !Number.isInteger(selectedTat) ||
-      selectedTat < 1 ||
-      selectedTat > 3650
-    ) {
-      return res.status(400).json({
-        message: 'TAT must be a valid number of days'
-      });
+    // Validate TAT (required for recurring tasks only)
+    let selectedTat = null;
+    if (category === 'recurring') {
+      selectedTat = Number(tatDays);
+      if (
+        !Number.isInteger(selectedTat) ||
+        selectedTat < 1 ||
+        selectedTat > 3650
+      ) {
+        return res.status(400).json({
+          message: 'TAT must be a valid number of days'
+        });
+      }
     }
     // Validate task type
     const allowedTaskTypes = [
@@ -226,6 +230,19 @@ router.post('/tasks', async (req, res) => {
         message: 'Invalid priority'
       });
     }
+    // Validate assignee (optional)
+    const selectedAssignee = assignedTo || '';
+    if (!['', 'Admin', 'SME', 'SMI', 'Designer'].includes(selectedAssignee)) {
+      return res.status(400).json({
+        message: 'Invalid assignee'
+      });
+    }
+    const cleanBrief = typeof brief === 'string' ? brief.trim() : '';
+    if (cleanBrief.length > 1000) {
+      return res.status(400).json({
+        message: 'Brief must be 1000 characters or less'
+      });
+    }
     // Create task
     const task = await Task.create({
       user: req.user.id,
@@ -239,6 +256,8 @@ router.post('/tasks', async (req, res) => {
       customObjective:
         objective === 'Others' ? customObjective.trim() : '',
       priority,
+      brief: cleanBrief,
+      assignedTo: selectedAssignee,
       status: 'new'
     });
     await task.populate('company', 'name');
