@@ -1,4 +1,3 @@
-
 /* Brand bar: brands on the left, brand toggle pinned top-right */
 .cal-brand-bar {
   display: flex;
@@ -40,6 +39,43 @@
   border-color: #ffffff;
   box-shadow: 0 0 0 4px rgba(130, 146, 255, 0.55), 0 8px 24px rgba(8, 13, 65, 0.35);
 }
+
+/* company health: colored logo border + small pill in the top-right corner */
+.cal-brand-btn { position: relative; }
+.cal-brand.health-healthy { --health-color: #46c58a; }
+.cal-brand.health-risk { --health-color: #e7a34b; }
+.cal-brand.health-critical { --health-color: #ff5064; }
+
+.cal-brand[class*='health-'] .company-circle,
+.cal-brand.active[class*='health-'] .company-circle {
+  border: 4px solid var(--health-color);
+}
+.cal-brand.active[class*='health-'] .company-circle {
+  box-shadow: 0 0 0 4px rgba(130, 146, 255, 0.55), 0 8px 24px rgba(8, 13, 65, 0.35);
+}
+
+.cal-health-toggle {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  margin-left: auto;
+  overflow: visible;
+}
+.cal-health-opt {
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--text-muted);
+  border-radius: 9px;
+  transition: background 0.15s, color 0.15s;
+}
+.cal-health-opt.on { color: #fff; box-shadow: 0 2px 8px rgba(8, 13, 65, 0.45); }
+.cal-health-opt.on.healthy { background: #2fa56e; }
+.cal-health-opt.on.risk { background: #d98d2b; }
+.cal-health-opt.on.critical { background: #e63c52; }
+.cal-health.healthy { background: #2fa56e; }
+.cal-health.risk { background: #d98d2b; }
+.cal-health.critical { background: #e63c52; }
 
 .cal-toggle-btn {
   display: grid;
