@@ -310,28 +310,21 @@ router.post('/tasks/:id/attachments', (req, res) => {
     if (uploadError) {
       return res.status(400).json({ message: uploadError.message });
     }
-
     const uploadedImages = [];
-
     try {
       const files = req.files || [];
-
       if (!files.length) {
         return res.status(400).json({ message: 'Please select at least one image' });
       }
-
       const task = await Task.findOne({
         _id: req.params.id,
         user: req.user.id
       });
-
       if (!task) {
         return res.status(404).json({ message: 'Task not found' });
       }
-
       for (const file of files) {
         const result = await uploadToCloudinary(file.buffer);
-
         uploadedImages.push({
           url: result.secure_url,
           publicId: result.public_id,
@@ -339,24 +332,19 @@ router.post('/tasks/:id/attachments', (req, res) => {
           uploadedAt: new Date()
         });
       }
-
       task.attachments.push(...uploadedImages);
       await task.save();
-
       const updatedTask = await Task.findById(task._id).populate('company', 'name');
-
       return res.json({
         message: 'Images uploaded successfully',
         task: updatedTask
       });
-
     } catch (error) {
       await Promise.all(
         uploadedImages.map((image) =>
           cloudinary.uploader.destroy(image.publicId).catch(() => null)
         )
       );
-
       console.error('Task attachment error:', error);
       return res.status(500).json({ message: 'Unable to upload images' });
     }
@@ -385,7 +373,6 @@ const creativeView = (c) => ({
     platforms: c.contentPillar?.platforms || [],
   },
 });
-
 // My creatives. Optional ?company=<id> and ?status=pending|approved|rejected (default: all).
 // The calendar asks for status=approved: a creative only lands there once the admin approves it.
 router.get('/creatives', async (req, res) => {
@@ -406,7 +393,6 @@ router.get('/creatives', async (req, res) => {
     res.status(500).json({ message: 'Unable to fetch creatives' });
   }
 });
-
 // list fields arrive as JSON arrays inside multipart/form-data
 const parseList = (v) => {
   if (typeof v === 'string') {
@@ -414,7 +400,6 @@ const parseList = (v) => {
   }
   return Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean) : [];
 };
-
 // Shared by "save" and "edit again": check and clean the text fields of a creative.
 // Returns { error } or { fields }.
 const readCreativeFields = (body) => {
@@ -423,7 +408,6 @@ const readCreativeFields = (body) => {
   const hashtags = [...new Set(parseList(body.hashtags).map((h) => (h.startsWith('#') ? h : `#${h}`)))];
   const keywords = [...new Set(parseList(body.keywords))];
   const referenceLinks = parseList(body.referenceLinks);
-
   if (!title.trim()) return { error: 'Content pillar title is required' };
   if (!platforms.length || platforms.some((p) => !CREATIVE_PLATFORMS.includes(p))) return { error: 'Select at least one valid platform' };
   if (caption.length > 2200) return { error: 'Caption is too long (max 2200 characters)' };
@@ -434,7 +418,6 @@ const readCreativeFields = (body) => {
   }
   return { fields: { title: title.trim(), caption: caption.trim(), hashtags, keywords, platforms, referenceLinks } };
 };
-
 // Save a creative. It starts as 'pending' and waits for the admin. multipart/form-data: companyId, date, title, caption,
 // hashtags / keywords / referenceLinks / platforms (each a JSON array), files (reference images, max 5).
 router.post('/creatives', (req, res) => {
@@ -447,19 +430,16 @@ router.post('/creatives', (req, res) => {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return res.status(400).json({ message: 'Invalid date' });
       const { error, fields } = readCreativeFields(req.body);
       if (error) return res.status(400).json({ message: error });
-
       // the brand must be one assigned to this SME
       const me = await Sme.findById(req.user.id);
       if (!me) return res.status(401).json({ message: 'User not found' });
       if (!(me.companies || []).map(String).includes(String(companyId))) {
         return res.status(403).json({ message: 'This brand is not assigned to you' });
       }
-
       for (const file of req.files || []) {
         const result = await uploadToCloudinary(file.buffer, 'creative-manager/creatives');
         uploaded.push({ url: result.secure_url, publicId: result.public_id, originalName: file.originalname });
       }
-
       const creative = await Creative.create({
         user: req.user.id,
         company: companyId,
@@ -477,7 +457,6 @@ router.post('/creatives', (req, res) => {
     }
   });
 });
-
 // Edit the SAME creative again after the admin asked for a redo (status 'rejected'), then send it back for approval.
 // multipart/form-data like the save route, plus keepUploads: JSON array of the image urls to keep (new images go in `files`).
 router.put('/creatives/:id', (req, res) => {
@@ -493,18 +472,15 @@ router.put('/creatives/:id', (req, res) => {
       }
       const { error, fields } = readCreativeFields(req.body);
       if (error) return res.status(400).json({ message: error });
-
       // images: keep the ones still listed, add the new ones (max 5 in total)
       const keepUrls = parseList(req.body.keepUploads);
       const kept = creative.uploads.filter((u) => keepUrls.includes(u.url));
       const removed = creative.uploads.filter((u) => !keepUrls.includes(u.url));
       if (kept.length + (req.files || []).length > 5) return res.status(400).json({ message: 'You can have up to 5 images' });
-
       for (const file of req.files || []) {
         const result = await uploadToCloudinary(file.buffer, 'creative-manager/creatives');
         uploaded.push({ url: result.secure_url, publicId: result.public_id, originalName: file.originalname });
       }
-
       creative.uploads = [...kept, ...uploaded];
       creative.referenceLinks = fields.referenceLinks;
       creative.contentPillar = { title: fields.title, caption: fields.caption, hashtags: fields.hashtags, keywords: fields.keywords, platforms: fields.platforms };
@@ -513,7 +489,6 @@ router.put('/creatives/:id', (req, res) => {
       creative.reviewNote = '';
       creative.reviewedAt = null;
       await creative.save();
-
       await Promise.all(removed.map((u) => u.publicId && cloudinary.uploader.destroy(u.publicId).catch(() => null)));
       res.json({ creative: creativeView(creative), message: 'Sent back to the admin for approval' });
     } catch (error) {
@@ -523,7 +498,6 @@ router.put('/creatives/:id', (req, res) => {
     }
   });
 });
-
 router.delete('/creatives/:id', async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid id' });
@@ -536,7 +510,6 @@ router.delete('/creatives/:id', async (req, res) => {
     res.status(500).json({ message: 'Unable to delete creative' });
   }
 });
-
 // =========================================
 // COMPANY HEALTH
 // =========================================
@@ -557,7 +530,6 @@ const healthOf = (m) => {
   if (m.delays || m.redo || m.rejected || m.overdue) return 'risk';
   return 'healthy';
 };
-
 // Per assigned company: total, approved, pending, redo (waiting for the SME to redo), rejected (times the admin
 // rejected, even if fixed since), delays (sent for approval after its planned date) and overdue (planned date
 // passed and not approved yet).
@@ -569,11 +541,9 @@ router.get('/company-health', async (req, res) => {
     const found = await Company.find({ _id: { $in: ids } });
     const byId = Object.fromEntries(found.map((c) => [String(c._id), c]));
     const today = resolveToday(req.query.today);
-
     const creatives = await Creative.find({ user: req.user.id, company: { $in: ids } })
       .select('company date status createdAt rejectionCount')
       .lean();
-
     const stats = {};
     ids.forEach((id) => {
       stats[id] = { total: 0, approved: 0, pending: 0, redo: 0, rejected: 0, delays: 0, overdue: 0 };
@@ -590,7 +560,6 @@ router.get('/company-health', async (req, res) => {
       if (c.createdAt && c.createdAt.toISOString().slice(0, 10) > c.date) m.delays += 1;
       if (c.status !== 'approved' && c.date < today) m.overdue += 1;
     }
-
     const companies = ids
       .filter((id) => byId[id])
       .map((id) => {
@@ -609,7 +578,6 @@ router.get('/company-health', async (req, res) => {
     res.status(500).json({ message: 'Unable to load company health' });
   }
 });
-
 // =========================================
 // MONTHLY SOCIAL METRICS (typed in by the SME from platform insights)
 // =========================================
@@ -654,7 +622,6 @@ const cleanNum = (v) => {
 };
 const cleanLines = (arr) =>
   (Array.isArray(arr) ? arr : []).map((t) => String(t || '').trim()).filter(Boolean).slice(0, 10);
-
 // GET /social-metrics?company=<id>&month=YYYY-MM  ->  { current, previous, earlier }
 // "previous" is the month before, "earlier" the one before that (for the 3-month overview).
 router.get('/social-metrics', async (req, res) => {
@@ -680,7 +647,6 @@ router.get('/social-metrics', async (req, res) => {
     res.status(500).json({ message: 'Unable to load social metrics' });
   }
 });
-
 // PUT /social-metrics  { company, month, ...fields }  -> creates or updates that month
 router.put('/social-metrics', async (req, res) => {
   try {
@@ -717,7 +683,6 @@ router.put('/social-metrics', async (req, res) => {
       }))
       .filter((x) => x.title)
       .slice(0, 5);
-
     const doc = await SocialMetrics.findOneAndUpdate(
       { user: req.user.id, company: b.company, month: b.month },
       { $set: set },
@@ -730,7 +695,6 @@ router.put('/social-metrics', async (req, res) => {
     res.status(500).json({ message: 'Unable to save social metrics' });
   }
 });
-
 // =========================================
 // SETTINGS: PROFILE + PASSWORD
 // =========================================
@@ -741,7 +705,6 @@ const profileView = (u) => ({
   avatar: u.avatar || u.profileImage || '',
   role: 'sme'
 });
-
 router.get('/profile', async (req, res) => {
   try {
     const me = await Sme.findById(req.user.id);
@@ -752,7 +715,6 @@ router.get('/profile', async (req, res) => {
     res.status(500).json({ message: 'Unable to load profile' });
   }
 });
-
 // Change name and/or profile image. multipart/form-data: name, avatar (file), removeAvatar ('true' to delete it).
 router.put('/profile', (req, res) => {
   upload.single('avatar')(req, res, async (uploadError) => {
@@ -762,7 +724,6 @@ router.put('/profile', (req, res) => {
       // plain (lean) read + plain write: old records may hold badly stored dates that make Mongoose documents fail
       const me = await Sme.findById(req.user.id).lean();
       if (!me) return res.status(401).json({ message: 'User not found' });
-
       const changes = {};
       if (req.body.name !== undefined) {
         const name = String(req.body.name).trim();
@@ -771,7 +732,6 @@ router.put('/profile', (req, res) => {
         }
         changes.name = name;
       }
-
       const oldPublicId = me.avatarPublicId || '';
       let replaced = false;
       if (req.file) {
@@ -787,7 +747,6 @@ router.put('/profile', (req, res) => {
         changes.avatarPublicId = '';
         replaced = true;
       }
-
       if (Object.keys(changes).length) {
         await Sme.collection.updateOne({ _id: me._id }, { $set: changes });
       }
@@ -800,7 +759,6 @@ router.put('/profile', (req, res) => {
     }
   });
 });
-
 router.put('/password', async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -827,7 +785,6 @@ router.put('/password', async (req, res) => {
     res.status(500).json({ message: 'Unable to change password' });
   }
 });
-
 const meetingView = (m) => ({
   id: m._id,
   subject: m.subject,
@@ -841,13 +798,11 @@ const meetingView = (m) => ({
   company: m.company ? { id: m.company._id, name: m.company.name } : { id: '', name: 'Removed company' },
   mom: momView(m.mom),
 });
-
 // My meetings, soonest first.
 router.get('/meetings', async (req, res) => {
   const list = await Meeting.find({ user: req.user.id }).sort({ date: 1, time: 1 }).limit(300).populate('company', 'name');
   res.json({ meetings: list.map(meetingView) });
 });
-
 // Create a meeting: { subject, company, date, time, link?, attendees: [{ name, designation }] }
 router.post('/meetings', async (req, res) => {
   const { subject, company, date, time, link } = req.body || {};
@@ -856,19 +811,16 @@ router.post('/meetings', async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(company)) return res.status(400).json({ message: 'Select a company' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return res.status(400).json({ message: 'Date is required' });
   if (!/^\d{2}:\d{2}$/.test(time || '')) return res.status(400).json({ message: 'Time is required' });
-
   // The company must be one the admin assigned to me.
   const me = await Sme.findById(req.user.id);
   if (!me) return res.status(401).json({ message: 'User not found' });
   if (!(me.companies || []).map(String).includes(String(company))) {
     return res.status(400).json({ message: 'That company is not assigned to you' });
   }
-
   const cleanLink = String(link || '').trim();
   if (cleanLink && !/^https?:\/\/\S+$/i.test(cleanLink)) {
     return res.status(400).json({ message: 'Meeting link must start with http:// or https://' });
   }
-
   const rawAttendees = Array.isArray(req.body.attendees) ? req.body.attendees.slice(0, 50) : [];
   const attendees = rawAttendees.map((a) => ({
     name: String(a?.name || '').trim(),
@@ -878,12 +830,10 @@ router.post('/meetings', async (req, res) => {
   if (attendees.some((a) => !a.name || !a.designation)) {
     return res.status(400).json({ message: 'Every attendee needs a name and a designation' });
   }
-
   const created = await Meeting.create({ user: req.user.id, company, subject: subj, date, time, link: cleanLink || generateMeetingLink(subj), attendees });
   await created.populate('company', 'name');
   res.status(201).json({ meeting: meetingView(created) });
 });
-
 // Add more attendees to a meeting: { attendees: [{ name, designation }] } (appended to the existing ones).
 // Locked once a MOM exists, because the MOM's attendance list is built from the attendees.
 router.put('/meetings/:id/attendees', async (req, res) => {
@@ -893,7 +843,6 @@ router.put('/meetings/:id/attendees', async (req, res) => {
   if (meeting.mom?.submittedAt) {
     return res.status(400).json({ message: 'Attendees cannot be changed after the MOM is submitted' });
   }
-
   const incoming = (Array.isArray(req.body?.attendees) ? req.body.attendees : []).slice(0, 50).map((a) => ({
     name: String(a?.name || '').trim(),
     designation: String(a?.designation || '').trim(),
@@ -905,19 +854,16 @@ router.put('/meetings/:id/attendees', async (req, res) => {
   if (meeting.attendees.length + incoming.length > 50) {
     return res.status(400).json({ message: 'A meeting can have at most 50 attendees' });
   }
-
   const key = (a) => `${a.name.toLowerCase()}|${a.designation.toLowerCase()}`;
   const existing = new Set(meeting.attendees.map(key));
   for (const a of incoming) {
     if (existing.has(key(a))) return res.status(400).json({ message: `${a.name} (${a.designation}) is already an attendee` });
     existing.add(key(a));
   }
-
   meeting.attendees.push(...incoming);
   await meeting.save();
   res.json({ meeting: meetingView(meeting) });
 });
-
 // Records: every meeting whose MOM the admin approved, newest first.
 router.get('/records', async (req, res) => {
   const list = await Meeting.find({ user: req.user.id, 'mom.status': 'approved' })
@@ -926,26 +872,22 @@ router.get('/records', async (req, res) => {
     .populate('company', 'name');
   res.json({ records: list.map(meetingView) });
 });
-
 // Join Now: only allowed from the meeting's date + time. Body: { now: 'YYYY-MM-DDTHH:mm' } (the user's local time).
 router.put('/meetings/:id/join', async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid meeting' });
   const meeting = await Meeting.findOne({ _id: req.params.id, user: req.user.id }).populate('company', 'name');
   if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
-
   const now = String(req.body?.now || '');
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(now)) return res.status(400).json({ message: 'Invalid time' });
   if (now < `${meeting.date}T${meeting.time}`) {
     return res.status(400).json({ message: 'This meeting has not started yet' });
   }
-
   if (!meeting.joinedAt) {
     meeting.joinedAt = new Date();
     await meeting.save();
   }
   res.json({ meeting: meetingView(meeting) });
 });
-
 // Submit the minutes of a meeting for the admin's approval (re-submit after a rejection).
 router.put('/meetings/:id/mom', async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid meeting' });
@@ -955,13 +897,10 @@ router.put('/meetings/:id/mom', async (req, res) => {
   if (meeting.mom?.submittedAt && ['approved', 'rejected'].includes(meeting.mom.status)) {
     return res.status(400).json({ message: `This MOM is already ${meeting.mom.status} and cannot be changed` });
   }
-
   const { error, mom } = buildMom(req.body, meeting);
   if (error) return res.status(400).json({ message: error });
-
   meeting.mom = mom;
   await meeting.save();
   res.json({ meeting: meetingView(meeting) });
 });
-
 export default router;

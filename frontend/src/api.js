@@ -1,6 +1,4 @@
-
 import axios from 'axios';
-
 const api = axios.create({
   baseURL: '/api',
   withCredentials: true,
@@ -8,5 +6,4 @@ const api = axios.create({
     'Content-Type': 'application/json'
   }
 });
-
 export default api;

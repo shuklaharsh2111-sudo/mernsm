@@ -1,6 +1,4 @@
-
 import mongoose from 'mongoose';
-
 const smeSchema = new mongoose.Schema(
   {
     name: {
@@ -44,9 +42,7 @@ const smeSchema = new mongoose.Schema(
     collection: 'smes'
   }
 );
-
 const Sme =
   mongoose.models.Sme ||
   mongoose.model('Sme', smeSchema);
-
 export default Sme;

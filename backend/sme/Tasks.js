@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-
 const taskSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'Sme', required: true, index: true },
     company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true },
@@ -24,7 +23,5 @@ const taskSchema = new mongoose.Schema({
         uploadedAt: { type: Date, default: Date.now }
     }]
 }, { timestamps: true, collection: 'tasks' });
-
 const Task = mongoose.models.Task || mongoose.model('Task', taskSchema);
-
 export default Task;
