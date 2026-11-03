@@ -267,7 +267,7 @@ export default function ReferenceCreativeModal({ company, date, platforms, defau
                 onActiveChange={setActiveKey}
               />
               {picked.length === 0 && <p className="modal-hint">Default preview. Click a platform to choose where this creative goes.</p>}
-              {images.length > 1 && <p className="modal-hint">Click an image on the left to choose which one is previewed.</p>}
+              {images.length > 1 && <p className="modal-hint">Click an image on the right to choose which one is previewed.</p>}
             </aside>
           )}
         </div>

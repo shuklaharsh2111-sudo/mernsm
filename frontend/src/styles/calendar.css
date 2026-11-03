@@ -857,7 +857,13 @@
 }
 
 .creative-layout:not(.no-preview) {
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  /* preview on the left, content on the right */
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+}
+
+@media (min-width: 861px) {
+  .creative-layout:not(.no-preview) > .creative-preview { order: 1; }
+  .creative-layout:not(.no-preview) > .creative-col:not(.creative-preview) { order: 2; }
 }
 
 .modal-card.creative-wide:not(.compact) {
