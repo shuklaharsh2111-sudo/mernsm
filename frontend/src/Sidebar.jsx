@@ -13,7 +13,8 @@ import {
   Building2,
   Receipt,
   CalendarCheck,
-  Palette
+  Palette,
+  UserCheck
 } from 'lucide-react';
 
 import { useAuth } from './AuthContext';
@@ -68,6 +69,11 @@ const adminMenuItems = [
     title: 'Creatives',
     path: '/admin/creatives',
     icon: Palette
+  },
+  {
+    title: 'Attendance',
+    path: '/admin/attendance',
+    icon: UserCheck
   },
   {
     title: 'Calendar',

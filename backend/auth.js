@@ -2,17 +2,21 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 import Admin from './admin/Admin.js';
 import Sme from './sme/Sme.js';
+import Attendance from './attendance/Attendance.js';
+import { checkLocation } from './attendance/geo.js';
 
 const router = express.Router();
 
-const createToken = (user, role) => {
+const createToken = (user, role, sessionId) => {
   return jwt.sign(
     {
       id: user._id.toString(),
-      role
+      role,
+      sid: sessionId
     },
     process.env.JWT_SECRET,
     {
@@ -87,7 +91,30 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const token = createToken(user, role);
+    // Office-only login (geofence) - checked only after the password is correct
+    const geo = checkLocation(role, req.body);
+
+    if (!geo.ok) {
+      return res.status(geo.status).json({
+        message: geo.message,
+        code: geo.code
+      });
+    }
+
+    const sessionId = crypto.randomUUID();
+
+    await Attendance.create({
+      userId: user._id,
+      role,
+      name: user.name || user.fullname || user.email,
+      email: user.email,
+      sessionId,
+      loginAt: new Date(),
+      loginLocation: geo.location,
+      ipAddress: req.ip
+    });
+
+    const token = createToken(user, role, sessionId);
 
     res.cookie('token', token, cookieOptions);
 
@@ -151,7 +178,25 @@ router.get('/me', async (req, res) => {
 });
 
 // LOGOUT
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
+  // Stamp the logout time on this session's attendance record
+  try {
+    const token = req.cookies.token;
+
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      if (decoded.sid) {
+        await Attendance.updateOne(
+          { sessionId: decoded.sid, logoutAt: null },
+          { $set: { logoutAt: new Date() } }
+        );
+      }
+    }
+  } catch {
+    // expired/invalid token - nothing to stamp, still clear the cookie
+  }
+
   res.clearCookie('token', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

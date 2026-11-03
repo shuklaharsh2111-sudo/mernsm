@@ -100,10 +100,14 @@ const Login = () => {
             type="submit"
             disabled={loading}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Checking location & signing in...' : 'Sign In'}
           </button>
 
         </form>
+
+        <p className="login-subtitle" style={{ fontSize: 12, marginTop: 14 }}>
+          Staff logins work only from the office. Your browser will ask for location access.
+        </p>
 
         <p className="login-footer">
           Creative Manager | Unstoppable Solutions
