@@ -15,6 +15,7 @@ const taskSchema = new mongoose.Schema({
     startedAt: { type: Date, default: null },
     endedAt: { type: Date, default: null },
     brief: { type: String, trim: true, maxlength: 1000, default: '' },
+    dueDate: { type: Date, default: null },
     assignedTo: { type: String, enum: ['', 'Admin', 'SME', 'SMI', 'Designer'], default: '' },
     attachments: [{
         url: { type: String, required: true },

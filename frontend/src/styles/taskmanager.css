@@ -659,3 +659,33 @@
         grid-template-columns: 1fr;
     }
 }
+.tm-due-date {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0;
+    font-size: 12px;
+    color: #c4b5fd;
+}
+
+.tm-due-date svg {
+    color: #a78bfa;
+    flex-shrink: 0;
+}
+
+.tm-due-date strong {
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+.tm-due-date span {
+    color: #c4b5fd;
+    font-weight: 500;
+}
+
+.tm-form-group input[type="date"] {
+    width: 100%;
+    color-scheme: dark;
+    cursor: pointer;
+}

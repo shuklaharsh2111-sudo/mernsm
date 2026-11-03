@@ -4,9 +4,9 @@ import { errMsg } from '../sopUtils';
 import '../styles/taskmanager.css';
 import {
     ListTodo, BriefcaseBusiness, Repeat, CheckCircle2,
-    Plus, Play, Square, Clock3, Building2, X, AlertCircle
+    Plus, Play, Square, Clock3, Building2, X, AlertCircle,
+    CalendarDays
 } from 'lucide-react';
-
 const initialForm = {
     companyId: '',
     title: '',
@@ -18,9 +18,9 @@ const initialForm = {
     customObjective: '',
     priority: '',
     brief: '',
-    assignedTo: ''
+    assignedTo: '',
+    dueDate: ''
 };
-
 const TaskManager = () => {
     const [companies, setCompanies] = useState([]);
     const [tasks, setTasks] = useState([]);
@@ -31,12 +31,10 @@ const TaskManager = () => {
     const [creating, setCreating] = useState(false);
     const [actionId, setActionId] = useState('');
     const [currentTime, setCurrentTime] = useState(new Date());
-
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
-
     const loadData = async () => {
         try {
             setLoading(true);
@@ -52,21 +50,17 @@ const TaskManager = () => {
             setLoading(false);
         }
     };
-
     useEffect(() => {
         loadData();
     }, []);
-
     const newTasks = tasks.filter(task => task.status === 'new');
     const inProgressTasks = tasks.filter(task => task.status === 'in-progress');
     const recurringTasks = tasks.filter(task => task.category === 'recurring');
     const completedTasks = tasks.filter(task => task.status === 'completed');
-
     const formatTimestamp = (date) => {
         if (!date) return '--';
         const parsedDate = new Date(date);
         if (Number.isNaN(parsedDate.getTime())) return '--';
-
         return parsedDate.toLocaleString('en-IN', {
             day: '2-digit',
             month: 'short',
@@ -77,21 +71,28 @@ const TaskManager = () => {
             hour12: true
         });
     };
-
+    const formatDueDate = (date) => {
+        if (!date) return 'No due date';
+        const parsedDate = new Date(date);
+        if (Number.isNaN(parsedDate.getTime())) return 'No due date';
+        return parsedDate.toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            timeZone: 'UTC'
+        });
+    };
     const formatDuration = (start, end) => {
         if (!start || !end) return '--';
-
         const totalSeconds = Math.max(0, Math.floor((new Date(end) - new Date(start)) / 1000));
         const days = Math.floor(totalSeconds / 86400);
         const hours = Math.floor((totalSeconds % 86400) / 3600);
         const minutes = Math.floor((totalSeconds % 3600) / 60);
         const seconds = totalSeconds % 60;
-
         if (days > 0) return `${days}d ${hours}h ${minutes}m`;
         if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
         return `${minutes}m ${seconds}s`;
     };
-
     const openModal = (category) => {
         setForm({
             ...initialForm,
@@ -101,68 +102,55 @@ const TaskManager = () => {
         setTaskError('');
         setShowModal(true);
     };
-
     const closeModal = () => {
         if (creating) return;
         setShowModal(false);
         setTaskError('');
     };
-
     const handleChange = (event) => {
         const { name, value } = event.target;
-
         setForm(prev => ({
             ...prev,
             [name]: value,
             ...(name === 'objective' && value !== 'Others' ? { customObjective: '' } : {}),
             ...(name === 'category' && value === 'one-time' ? { frequencyDays: '', tatDays: '' } : {})
         }));
-
         setTaskError('');
     };
-
     const handleCreateTask = async (event) => {
         event.preventDefault();
         setTaskError('');
-
         if (!form.companyId) {
             setTaskError('Please select a company.');
             return;
         }
-
         if (form.category === 'recurring' && !form.frequencyDays) {
             setTaskError('Please select recurring frequency.');
             return;
         }
-
         if (form.category === 'recurring' && !form.tatDays) {
             setTaskError('Please enter turnaround time.');
             return;
         }
-
         if (form.objective === 'Others' && !form.customObjective.trim()) {
             setTaskError('Please enter your custom objective.');
             return;
         }
-
         try {
             setCreating(true);
-
             const payload = {
                 ...form,
                 frequencyDays: form.category === 'recurring' ? Number(form.frequencyDays) : null,
                 tatDays: form.category === 'recurring' ? Number(form.tatDays) : null,
                 customObjective: form.objective === 'Others' ? form.customObjective.trim() : '',
                 brief: form.brief.trim(),
-                assignedTo: form.assignedTo || ''
+                assignedTo: form.assignedTo || '',
+                dueDate: form.dueDate || null
             };
-
             const response = await api.post('/sme/tasks', payload);
-
             if (!response.data.task) {
                 throw new Error('Task was created but no task data was returned.');
             }
-
             setTasks(prev => [response.data.task, ...prev]);
             setShowModal(false);
             setForm(initialForm);
@@ -172,18 +160,13 @@ const TaskManager = () => {
             setCreating(false);
         }
     };
-
     const handleStartTask = async (task) => {
         if (actionId || task.status !== 'new') return;
-
         try {
             setActionId(task._id);
             setTaskError('');
-
             const response = await api.patch(`/sme/tasks/${task._id}/start`);
-
             if (!response.data.task) throw new Error('Updated task data was not returned.');
-
             setTasks(prev => prev.map(item =>
                 item._id === task._id ? response.data.task : item
             ));
@@ -193,18 +176,13 @@ const TaskManager = () => {
             setActionId('');
         }
     };
-
     const handleEndTask = async (task) => {
         if (actionId || task.status !== 'in-progress') return;
-
         try {
             setActionId(task._id);
             setTaskError('');
-
             const response = await api.patch(`/sme/tasks/${task._id}/end`);
-
             if (!response.data.task) throw new Error('Updated task data was not returned.');
-
             setTasks(prev => prev.map(item =>
                 item._id === task._id ? response.data.task : item
             ));
@@ -214,7 +192,6 @@ const TaskManager = () => {
             setActionId('');
         }
     };
-
     const taskCards = [
         {
             title: 'New',
@@ -253,7 +230,6 @@ const TaskManager = () => {
             items: completedTasks
         }
     ];
-
     return (
         <section className="sme-task-manager">
             <div className="sme-task-header">
@@ -267,25 +243,21 @@ const TaskManager = () => {
                     </div>
                 </div>
             </div>
-
             {taskError && !showModal && (
                 <div className="tm-error">
                     <AlertCircle size={16} />
                     {taskError}
                 </div>
             )}
-
             <div className="sme-task-grid">
                 {taskCards.map(card => {
                     const Icon = card.icon;
-
                     return (
                         <div className={`sme-task-card ${card.color}`} key={card.title}>
                             <div className="sme-task-card-top">
                                 <div className={`sme-task-icon ${card.color}`}>
                                     <Icon size={22} />
                                 </div>
-
                                 {card.add && (
                                     <button
                                         type="button"
@@ -298,13 +270,11 @@ const TaskManager = () => {
                                     </button>
                                 )}
                             </div>
-
                             <div className="sme-task-info">
                                 <h3>{loading ? '--' : String(card.count).padStart(2, '0')}</h3>
                                 <h4>{card.title}</h4>
                                 <p>{card.description}</p>
                             </div>
-
                             <div className="sme-task-card-list">
                                 {loading ? (
                                     <p className="tm-empty">Loading tasks...</p>
@@ -319,12 +289,15 @@ const TaskManager = () => {
                                                     {task.priority}
                                                 </span>
                                             </div>
-
                                             <p className="tm-company">
                                                 <Building2 size={13} />
                                                 {task.company?.name || 'Company unavailable'}
                                             </p>
-
+                                            <p className="tm-due-date">
+                                                <CalendarDays size={14} />
+                                                <strong>Due Date:</strong>
+                                                <span>{formatDueDate(task.dueDate)}</span>
+                                            </p>
                                             <div className="tm-task-meta">
                                                 <span>{task.taskType}</span>
                                                 {task.category === 'recurring' && (
@@ -334,13 +307,10 @@ const TaskManager = () => {
                                                     <span>TAT: {task.tatDays} days</span>
                                                 )}
                                             </div>
-
                                             {task.objective === 'Others' && task.customObjective && (
                                                 <p className="tm-objective">Objective: {task.customObjective}</p>
                                             )}
-
                                             {task.brief && <p className="tm-brief">{task.brief}</p>}
-
                                             {task.status === 'new' && (
                                                 <div className="tm-task-action-row">
                                                     <button
@@ -355,7 +325,6 @@ const TaskManager = () => {
                                                     </button>
                                                 </div>
                                             )}
-
                                             {task.status === 'in-progress' && (
                                                 <div className="tm-progress-info">
                                                     <div className="tm-time-details">
@@ -368,7 +337,6 @@ const TaskManager = () => {
                                                             <strong>Current Time:</strong> {formatTimestamp(currentTime)}
                                                         </span>
                                                     </div>
-
                                                     <button
                                                         type="button"
                                                         className="tm-icon-action tm-end-btn"
@@ -381,7 +349,6 @@ const TaskManager = () => {
                                                     </button>
                                                 </div>
                                             )}
-
                                             {task.status === 'completed' && (
                                                 <div className="tm-completed-info">
                                                     <span>
@@ -406,7 +373,6 @@ const TaskManager = () => {
                     );
                 })}
             </div>
-
             {showModal && (
                 <div className="tm-modal-overlay" onClick={closeModal}>
                     <div
@@ -421,7 +387,6 @@ const TaskManager = () => {
                                 <h2>Create New Task</h2>
                                 <p>Add task details below.</p>
                             </div>
-
                             <button
                                 type="button"
                                 className="tm-modal-close"
@@ -432,14 +397,12 @@ const TaskManager = () => {
                                 <X size={20} />
                             </button>
                         </div>
-
                         {taskError && (
                             <div className="tm-error">
                                 <AlertCircle size={16} />
                                 {taskError}
                             </div>
                         )}
-
                         <form className="tm-form" onSubmit={handleCreateTask}>
                             <div className="tm-form-group">
                                 <label>Company Name <span>*</span></label>
@@ -452,7 +415,6 @@ const TaskManager = () => {
                                     ))}
                                 </select>
                             </div>
-
                             <div className="tm-form-group">
                                 <label>Task Title <span>*</span></label>
                                 <input
@@ -464,7 +426,16 @@ const TaskManager = () => {
                                     required
                                 />
                             </div>
-
+                            <div className="tm-form-group">
+                                <label>Due Date</label>
+                                <input
+                                    type="date"
+                                    name="dueDate"
+                                    value={form.dueDate}
+                                    onChange={handleChange}
+                                    min={new Date().toLocaleDateString('en-CA')}
+                                />
+                            </div>
                             <div className="tm-form-group">
                                 <label>Task Category <span>*</span></label>
                                 <select name="category" value={form.category} onChange={handleChange} required>
@@ -472,7 +443,6 @@ const TaskManager = () => {
                                     <option value="recurring">Recurring</option>
                                 </select>
                             </div>
-
                             {form.category === 'recurring' && (
                                 <>
                                     <div className="tm-form-group">
@@ -484,7 +454,6 @@ const TaskManager = () => {
                                             <option value="30">Every 30 Days</option>
                                         </select>
                                     </div>
-
                                     <div className="tm-form-group">
                                         <label>Turnaround Time (TAT) <span>*</span></label>
                                         <div className="tm-input-suffix">
@@ -503,7 +472,6 @@ const TaskManager = () => {
                                     </div>
                                 </>
                             )}
-
                             <div className="tm-form-group">
                                 <label>Task Type <span>*</span></label>
                                 <select name="taskType" value={form.taskType} onChange={handleChange} required>
@@ -516,7 +484,6 @@ const TaskManager = () => {
                                     <option value="Influencer Collaboration">Influencer Collaboration</option>
                                 </select>
                             </div>
-
                             <div className="tm-form-group">
                                 <label>Objective <span>*</span></label>
                                 <select name="objective" value={form.objective} onChange={handleChange} required>
@@ -527,7 +494,6 @@ const TaskManager = () => {
                                     <option value="Others">Others</option>
                                 </select>
                             </div>
-
                             {form.objective === 'Others' && (
                                 <div className="tm-form-group">
                                     <label>Specify Objective <span>*</span></label>
@@ -541,7 +507,6 @@ const TaskManager = () => {
                                     />
                                 </div>
                             )}
-
                             <div className="tm-form-group">
                                 <label>Priority <span>*</span></label>
                                 <select name="priority" value={form.priority} onChange={handleChange} required>
@@ -551,7 +516,6 @@ const TaskManager = () => {
                                     <option value="Critical">Critical</option>
                                 </select>
                             </div>
-
                             <div className="tm-form-group">
                                 <label>Brief</label>
                                 <textarea
@@ -563,7 +527,6 @@ const TaskManager = () => {
                                     placeholder="Enter task brief..."
                                 />
                             </div>
-
                             <div className="tm-form-group">
                                 <label>Assign To</label>
                                 <select name="assignedTo" value={form.assignedTo} onChange={handleChange}>
@@ -574,7 +537,6 @@ const TaskManager = () => {
                                     <option value="Designer">Designer</option>
                                 </select>
                             </div>
-
                             <div className="tm-form-actions">
                                 <button type="button" className="tm-cancel-btn" onClick={closeModal} disabled={creating}>
                                     Cancel
@@ -590,5 +552,4 @@ const TaskManager = () => {
         </section>
     );
 };
-
 export default TaskManager;
