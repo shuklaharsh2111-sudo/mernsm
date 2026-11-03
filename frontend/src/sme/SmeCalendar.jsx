@@ -15,6 +15,7 @@ import '../styles/calendar.css';
 
 
 const MAX_CHIPS = 2; // creatives shown inside one day box; the rest collapse into "+N more"
+const HEALTH_LABELS = { healthy: 'Healthy', risk: 'Risk', critical: 'Critical' };
 const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 const p2 = (n) => String(n).padStart(2, '0');
 const ymd = (d) => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
@@ -28,6 +29,7 @@ const buildGrid = (year, month) => {
 
 const SmeCalendar = () => {
   const [companies, setCompanies] = useState([]);
+  const [healthById, setHealthById] = useState({}); // company id -> 'healthy' | 'risk' | 'critical'
   const [error, setError] = useState('');
   const [activeId, setActiveId] = useState('');
   // each brand has its own set of platform calendars; remember which one is open per brand
@@ -52,6 +54,20 @@ const SmeCalendar = () => {
         setActiveId((id) => id || c.data.companies[0]?.id || '');
       })
       .catch((err) => !cancelled && setError(errMsg(err)));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // company health (same numbers as the Company Health page) for the badge + logo border
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/sme/company-health', { params: { today: todayStr() } })
+      .then((r) => {
+        if (cancelled) return;
+        setHealthById(Object.fromEntries((r.data.companies || []).map((c) => [c.id, c.health])));
+      })
+      .catch(() => {}); // health is decoration here; the calendar still works without it
     return () => {
       cancelled = true;
     };
@@ -107,13 +123,14 @@ const SmeCalendar = () => {
 
   return (
     <div className="dashboard-content scrollable">
-      {/* Brand selector (same circles as the dashboard) + brand toggle in the top-right corner */}
+      {/* Brand selector (same circles as the dashboard), colored by health, with the selected company's health toggle in the top-right corner */}
       <div className="cal-brand-bar">
         <div className="company-row cal-company-row" aria-label="Brands">
           {companies.map((c) => {
             const isActive = c.id === activeId;
+            const health = healthById[c.id];
             return (
-              <div key={c.id} className={`cal-brand ${isActive ? 'active' : ''}`}>
+              <div key={c.id} className={`cal-brand ${isActive ? 'active' : ''} ${health ? `health-${health}` : ''}`}>
                 <button
                   type="button"
                   className="cal-brand-btn"
@@ -128,19 +145,12 @@ const SmeCalendar = () => {
           })}
         </div>
 
-        {companies.length > 0 && (
-          <div className="cal-toggle" role="tablist" aria-label="Switch calendar between brands">
-            {companies.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                role="tab"
-                aria-selected={c.id === activeId}
-                className={c.id === activeId ? 'active' : ''}
-                onClick={() => setActiveId(c.id)}
-              >
-                {c.name}
-              </button>
+        {active && healthById[activeId] && (
+          <div className="cal-toggle cal-health-toggle" role="status" aria-label={`${active.name} health: ${HEALTH_LABELS[healthById[activeId]]}`}>
+            {['critical', 'risk', 'healthy'].map((h) => (
+              <span key={h} className={`cal-health-opt ${h} ${healthById[activeId] === h ? 'on' : ''}`}>
+                {HEALTH_LABELS[h]}
+              </span>
             ))}
           </div>
         )}
