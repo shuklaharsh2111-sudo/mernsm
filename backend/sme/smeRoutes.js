@@ -255,10 +255,10 @@ router.post('/tasks', async (req, res) => {
       tatDays: selectedTat,
       taskType,
       objective,
-      customObjective:
-        objective === 'Others' ? customObjective.trim() : '',
+      customObjective: objective === 'Others' ? customObjective.trim() : '',
       priority,
       brief: cleanBrief,
+      dueDate: req.body.dueDate || null,
       assignedTo: selectedAssignee,
       status: 'new'
     });
