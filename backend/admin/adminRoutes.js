@@ -10,6 +10,8 @@ import { isRealDate } from '../sop/period.js';
 import Meeting from '../meeting/Meeting.js';
 import { momView, generateMeetingLink } from '../meeting/momHelpers.js';
 import Creative from '../sme/Creative.js';
+import Attendance from '../attendance/Attendance.js';
+import { getOfficeConfig } from '../attendance/geo.js';
 
 const router = express.Router();
 router.use(protect(['admin']));
@@ -75,6 +77,48 @@ router.delete('/users/:id', async (req, res) => {
   if (!user) return res.status(404).json({ message: 'User not found' });
   await SopAssignment.deleteMany({ user: user._id });
   res.json({ message: 'User deleted' });
+});
+
+// ---------------- Attendance (login / logout times) ----------------
+// GET /api/admin/attendance?from=YYYY-MM-DD&to=YYYY-MM-DD&userId=<id>&role=sme|admin
+router.get('/attendance', async (req, res) => {
+  const filter = {};
+
+  if (req.query.userId) {
+    if (!validId(req.query.userId)) return res.status(400).json({ message: 'Invalid user' });
+    filter.userId = req.query.userId;
+  }
+  if (['admin', 'sme'].includes(req.query.role)) filter.role = req.query.role;
+
+  const range = {};
+  if (req.query.from) {
+    const d = new Date(`${req.query.from}T00:00:00`);
+    if (!isNaN(d)) range.$gte = d;
+  }
+  if (req.query.to) {
+    const d = new Date(`${req.query.to}T23:59:59.999`);
+    if (!isNaN(d)) range.$lte = d;
+  }
+  if (Object.keys(range).length) filter.loginAt = range;
+
+  const limit = Math.min(parseInt(req.query.limit, 10) || 500, 2000);
+  const records = await Attendance.find(filter).sort({ loginAt: -1 }).limit(limit).lean();
+  const office = getOfficeConfig();
+
+  res.json({
+    office: { configured: office.configured, radius: office.radius },
+    records: records.map((r) => ({
+      id: r._id,
+      userId: r.userId,
+      name: r.name,
+      email: r.email,
+      role: r.role,
+      loginAt: r.loginAt,
+      logoutAt: r.logoutAt,
+      distance: r.loginLocation?.distance ?? null,
+      accuracy: r.loginLocation?.accuracy ?? null
+    }))
+  });
 });
 
 // ---------------- Companies ----------------

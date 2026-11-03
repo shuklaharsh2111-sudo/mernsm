@@ -17,6 +17,7 @@ import AdminUsers from './admin/AdminUsers';
 import AdminCompanies from './admin/AdminCompanies';
 import AdminMeetings from './admin/AdminMeetings';
 import AdminCreatives from './admin/AdminCreatives';
+import AdminAttendance from './admin/AdminAttendance';
 import SmeDashboard from './sme/SmeDashboard';
 import SmeSaved from './sme/SmeSaved';
 import SmeRecords from './sme/SmeRecords';
@@ -89,6 +90,7 @@ const AppRoutes = () => {
           <Route path="/admin/meetings" element={<AdminMeetings />} />
           <Route path="/admin/invoices" element={<Invoices />} />
           <Route path="/admin/creatives" element={<AdminCreatives />} />
+          <Route path="/admin/attendance" element={<AdminAttendance />} />
         </Route>
       </Route>
 
