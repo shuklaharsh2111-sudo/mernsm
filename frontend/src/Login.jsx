@@ -1,15 +1,26 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Eye, EyeOff, Check, Loader2, KeyRound } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, KeyRound, Lock, Mail, MapPin } from 'lucide-react';
 
 import { useAuth } from './AuthContext';
-import LoginLiquid from './LoginLiquid';
-import './login.css';
+import SpaceSuitViewer from './components/SpaceSuitViewer';
+import './styles/login.css';
 
-const EMAIL_RE = /^\S+@\S+\.\S+$/;
-
-// where the "Contact admin" link sends people; change to your admin's address or a support page
-const ADMIN_EMAIL = 'admin@yourcompany.com';
+/* Orange tick: ripple ring + spring-in badge + drawn check + tiny sparks.
+   Mounted only while the field has text, so it plays once when the field gets filled. */
+const Tick = () => (
+  <span className="nl-tick" aria-hidden="true">
+    <span className="nl-tick-ripple" />
+    <span className="nl-tick-badge">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path className="nl-tick-check" d="M6.5 12.8l3.6 3.6 7.4-7.8" />
+      </svg>
+    </span>
+    {[0, 1, 2, 3, 4, 5].map((i) => (
+      <i key={i} className="nl-spark" style={{ '--a': `${i * 60}deg` }} />
+    ))}
+  </span>
+);
 
 const Login = () => {
   const { login } = useAuth();
@@ -20,53 +31,6 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // interaction state
-  const [focused, setFocused] = useState(null); // 'email' | 'password' | null
-  const [pulse, setPulse] = useState(0);        // bumps on every keystroke -> liquid reacts
-  const [caps, setCaps] = useState(false);
-  const [shake, setShake] = useState(false);
-
-  const [lite, setLite] = useState(false);    // slow GPU -> drop the decorative CSS effects
-
-  const shakeTimer = useRef(0);
-
-  useEffect(() => () => clearTimeout(shakeTimer.current), []);
-
-  const handleLowPerf = useCallback(() => setLite(true), []);
-
-  const emailOk = EMAIL_RE.test(email);
-  const mode = loading ? 'loading' : error ? 'error' : focused ? 'focus' : 'idle';
-
-  // button: magnetic pull + click ripple
-  const handleBtnMove = (e) => {
-    const b = e.currentTarget;
-    const r = b.getBoundingClientRect();
-    const x = (e.clientX - (r.left + r.width / 2)) / r.width;
-    const y = (e.clientY - (r.top + r.height / 2)) / r.height;
-    b.style.setProperty('--bx', `${(x * 10).toFixed(1)}px`);
-    b.style.setProperty('--by', `${(y * 6).toFixed(1)}px`);
-  };
-
-  const handleBtnLeave = (e) => {
-    e.currentTarget.style.removeProperty('--bx');
-    e.currentTarget.style.removeProperty('--by');
-  };
-
-  const handleBtnDown = (e) => {
-    const b = e.currentTarget;
-    const r = b.getBoundingClientRect();
-    const dot = document.createElement('span');
-    dot.className = 'lx-ripple';
-    dot.style.left = `${e.clientX - r.left}px`;
-    dot.style.top = `${e.clientY - r.top}px`;
-    dot.addEventListener('animationend', () => dot.remove());
-    b.appendChild(dot);
-  };
-
-  const handleCaps = (e) => {
-    if (e.getModifierState) setCaps(e.getModifierState('CapsLock'));
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -87,141 +51,100 @@ const Login = () => {
         err.response?.data?.message ||
         'Unable to login. Please try again.'
       );
-      setShake(true);
-      clearTimeout(shakeTimer.current);
-      shakeTimer.current = setTimeout(() => setShake(false), 600);
     } finally {
       setLoading(false);
     }
   };
 
+  const emailFilled = email.trim() !== '';
+  const passwordFilled = password !== '';
+
   return (
-    <div
-      className={`lx-page${lite ? ' lx-lite' : ''}`}
-    >
+    <div className="nl-page">
+      <div className="nl-card">
 
-      <div className="lx-bg" aria-hidden="true">
-        <span className="lx-blob b1" />
-        <span className="lx-blob b2" />
-        <span className="lx-blob b3" />
-        <span className="lx-glow" />
-        <span className="lx-sweep" />
-        <span className="lx-grain" />
-      </div>
+        {/* LEFT: 3D astronaut */}
+        <div className="nl-visual">
+          <SpaceSuitViewer />
+        </div>
 
-      <div
-        className={`lx-tilt${shake ? ' shake' : ''}`}
-        data-mode={mode}
-      >
-        <div className="lx-card">
+        {/* RIGHT: top bar / form / footer note */}
+        <div className="nl-panel">
 
-          {/* left: liquid metal */}
-          <aside className="lx-art">
-            <LoginLiquid mode={mode} pulse={pulse} onLowPerf={handleLowPerf} />
-          </aside>
+          <header className="nl-top">
+            <div className="nl-brand">
+              <span className="nl-brand-mark">N</span>
+              <span className="nl-brand-name">NURO</span>
+            </div>
 
-          {/* right: form */}
-          <section className="lx-panel">
-
-            <a
-              className="lx-help"
-              href={`mailto:${ADMIN_EMAIL}?subject=${encodeURIComponent('Password reset request')}${emailOk ? `&body=${encodeURIComponent(`Please reset the password for ${email}.`)}` : ''}`}
+            <button
+              type="button"
+              className="nl-forgot"
+              onClick={() => setError('Please contact your admin to reset your password.')}
             >
-              <span className="lx-help-ico" aria-hidden="true"><KeyRound size={13} /></span>
-              <span className="lx-help-text">Forgot password?</span>
-            </a>
+              <span className="nl-forgot-icon"><KeyRound size={16} /></span>
+              Forgot password?
+            </button>
+          </header>
 
-            <p className="lx-kicker">Login to</p>
-            <h1 className="lx-title">
-              Where Creative<br />Work Flows
+          <div className="nl-form-wrap">
+            <p className="nl-eyebrow">Login to</p>
+            <h1 className="nl-title">
+              Where Creative
+              <span>Work Flows</span>
             </h1>
 
-            <form className="lx-form" onSubmit={handleSubmit}>
-
-              <div className="lx-field">
+            <form onSubmit={handleSubmit}>
+              <div className={`nl-input${emailFilled ? ' is-filled' : ''}`}>
+                <Mail size={18} className="nl-input-icon" />
                 <input
-                  id="lx-email"
                   type="email"
-                  aria-label="Email address"
                   placeholder="Enter email"
                   value={email}
-                  onChange={(e) => { setEmail(e.target.value); setPulse((p) => p + 1); }}
-                  onFocus={() => setFocused('email')}
-                  onBlur={() => setFocused(null)}
+                  onChange={(e) => setEmail(e.target.value)}
                   autoComplete="username"
                   required
                 />
-                {emailOk && <Check size={15} className="lx-ok" aria-hidden="true" />}
+                {emailFilled && <Tick />}
               </div>
 
-              <div className="lx-field">
+              <div className={`nl-input${passwordFilled ? ' is-filled' : ''}`}>
+                <Lock size={18} className="nl-input-icon" />
                 <input
-                  id="lx-password"
                   type={showPassword ? 'text' : 'password'}
-                  aria-label="Password"
                   placeholder="Enter password"
                   value={password}
-                  onChange={(e) => { setPassword(e.target.value); setPulse((p) => p + 1); }}
-                  onFocus={() => setFocused('password')}
-                  onBlur={() => { setFocused(null); setCaps(false); }}
-                  onKeyDown={handleCaps}
-                  onKeyUp={handleCaps}
+                  onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   required
                 />
-
                 <button
                   type="button"
-                  className="lx-eye"
+                  className="nl-eye"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
 
-              {caps && <div className="lx-hint" role="status">Caps Lock is on</div>}
+              {error && <div className="nl-error">{error}</div>}
 
-              {error && (
-                <div className="lx-error" role="alert">
-                  {error}
-                </div>
-              )}
-
-              <button
-                className="lx-btn"
-                type="submit"
-                disabled={loading}
-                onPointerMove={handleBtnMove}
-                onPointerLeave={handleBtnLeave}
-                onPointerDown={handleBtnDown}
-              >
-                {loading
-                  ? (<><Loader2 size={17} className="lx-spinner" /> Checking location...</>)
-                  : (<>Sign In <ArrowRight size={17} /></>)}
+              <button className="nl-submit" type="submit" disabled={loading}>
+                {loading ? 'Checking location & signing in...' : (
+                  <>Sign In <ArrowRight size={18} /></>
+                )}
               </button>
-
-              <p className="lx-hint" style={{ margin: '6px 0 0 4px' }}>
-                Staff logins work only from the office. Allow location access when your browser asks.
-              </p>
-
             </form>
+          </div>
 
-            <div className="lx-brand">
-              <div className="lx-logo" aria-label="Nuro">
-                <span className="lx-logo-mark" aria-hidden="true">
-                  <svg viewBox="0 0 32 32">
-                    <path d="M10.5 22V10l11 12V10" fill="none" stroke="#1c1e22" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-                <span className="lx-logo-name">Nuro</span>
-              </div>
-            </div>
+          <p className="nl-note">
+            <MapPin size={14} />
+            Staff logins work only from the office. Allow location access when your browser asks.
+          </p>
 
-          </section>
         </div>
       </div>
-
     </div>
   );
 };
