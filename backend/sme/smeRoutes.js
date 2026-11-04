@@ -10,9 +10,19 @@ import SopAssignment from '../sop/SopAssignment.js';
 import Meeting from '../meeting/Meeting.js';
 import { momView, buildMom, generateMeetingLink } from '../meeting/momHelpers.js';
 import { periodKey, resolveToday } from '../sop/period.js';
+import TaskAttachment from './TaskAttachment.js';
 import Task from './Tasks.js';
 import Creative, { CREATIVE_PLATFORMS, CREATIVE_STATUSES } from './Creative.js';
 import SocialMetrics from './SocialMetrics.js';
+const taskImageUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024, files: 5 },
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (allowedTypes.includes(file.mimetype)) return cb(null, true);
+        cb(new Error('Only JPG, PNG and WEBP images are allowed.'));
+    }
+});
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 5 },
@@ -902,5 +912,66 @@ router.put('/meetings/:id/mom', async (req, res) => {
   meeting.mom = mom;
   await meeting.save();
   res.json({ meeting: meetingView(meeting) });
+});
+router.post('/tasks/:taskId/image-attachments', taskImageUpload.array('images', 5), async (req, res) => {
+    try {
+        const task = await Task.findOne({ _id: req.params.taskId, user: req.user.id });
+        if (!task) return res.status(404).json({ message: 'Task not found.' });
+        if (!req.files?.length) return res.status(400).json({ message: 'Please select an image.' });
+        const existingCount = await TaskAttachment.countDocuments({ task: task._id, user: req.user.id });
+if (existingCount + req.files.length > 5) return res.status(400).json({ message: 'Maximum 5 images are allowed per task.' });
+        const attachments = await TaskAttachment.insertMany(req.files.map(file => ({
+            task: task._id,
+            user: req.user.id,
+            originalName: file.originalname,
+            mimeType: file.mimetype,
+            size: file.size,
+            imageData: file.buffer
+        })));
+        res.status(201).json({
+            message: 'Images uploaded successfully.',
+            attachments: attachments.map(item => ({
+                _id: item._id,
+                originalName: item.originalName,
+                mimeType: item.mimeType,
+                size: item.size,
+                createdAt: item.createdAt,
+                imageUrl: `/api/sme/tasks/${task._id}/attachments/${item._id}/image`
+            }))
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+router.get('/tasks/:taskId/attachments/:attachmentId/image', async (req, res) => {
+    try {
+        const attachment = await TaskAttachment.findOne({
+            _id: req.params.attachmentId,
+            task: req.params.taskId,
+            user: req.user.id
+        });
+        if (!attachment) return res.status(404).json({ message: 'Image not found.' });
+        res.set('Content-Type', attachment.mimeType);
+        res.set('Content-Length', attachment.size);
+        res.set('Cache-Control', 'private, no-store');
+        res.send(attachment.imageData);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+router.delete('/tasks/:taskId/attachments/:attachmentId', async (req, res) => {
+    try {
+        const task = await Task.findOne({ _id: req.params.taskId, user: req.user.id });
+        if (!task) return res.status(404).json({ message: 'Task not found.' });
+        const attachment = await TaskAttachment.findOneAndDelete({
+            _id: req.params.attachmentId,
+            task: task._id,
+            user: req.user.id
+        });
+        if (!attachment) return res.status(404).json({ message: 'Image not found.' });
+        res.json({ message: 'Image deleted successfully.' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 });
 export default router;
