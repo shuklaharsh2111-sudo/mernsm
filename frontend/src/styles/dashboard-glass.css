@@ -141,6 +141,81 @@
 .sop-status.todo { color: var(--orange-light); background: rgba(242, 107, 15, .16); }
 .sop-status.later { color: var(--ink-3); background: rgba(255, 255, 255, .07); }
 
+<<<<<<< HEAD
+=======
+/* =========================================================
+   DASHBOARD BACKGROUND · dark left, orange circle on the right,
+   faint grid, blurred glass (glassmorphism) panels.
+   Scoped to pages that contain .dash-glass (admin + SME dashboard).
+========================================================= */
+body:has(.app-shell .dash-glass) {
+  background-color: #050404;
+  background-image:
+    /* grid */
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    /* the orange circle on the right */
+    radial-gradient(circle at 84% 58%,
+      rgba(255, 150, 40, 0.95) 0%,
+      rgba(242, 107, 15, 0.9) 14%,
+      rgba(226, 70, 18, 0.7) 28%,
+      rgba(200, 35, 10, 0.38) 44%,
+      transparent 64%),
+    /* red wash along the right edge */
+    radial-gradient(ellipse 55% 95% at 100% 35%, rgba(217, 45, 10, 0.55), transparent 70%),
+    /* dark on the left */
+    linear-gradient(90deg, #030202 0%, #060303 38%, #0b0504 100%);
+  background-size: 64px 64px, 64px 64px, 100% 100%, 100% 100%, 100% 100%;
+  background-position: -1px -1px, -1px -1px, 0 0, 0 0, 0 0;
+  background-attachment: fixed;
+}
+.dash-hero::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--grad); }
+.dash-hero .page-label { font-size: 10.5px; letter-spacing: 1.6px; color: var(--orange-light); }
+.dash-hero h1 { margin-top: 8px; font-size: clamp(22px, 2.6vw, 30px); font-weight: 800; letter-spacing: -.6px; color: #fff; }
+.dash-hero p { margin-top: 6px; font-size: 13px; color: var(--ink-2); }
+.dash-hero-actions { display: flex; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
+.dash-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255, 255, 255, .05); color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; transition: background .15s, border-color .15s, transform .15s; }
+.dash-btn:hover { background: rgba(255, 255, 255, .09); border-color: #45454d; transform: translateY(-1px); }
+.dash-btn.primary { border-color: transparent; background: var(--grad); color: #fff; box-shadow: 0 8px 22px rgba(242, 107, 15, .32); }
+.dash-btn.primary:hover { filter: brightness(1.08); }
+
+/* top bar + shared surfaces become blurred glass */
+body:has(.app-shell .dash-glass) .app-topbar {
+  background: rgba(10, 8, 8, 0.35);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border-bottom-color: rgba(255, 255, 255, 0.10);
+}
+
+.dash-glass .glass-panel,
+.dash-glass .an-card,
+.dash-glass .stat-card,
+.dash-glass .welcome-card,
+.dash-glass .sme-task-card,
+.dash-glass .ch-summary-card,
+.dash-glass .ch-panel,
+.dash-glass .kpi-card,
+.dash-glass .quick-card,
+.dash-glass .dash-hero {
+  background: rgba(18, 14, 14, 0.42) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 12px 36px rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(20px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
+}
+.dash-glass .quick-card:hover,
+.dash-glass .kpi-card:hover { background: rgba(30, 20, 18, 0.5) !important; }
+
+/* rows inside the glass panels stay light and translucent */
+.dash-glass .sme-sop,
+.dash-glass .meeting-item,
+.dash-glass .tm-task-item,
+.dash-glass .ch-search {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.dash-glass .meeting-item.clickable:hover { background: rgba(255, 255, 255, 0.09); }
+>>>>>>> 2b1cc5bdb69937f5af4362052527fdd57b28001b
 /* ---------- KPI cards ---------- */
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 22px; }
 .kpi-card { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 18px 18px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; transition: border-color .15s, transform .15s; }
