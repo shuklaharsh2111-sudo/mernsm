@@ -2,11 +2,8 @@ import { useEffect, useState } from 'react';
 import api from '../api';
 import { errMsg } from '../sopUtils';
 import '../styles/taskmanager.css';
-import {
-    ListTodo, BriefcaseBusiness, Repeat, CheckCircle2,
-    Plus, Play, Square, Clock3, Building2, X, AlertCircle,
-    CalendarDays
-} from 'lucide-react';
+import { ListTodo, BriefcaseBusiness, Repeat, CheckCircle2, Plus, Play, Square, Clock3, Building2, X, AlertCircle, CalendarDays } from 'lucide-react';
+import TaskDetailsModal from './TaskDetailsModal';
 const initialForm = {
     companyId: '',
     title: '',
@@ -30,6 +27,7 @@ const TaskManager = () => {
     const [taskError, setTaskError] = useState('');
     const [creating, setCreating] = useState(false);
     const [actionId, setActionId] = useState('');
+    const [selectedTask, setSelectedTask] = useState(null);
     const [currentTime, setCurrentTime] = useState(new Date());
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -282,7 +280,7 @@ const TaskManager = () => {
                                     <p className="tm-empty">No tasks available.</p>
                                 ) : (
                                     card.items.map(task => (
-                                        <div className="tm-task-item" key={`${card.title}-${task._id}`}>
+                                        <div className="tm-task-item tm-clickable-task" key={`${card.title}-${task._id}`} onClick={() => setSelectedTask(task)} role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedTask(task); } }}>
                                             <div className="tm-task-item-heading">
                                                 <h4>{task.title}</h4>
                                                 <span className={`task-priority ${task.priority?.toLowerCase()}`}>
@@ -313,14 +311,7 @@ const TaskManager = () => {
                                             {task.brief && <p className="tm-brief">{task.brief}</p>}
                                             {task.status === 'new' && (
                                                 <div className="tm-task-action-row">
-                                                    <button
-                                                        type="button"
-                                                        className="tm-icon-action tm-start-btn"
-                                                        disabled={!!actionId}
-                                                        onClick={() => handleStartTask(task)}
-                                                        title="Start Task"
-                                                        aria-label="Start Task"
-                                                    >
+                                                    <button type="button" className="tm-icon-action tm-start-btn" onClick={event => { event.stopPropagation(); handleStartTask(task); }} title="Start Task" aria-label="Start Task" >
                                                         <Play size={17} fill="currentColor" />
                                                     </button>
                                                 </div>
@@ -337,14 +328,7 @@ const TaskManager = () => {
                                                             <strong>Current Time:</strong> {formatTimestamp(currentTime)}
                                                         </span>
                                                     </div>
-                                                    <button
-                                                        type="button"
-                                                        className="tm-icon-action tm-end-btn"
-                                                        disabled={!!actionId}
-                                                        onClick={() => handleEndTask(task)}
-                                                        title="End Task"
-                                                        aria-label="End Task"
-                                                    >
+                                                    <button type="button" className="tm-icon-action tm-end-btn" onClick={event => { event.stopPropagation(); handleEndTask(task); }} title="End Task" aria-label="End Task" >
                                                         <Square size={17} fill="currentColor" />
                                                     </button>
                                                 </div>
@@ -549,6 +533,7 @@ const TaskManager = () => {
                     </div>
                 </div>
             )}
+            {selectedTask && <TaskDetailsModal task={selectedTask} onClose={() => setSelectedTask(null)} />}
         </section>
     );
 };

@@ -123,8 +123,14 @@
 /* ---- preview ---- */
 .mr-offscreen { position: fixed; left: -10000px; top: 0; width: 820px; pointer-events: none; }
 .mr-offscreen .mr-doc { margin: 0; }
+<<<<<<< HEAD
 .mr-preview-overlay { position: fixed; inset: 0; z-index: 1000; overflow-y: auto; background: rgba(9, 7, 6, .82); backdrop-filter: blur(4px); padding: 0 16px 40px; }
 .mr-preview-bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; max-width: 820px; margin: 0 auto; padding: 14px 4px; color: #f9f7f5; }
 .mr-preview-bar small { margin-left: 8px; color: #d5c2b4; font-weight: 500; }
+=======
+.mr-preview-overlay { position: fixed; inset: 0; z-index: 1000; overflow-y: auto; background: rgba(8,6,20,.82); backdrop-filter: blur(4px); padding: 0 16px 40px; }
+.mr-preview-bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; max-width: 820px; margin: 0 auto; padding: 14px 4px; color: #f1efff; }
+.mr-preview-bar small { margin-left: 8px; color: #b9b1d8; font-weight: 500; }
+>>>>>>> 5c07a1d3e038d6e3daa2fa09903308bc1bf4573c
 .mr-preview-bar > div { display: flex; gap: 10px; }
 .mr-preview-overlay .mr-doc { margin-top: 0; box-shadow: 0 20px 60px rgba(0,0,0,.45); }
