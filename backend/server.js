@@ -9,7 +9,6 @@ import connectDB from './config/db.js';
 import authRoutes, { protect } from './auth.js';
 import adminRoutes from './admin/adminRoutes.js';
 import smeRoutes from './sme/smeRoutes.js';
-import smeMonthlyReportRoutes from './sme/smeMonthlyReportRoutes.js';
 import invoiceRoutes from './invoices/invoiceRoutes.js';
 
 dotenv.config();
@@ -35,7 +34,6 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/sme', smeRoutes);
-app.use('/api/sme/monthly-report', smeMonthlyReportRoutes);
 app.use('/api/invoices', invoiceRoutes);
 
 app.get('/api/admin/dashboard', protect(['admin']), (req, res) => {

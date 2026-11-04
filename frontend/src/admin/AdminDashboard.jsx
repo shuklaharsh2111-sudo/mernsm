@@ -2,6 +2,7 @@
 import { useAuth } from '../AuthContext';
 import { useEffect, useState } from 'react';
 import "../style.css";
+import "../styles/dashboard-glass.css";
 import {
   LayoutDashboard,
   Users,
@@ -46,7 +47,7 @@ const AdminDashboard = () => {
   });
 
   return (
-    <div className="dashboard-content">
+    <div className="dashboard-content dash-glass">
 
       {/* Dashboard Top Header */}
       <div className="dashboard-topbar">

@@ -3,13 +3,17 @@ import { AlertCircle, CheckCircle2, Plus, Printer, Save, Trash2 } from 'lucide-r
 import api from '../api';
 import { errMsg, todayStr } from '../sopUtils';
 import AnSelect from '../components/AnSelect';
+import MonthlyPerformance from '../components/MonthlyPerformance';
 import '../styles/analytics.css';
 import '../styles/monthlyreport.css';
+
 const NUM_FIELDS = [
     'followersStart', 'newFollowers', 'unfollowers', 'followersEnd',
     'accountsReached', 'accountsEngaged', 'views', 'profileVisits', 'websiteVisits',
-    'nonFollowerInteractionPct', 'posts', 'reels', 'stories'
+    'nonFollowerInteractionPct', 'posts', 'reels', 'stories',
+    'ovPrevFollowers', 'ovPrevReach', 'ovPrevEngagement', 'ovEarlierFollowers', 'ovEarlierReach', 'ovEarlierEngagement'
 ];
+
 const emptyForm = () => ({
     platform: 'Instagram',
     periodFrom: '', periodTo: '',
@@ -19,6 +23,7 @@ const emptyForm = () => ({
     keyInsights: [''], improvements: [''],
     summaryNote: ''
 });
+
 const fromDoc = (d) => {
     if (!d) return emptyForm();
     const base = emptyForm();
@@ -36,9 +41,13 @@ const fromDoc = (d) => {
         summaryNote: d.summaryNote || ''
     };
 };
+
+const PLATFORM_LABEL = { instagram: 'Instagram', facebook: 'Facebook', linkedin: 'LinkedIn', x: 'X', youtube: 'YouTube' };
+
 const n = (v) => (v === '' || v === null || v === undefined || Number.isNaN(Number(v)) ? null : Number(v));
 const fmt = (v) => (n(v) === null ? '-' : Number(v).toLocaleString('en-IN'));
 const signed = (v) => (v === null ? '-' : `${v > 0 ? '+' : ''}${v.toLocaleString('en-IN')}`);
+
 const monthOptions = () => {
     const now = new Date();
     return Array.from({ length: 12 }, (_, i) => {
@@ -72,7 +81,9 @@ const periodText = (month, from, to) => {
     const t = to ? Number(to.slice(8)) : last;
     return `${ordinal(f)} ${shortMonth(month)} to ${ordinal(t)} ${shortMonth(month)}`;
 };
+
 /* ---------- derived numbers (also used for the written summary) ---------- */
+
 const derive = (f) => {
     const nu = n(f.newFollowers), un = n(f.unfollowers);
     const net = nu === null && un === null ? null : (nu || 0) - (un || 0);
@@ -82,6 +93,7 @@ const derive = (f) => {
         ? (n(f.posts) || 0) + (n(f.reels) || 0) + (n(f.stories) || 0) : null;
     return { net, end, published };
 };
+
 const buildSummary = (company, f, d, month) => {
     const bits = [];
     const when = periodText(month, f.periodFrom, f.periodTo);
@@ -102,7 +114,9 @@ const buildSummary = (company, f, d, month) => {
     if (d.net !== null) bits.push(`${d.net >= 0 ? 'Positive' : 'Negative'} net follower growth in ${shortMonth(month)}.`);
     return bits.join(' ');
 };
+
 /* ---------- small form pieces ---------- */
+
 const NumInput = ({ label, value, onChange, hint, suffix }) => (
     <label className="mr-field">
         <span>{label}</span>
@@ -116,6 +130,7 @@ const NumInput = ({ label, value, onChange, hint, suffix }) => (
         {hint && <small>{hint}</small>}
     </label>
 );
+
 const LineList = ({ label, items, onChange, placeholder }) => (
     <div className="mr-field wide">
         <span>{label}</span>
@@ -137,22 +152,23 @@ const LineList = ({ label, items, onChange, placeholder }) => (
         )}
     </div>
 );
+
 /* ---------- page ---------- */
+
 const SmeMonthlyReports = () => {
     const months = useMemo(() => monthOptions(), []);
     const [month, setMonth] = useState(months[0].value);
     const [companies, setCompanies] = useState([]);
     const [companyId, setCompanyId] = useState('');
     const [form, setForm] = useState(emptyForm());
-    const [performanceReport, setPerformanceReport] = useState(null);
-    const [reportLoading, setReportLoading] = useState(false);
-    const [reportError, setReportError] = useState('');
     const [prev, setPrev] = useState(null);
     const [earlier, setEarlier] = useState(null);
+    const [output, setOutput] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [saved, setSaved] = useState('');
+
     useEffect(() => {
         api.get('/sme/companies')
             .then(({ data }) => {
@@ -162,6 +178,7 @@ const SmeMonthlyReports = () => {
             })
             .catch(err => { setError(errMsg(err)); setLoading(false); });
     }, []);
+
     useEffect(() => {
         if (!companyId) return undefined;
         let cancelled = false;
@@ -177,42 +194,13 @@ const SmeMonthlyReports = () => {
                     if (pd.end !== null) f.followersStart = pd.end;
                     f.platform = data.previous.platform || f.platform;
                 }
-                setForm(f); setPrev(data.previous); setEarlier(data.earlier);
+                setForm(f); setPrev(data.previous); setEarlier(data.earlier); setOutput(data.output || null);
             })
             .catch(err => { if (!cancelled) setError(errMsg(err)); })
             .finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
     }, [companyId, month]);
-    useEffect(() => {
-        let cancelled = false;
-        const loadPerformanceReport = async () => {
-            setReportLoading(true);
-            setReportError('');
-            try {
-                const { data } = await api.get('/sme/monthly-report', {
-                    params: { month }
-                });
-                if (!cancelled) {
-                    setPerformanceReport(data.report);
-                }
-            } catch (error) {
-                if (!cancelled) {
-                    setReportError(
-                        error.response?.data?.message ||
-                        'Unable to load monthly performance report'
-                    );
-                }
-            } finally {
-                if (!cancelled) {
-                    setReportLoading(false);
-                }
-            }
-        };
-        loadPerformanceReport();
-        return () => {
-            cancelled = true;
-        };
-    }, [month]);
+
     const set = (k) => (v) => { setSaved(''); setForm(f => ({ ...f, [k]: v })); };
     const companyName = companies.find(c => c.id === companyId)?.name || '';
     const d = derive(form);
@@ -221,6 +209,22 @@ const SmeMonthlyReports = () => {
     const eForm = earlier ? fromDoc(earlier) : null;
     const ed = eForm ? derive(eForm) : null;
     const autoSummary = buildSummary(companyName, form, d, month);
+    // content output comes from the approved creatives (not typed in)
+    const outNow = output?.[month] || { total: 0, platforms: {} };
+    const outPrev = output?.[shiftMonth(month, -1)] || { total: 0, platforms: {} };
+    const outPlatforms = [...new Set([...Object.keys(outNow.platforms), ...Object.keys(outPrev.platforms)])];
+    // 3-month overview: typed value first, otherwise what was saved for that month
+    const ovPrev = {
+        followers: n(form.ovPrevFollowers) ?? pd?.end ?? null,
+        reach: n(form.ovPrevReach) ?? n(pForm?.accountsReached),
+        engagement: n(form.ovPrevEngagement) ?? n(pForm?.accountsEngaged)
+    };
+    const ovEarlier = {
+        followers: n(form.ovEarlierFollowers) ?? ed?.end ?? null,
+        reach: n(form.ovEarlierReach) ?? n(eForm?.accountsReached),
+        engagement: n(form.ovEarlierEngagement) ?? n(eForm?.accountsEngaged)
+    };
+
     const save = async () => {
         setSaving(true); setError(''); setSaved('');
         try {
@@ -238,6 +242,7 @@ const SmeMonthlyReports = () => {
             setSaving(false);
         }
     };
+
     const rows = [
         ['Followers (started with)', fmt(pForm?.followersStart), fmt(form.followersStart)],
         ['New followers', fmt(pForm?.newFollowers), fmt(form.newFollowers)],
@@ -248,13 +253,15 @@ const SmeMonthlyReports = () => {
         ['Impressions / views', fmt(pForm?.views), fmt(form.views)],
         ['Profile visits', fmt(pForm?.profileVisits), fmt(form.profileVisits)],
         ['Website visits (bio link taps)', fmt(pForm?.websiteVisits), fmt(form.websiteVisits)],
-        ['Content published', fmt(pd?.published), fmt(d.published)]
+        ['Content published (approved creatives)', fmt(outPrev.total), fmt(outNow.total)]
     ];
     const prevLabel = shiftMonth(month, -1);
     const bestList = form.bestContent.filter(b => b.title.trim());
+
     if (!loading && !companies.length && !error) {
         return <div className="dashboard-content scrollable"><p className="an-empty">No company is assigned to you yet. Ask the admin to assign one.</p></div>;
     }
+
     return (
         <div className="dashboard-content scrollable mr-page">
             <div className="mr-noprint">
@@ -265,12 +272,15 @@ const SmeMonthlyReports = () => {
                         <p>Type in the social-media numbers that are not in the system, then print the monthly report.</p>
                     </div>
                 </div>
+
                 <div className="an-filters">
                     <AnSelect label="Company" value={companyId} options={companies.map(c => ({ value: c.id, label: c.name }))} onChange={setCompanyId} />
                     <AnSelect label="Month" value={month} options={months} onChange={setMonth} />
                 </div>
+
                 {error && <div className="an-error"><AlertCircle size={16} /> {error}</div>}
                 {loading && <p className="an-loading">Loading…</p>}
+
                 {!loading && companyId && (
                     <div className="an-card mr-form">
                         <div className="an-card-head">
@@ -279,7 +289,8 @@ const SmeMonthlyReports = () => {
                         <p className="an-note" style={{ marginTop: 0 }}>
                             Copy these from {form.platform || 'the platform'} Insights. Leave a box empty if the number is not available. “Followers (started with)” is pre-filled from last month’s closing count.
                         </p>
-                        <h3>Report window</h3>
+
+                        <h3>1. Summary</h3>
                         <div className="mr-grid">
                             <label className="mr-field"><span>Platform</span>
                                 <div className="mr-input-wrap"><input type="text" value={form.platform} maxLength={30} onChange={e => set('platform')(e.target.value)} /></div>
@@ -292,30 +303,59 @@ const SmeMonthlyReports = () => {
                                 <div className="mr-input-wrap"><input type="date" value={form.periodTo} min={`${month}-01`} max={`${month}-31`} onChange={e => set('periodTo')(e.target.value)} /></div>
                             </label>
                         </div>
-                        <h3>Audience growth</h3>
+                        <div className="mr-grid one" style={{ marginTop: 14 }}>
+                            <label className="mr-field wide"><span>Summary (optional)</span>
+                                <textarea rows={4} maxLength={1000} value={form.summaryNote} onChange={e => set('summaryNote')(e.target.value)}
+                                    placeholder="Leave empty to auto-write the summary from the numbers below" />
+                                {!form.summaryNote && autoSummary && <small>Auto summary: {autoSummary}</small>}
+                            </label>
+                        </div>
+
+                        <h3>2. Audience growth</h3>
                         <div className="mr-grid">
                             <NumInput label="Followers (started with)" value={form.followersStart} onChange={set('followersStart')} />
                             <NumInput label="New followers" value={form.newFollowers} onChange={set('newFollowers')} />
                             <NumInput label="Unfollowers" value={form.unfollowers} onChange={set('unfollowers')} />
                             <NumInput label="Followers (total at end)" value={form.followersEnd} onChange={set('followersEnd')}
-                                hint={d.end !== null && n(form.followersEnd) === null ? `Will save as ${fmt(d.end)} (start + net)` : `Net growth: ${signed(d.net)}`} />
+                                hint={d.end !== null && n(form.followersEnd) === null ? `Will save as ${fmt(d.end)} (start + net)` : 'Leave empty to calculate it'} />
                         </div>
-                        <h3>Reach &amp; engagement</h3>
+                        <div className="mr-calc">
+                            <span>Net followers = new − unfollowers: <strong>{signed(d.net)}</strong></span>
+                            <span>Closing followers = start + net: <strong>{d.end !== null ? fmt(d.end) : '-'}</strong></span>
+                        </div>
+                        <h4 className="mr-subh">Reach &amp; engagement</h4>
                         <div className="mr-grid">
                             <NumInput label="Accounts reached (viewers)" value={form.accountsReached} onChange={set('accountsReached')} />
                             <NumInput label="Accounts engaged (interactions)" value={form.accountsEngaged} onChange={set('accountsEngaged')} />
                             <NumInput label="Impressions / views" value={form.views} onChange={set('views')} />
                             <NumInput label="Profile visits" value={form.profileVisits} onChange={set('profileVisits')} />
                             <NumInput label="Website visits (bio link taps)" value={form.websiteVisits} onChange={set('websiteVisits')} />
-                            <NumInput label="Interactions from non-followers" suffix="%" value={form.nonFollowerInteractionPct} onChange={set('nonFollowerInteractionPct')} />
                         </div>
-                        <h3>Content output</h3>
+
+                        <h3>3. Content output</h3>
+                        <p className="an-note" style={{ marginTop: 0 }}>
+                            No input needed. It is filled automatically from your approved creatives: {outNow.total} approved in {monthName(month)}
+                            {outPlatforms.length > 0 && ` (${outPlatforms.map(p => `${PLATFORM_LABEL[p] || p} ${outNow.platforms[p] || 0}`).join(' · ')})`}.
+                        </p>
+
+                        <h3>4. 3-month social media overview</h3>
+                        <p className="an-note" style={{ marginTop: 0 }}>
+                            {monthName(month)} uses the audience numbers above (followers {d.end !== null ? fmt(d.end) : '-'}, reach {fmt(form.accountsReached)}, engagement {fmt(form.accountsEngaged)}).
+                            Type the figures for the two earlier months; an empty box uses what was saved for that month.
+                        </p>
+                        <h4 className="mr-subh">{monthName(prevLabel)}</h4>
                         <div className="mr-grid">
-                            <NumInput label="Posts" value={form.posts} onChange={set('posts')} />
-                            <NumInput label="Reels" value={form.reels} onChange={set('reels')} />
-                            <NumInput label="Stories" value={form.stories} onChange={set('stories')} />
+                            <NumInput label="Followers" value={form.ovPrevFollowers} onChange={set('ovPrevFollowers')} hint={ovPrev.followers !== null ? `Saved: ${fmt(ovPrev.followers)}` : undefined} />
+                            <NumInput label="Reach" value={form.ovPrevReach} onChange={set('ovPrevReach')} hint={n(pForm?.accountsReached) !== null ? `Saved: ${fmt(pForm.accountsReached)}` : undefined} />
+                            <NumInput label="Engagement" value={form.ovPrevEngagement} onChange={set('ovPrevEngagement')} hint={n(pForm?.accountsEngaged) !== null ? `Saved: ${fmt(pForm.accountsEngaged)}` : undefined} />
                         </div>
-                        <h3>Paid promotion</h3>
+                        <h4 className="mr-subh">{monthName(shiftMonth(month, -2))}</h4>
+                        <div className="mr-grid">
+                            <NumInput label="Followers" value={form.ovEarlierFollowers} onChange={set('ovEarlierFollowers')} hint={ed?.end != null ? `Saved: ${fmt(ed.end)}` : undefined} />
+                            <NumInput label="Reach" value={form.ovEarlierReach} onChange={set('ovEarlierReach')} hint={n(eForm?.accountsReached) !== null ? `Saved: ${fmt(eForm.accountsReached)}` : undefined} />
+                            <NumInput label="Engagement" value={form.ovEarlierEngagement} onChange={set('ovEarlierEngagement')} hint={n(eForm?.accountsEngaged) !== null ? `Saved: ${fmt(eForm.accountsEngaged)}` : undefined} />
+                        </div>
+                        <h4 className="mr-subh">Paid promotion note</h4>
                         <div className="mr-grid">
                             <label className="mr-check">
                                 <input type="checkbox" checked={form.paidPromotion} onChange={e => set('paidPromotion')(e.target.checked)} />
@@ -328,7 +368,9 @@ const SmeMonthlyReports = () => {
                                 </label>
                             )}
                         </div>
-                        <h3>Best performing content</h3>
+
+
+                        <h3>5. Best performing content</h3>
                         {form.bestContent.map((b, i) => (
                             <div className="mr-best" key={i}>
                                 <input type="text" placeholder="Title, e.g. Diwali Promotional Reel" maxLength={150} value={b.title}
@@ -350,15 +392,17 @@ const SmeMonthlyReports = () => {
                         {form.bestContent.length < 5 && (
                             <button type="button" className="mr-add" onClick={() => set('bestContent')([...form.bestContent, { title: '', note: '', views: '', boosted: false }])}><Plus size={13} /> Add content</button>
                         )}
-                        <h3>Insights</h3>
+
+
+                        <h3>6. Key insights &amp; improvements</h3>
                         <div className="mr-grid one">
+                            <div className="mr-grid">
+                                <NumInput label="Interactions from non-followers" suffix="%" value={form.nonFollowerInteractionPct} onChange={set('nonFollowerInteractionPct')} />
+                            </div>
                             <LineList label="Key insights" items={form.keyInsights} onChange={set('keyInsights')} placeholder="What worked, e.g. 98.7% of interactions came from non-followers" />
                             <LineList label="What needs improvement" items={form.improvements} onChange={set('improvements')} placeholder="e.g. Keep a balanced mix of Reels, carousels and property highlights" />
-                            <label className="mr-field wide"><span>Summary (optional)</span>
-                                <textarea rows={4} maxLength={1000} value={form.summaryNote} onChange={e => set('summaryNote')(e.target.value)}
-                                    placeholder="Leave empty to auto-write the summary from the numbers above" />
-                            </label>
                         </div>
+
                         <div className="mr-actions">
                             <button type="button" className="mr-btn primary" onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save numbers'}</button>
                             <button type="button" className="mr-btn" onClick={() => window.print()}><Printer size={15} /> Print / Save PDF</button>
@@ -367,77 +411,98 @@ const SmeMonthlyReports = () => {
                     </div>
                 )}
             </div>
+
             {/* ---------------- printable report ---------------- */}
-            {!reportLoading && performanceReport && (
-                <article className="mr-doc" id="sme-performance-report">
+            {!loading && companyId && (
+                <article className="mr-doc" id="social-report">
                     <header className="mr-doc-head">
-                        <img
-                            src="/assets/images/company-logo.png"
-                            alt="Unstoppable Solutions"
-                        />
-                        <h1>SME Performance Report</h1>
-                        <p>
-                            {performanceReport.period?.label}
-                        </p>
+                        <img src="/assets/images/logo.png" alt="Unstoppable" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                        <h1>Social Media Report</h1>
+                        <p>{companyName} · {monthName(month)}{form.periodFrom || form.periodTo ? ` (${periodText(month, form.periodFrom, form.periodTo)})` : ''}</p>
                     </header>
+
                     <section>
-                        <h2>Prepared For</h2>
-                        <p>
-                            <strong>
-                                {performanceReport.profile?.name}
-                            </strong>
-                        </p>
-                        <p>
-                            {performanceReport.profile?.email}
-                        </p>
-                        <p>
-                            Reporting Manager:
-                            {' '}
-                            {performanceReport.profile?.reportingManager || '-'}
-                        </p>
+                        <h2>Summary</h2>
+                        <p>{form.summaryNote || autoSummary || 'No numbers entered yet.'}</p>
                     </section>
+
                     <section>
-                        <h2>Executive Summary</h2>
-                        <p>
-                            {performanceReport.summary}
-                        </p>
+                        <h2>Audience Growth</h2>
+                        <table className="mr-table">
+                            <thead><tr><th>Metric</th><th>{monthName(prevLabel)}</th><th>{monthName(month)}</th></tr></thead>
+                            <tbody>{rows.map(r => <tr key={r[0]}><td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td></tr>)}</tbody>
+                        </table>
                     </section>
+
                     <section>
-                        <h2>Creative Performance</h2>
-                        {/* KPI cards yahan render karna */}
-                        {/* Creative status graph yahan render karna */}
+                        <h2>Content Output</h2>
+                        <table className="mr-table">
+                            <thead><tr><th>Approved creatives</th><th>{shortMonth(prevLabel)}</th><th>{shortMonth(month)}</th></tr></thead>
+                            <tbody>
+                                {outPlatforms.map(pf => (
+                                    <tr key={pf}><td>{PLATFORM_LABEL[pf] || pf}</td><td>{fmt(outPrev.platforms[pf] || 0)}</td><td>{fmt(outNow.platforms[pf] || 0)}</td></tr>
+                                ))}
+                                <tr><td><strong>Total approved creatives</strong></td><td><strong>{fmt(outPrev.total)}</strong></td><td><strong>{fmt(outNow.total)}</strong></td></tr>
+                            </tbody>
+                        </table>
                     </section>
+
                     <section>
-                        <h2>Month-over-Month Comparison</h2>
-                        {/* Previous month comparison table */}
+                        <h2>3-Month Social Media Overview</h2>
+                        <table className="mr-table">
+                            <thead><tr><th>Key metric</th><th>{shortMonth(shiftMonth(month, -2))}</th><th>{shortMonth(prevLabel)}</th><th>{shortMonth(month)}</th></tr></thead>
+                            <tbody>
+                                <tr><td>Followers</td><td>{fmt(ovEarlier.followers)}</td><td>{fmt(ovPrev.followers)}</td><td>{fmt(d.end)}</td></tr>
+                                <tr><td>Reach</td><td>{fmt(ovEarlier.reach)}</td><td>{fmt(ovPrev.reach)}</td><td>{fmt(form.accountsReached)}</td></tr>
+                                <tr><td>Engagement</td><td>{fmt(ovEarlier.engagement)}</td><td>{fmt(ovPrev.engagement)}</td><td>{fmt(form.accountsEngaged)}</td></tr>
+                            </tbody>
+                        </table>
+                        {form.paidPromotion && (
+                            <p className="mr-note"><strong>Paid Promotion Note:</strong> {form.paidNote || `Some posts during ${shortMonth(month)} were boosted to increase visibility, expand reach, and drive engagement. The reported performance includes the impact of paid promotions.`}</p>
+                        )}
                     </section>
-                    <section>
-                        <h2>Company-wise Performance</h2>
-                        {/* Assigned companies ka table */}
-                    </section>
-                    <section>
-                        <h2>Platform Performance</h2>
-                        {/* Platform-wise graph */}
-                    </section>
-                    <section>
-                        <h2>SOP Schedule</h2>
-                        {/* Daily / Weekly / Monthly SOP counts */}
-                    </section>
-                    <section>
-                        <h2>Meetings</h2>
-                        {/* Meeting summary and meeting details */}
-                    </section>
-                    <section>
-                        <h2>Creative Details</h2>
-                        {/* Month ke creatives ki complete table */}
-                    </section>
-                    <footer className="mr-doc-foot">
-                        Generated on{' '}
-                        {new Date().toLocaleString('en-IN')}
-                    </footer>
+
+                    {bestList.length > 0 && (
+                        <section>
+                            <h2>Best Performing Content</h2>
+                            <div className="mr-best-list">
+                                {bestList.map((b, i) => (
+                                    <div key={i} className="mr-best-card">
+                                        <strong>{b.title}</strong>
+                                        {n(b.views) !== null && <span>{fmt(b.views)} views</span>}
+                                        {b.note && <p>{b.note}</p>}
+                                        {b.boosted && <p><strong>Paid Promotion:</strong> This content was boosted, which helped increase visibility and reach beyond the existing follower base.</p>}
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
+                    {(form.keyInsights.some(t => t.trim()) || form.improvements.some(t => t.trim()) || n(form.nonFollowerInteractionPct) !== null) && (
+                        <section>
+                            <h2>{shortMonth(month)} Insights</h2>
+                            <div className="mr-two">
+                                <div>
+                                    <h3>Key insight</h3>
+                                    <ul>
+                                        {n(form.nonFollowerInteractionPct) !== null && <li>High non-follower discovery: {form.nonFollowerInteractionPct}% of interactions came from non-followers.</li>}
+                                        {form.keyInsights.filter(t => t.trim()).map((t, i) => <li key={i}>{t}</li>)}
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h3>What needs improvement</h3>
+                                    <ul>{form.improvements.filter(t => t.trim()).map((t, i) => <li key={i}>{t}</li>)}</ul>
+                                </div>
+                            </div>
+                        </section>
+                    )}
+                    <MonthlyPerformance month={month} />
+
+                    <footer className="mr-doc-foot">Generated on {todayStr()} · figures are entered by the SME from platform insights.</footer>
                 </article>
             )}
         </div>
     );
 };
+
 export default SmeMonthlyReports;

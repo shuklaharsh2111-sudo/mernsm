@@ -42,6 +42,14 @@ const socialMetricsSchema = new mongoose.Schema(
     websiteVisits: num, // bio link taps
     nonFollowerInteractionPct: { type: Number, min: 0, max: 100, default: null },
 
+    // 3-month overview: figures typed in for the two earlier months (blank = use what was saved for those months)
+    ovPrevFollowers: num,
+    ovPrevReach: num,
+    ovPrevEngagement: num,
+    ovEarlierFollowers: num,
+    ovEarlierReach: num,
+    ovEarlierEngagement: num,
+
     // Content output
     posts: num,
     reels: num,

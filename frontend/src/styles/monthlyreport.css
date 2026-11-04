@@ -59,3 +59,27 @@
     .mr-doc { max-width: none; margin: 0; padding: 0; border-radius: 0; }
     @page { margin: 16mm; }
 }
+
+/* ---- performance part of the report ---- */
+.mr-doc h2 .mr-health { margin-left: 10px; vertical-align: middle; }
+.mr-health { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .02em; }
+.mr-health-healthy { background: #e1f5ea; color: #16794a; }
+.mr-health-risk { background: #fdf0d5; color: #9a6400; }
+.mr-health-critical { background: #fde3e3; color: #b42323; }
+.mr-health-nodata { background: #ececec; color: #666; }
+.mr-doc section.mr-flow { break-inside: auto; }
+.mr-doc .mr-left td, .mr-doc .mr-left th { text-align: left !important; }
+.mr-doc .mr-meta th { width: 18%; background: #eef3f0; color: #0a4633; }
+.mr-doc .mr-wide { font-size: 12px; }
+.mr-doc .mr-wide th, .mr-doc .mr-wide td { padding: 6px 7px; }
+.mr-doc tfoot td { font-weight: 700; background: #eef3f0; }
+.mr-doc tr { break-inside: avoid; }
+.mr-sub { margin: 16px 0 6px !important; }
+.mr-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.mr-stat { padding: 10px 12px; border: 1px solid #d8dfdb; border-radius: 8px; }
+.mr-stat span { display: block; font-size: 11px; color: #6b6b6b; font-weight: 600; }
+.mr-stat strong { display: block; font-size: 22px; color: #0a4633; line-height: 1.2; }
+.mr-stat small { color: #8a8a8a; font-size: 10.5px; }
+.mr-subh { margin: 16px 0 8px; font-size: 12px; font-weight: 700; color: #cdbfff; letter-spacing: .03em; }
+.mr-calc { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 12px; padding: 10px 14px; border: 1px dashed rgba(139,101,255,.45); border-radius: 10px; background: rgba(139,101,255,.07); font-size: 12px; color: #c9c2df; }
+.mr-calc strong { color: #fff; }
