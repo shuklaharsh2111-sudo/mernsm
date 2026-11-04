@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import {
   BrowserRouter,
   Routes,
@@ -52,9 +53,28 @@ const ProtectedRoute = ({ role }) => {
 };
 
 const DashboardLayout = () => {
+  // sidebar can be collapsed to an icon rail; the choice is remembered
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('sidebarCollapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleSidebar = () =>
+    setCollapsed((v) => {
+      try {
+        localStorage.setItem('sidebarCollapsed', v ? '0' : '1');
+      } catch {
+        /* storage unavailable: just don't remember */
+      }
+      return !v;
+    });
+
   return (
-    <div className="dashboard-layout">
-      <Sidebar />
+    <div className={`dashboard-layout ${collapsed ? 'collapsed' : ''}`}>
+      <Sidebar collapsed={collapsed} onToggle={toggleSidebar} />
 
       <main className="main-content">
         <Outlet />

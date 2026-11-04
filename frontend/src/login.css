@@ -1,523 +1,384 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
-@import url('https://api.fontshare.com/v2/css?f[]=tanker@400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Serif&display=swap');
 
-/* =========================================================
-   LOGIN — split card: liquid-metal art panel + form
-   orange / black. All classes prefixed lx-.
-========================================================= */
-
-.lx-page {
-  --lx-ink: #0f0f11;
-  --lx-ink-2: #2b2623;
-  --lx-grey: #7d6b5f;
-  --lx-line: rgba(255, 106, 0, 0.22);
-  --lx-orange: #ff6a00;
-  --lx-orange-2: #ff8f2e;
-  --lx-tanker: 'Tanker', 'Anton', Impact, 'Arial Narrow Bold', sans-serif;
-  --lx-serif: 'Instrument Serif', 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
-
-  position: relative;
+/* ---------- PAGE BACKGROUND (full #af0300 + dark) ---------- */
+body:has(.nl-page) {
+  background: #af0300;
+}
+body:has(.nl-page)::before,
+body:has(.nl-page)::after {
+  display: none;
+}
+.nl-page {
   width: 100%;
   height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
+  padding: 16px;
   display: flex;
-  padding: clamp(12px, 3vw, 28px) clamp(12px, 3vw, 20px);
-  padding-bottom: max(clamp(12px, 3vw, 28px), env(safe-area-inset-bottom));
-  font-family: 'Inter', system-ui, sans-serif;
-  color: var(--lx-ink);
-  background: linear-gradient(135deg, #fff7f0 0%, #ffdcbd 52%, #fff1e4 100%);
-  isolation: isolate;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 55% 60% at 0% 100%, rgba(0, 0, 0, 0.85), transparent 100%),
+    radial-gradient(ellipse 50% 55% at 100% 0%, rgba(0, 0, 0, 0.7), transparent 100%),
+    radial-gradient(ellipse 45% 45% at 50% 50%, color-mix(in oklab, #af0300 50%, transparent), transparent 100%),
+    linear-gradient(135deg, #af0300 0%, #af0300 50%, #5a0100 100%);
 }
 
-/* ---------- background ---------- */
+/* ---------- CARD (fits one screen) ---------- */
+.nl-card {
+  width: 100%;
+  max-width: 1120px;
+  height: min(690px, calc(100dvh - 32px));
+  display: grid;
+  grid-template-columns: 42% 1fr;
+  padding: 12px;
+  background: linear-gradient(135deg, #fff9f4, #fff0e6);
+  border-radius: 30px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.8s ease both;
+}
 
-.lx-bg {
+/* ---------- LEFT: 3D MODEL ---------- */
+.nl-visual {
+  position: relative;
+  min-height: 0;
+  border-radius: 22px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 58%, rgba(242, 107, 15, 0.3), transparent 100%),
+    radial-gradient(ellipse at 20% 0%, #2e1a0d 0%, #120a05 45%, #080504 100%);
+  border: 1px solid rgba(255, 140, 60, 0.15);
+}
+.nl-visual::before {
+  content: '';
   position: absolute;
   inset: 0;
-  z-index: -3;
-  overflow: hidden;
+  background-image: radial-gradient(rgba(255, 140, 60, 0.2) 1px, transparent 1.5px);
+  background-size: 18px 18px;
+  -webkit-mask-image: linear-gradient(180deg, #000 30%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 30%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+.nl-visual::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 18%;
+  z-index: 4;
+  background: linear-gradient(180deg, transparent, rgba(120, 45, 5, 0.35));
   pointer-events: none;
 }
+/* animated red neon ribbons (same look as the coming-soon page) behind a small astronaut */
+.nl-visual {
+  background: radial-gradient(ellipse at 50% 40%, #1a0000 0%, #090000 60%, #030000 100%);
+  border-color: rgba(255, 60, 30, 0.25);
+}
+.nl-visual::before { display: none; }
 
-.lx-blob {
+/* animatable offsets: they slide every ring outward from the centre */
+@property --nl-r  { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@property --nl-r2 { syntax: '<length>'; inherits: false; initial-value: 0px; }
+
+.nl-ribbons {
   position: absolute;
-  border-radius: 50%;
-  will-change: transform;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+/* one period (120px) = one glossy ring: dark gap, red face, hot yellow edge lines.
+   The rings are born at the centre and travel outward. */
+.nl-ribbons-front {
+  background-image: repeating-radial-gradient(circle at 50% 50%,
+    #060000 calc(var(--nl-r) + 0px),   #060000 calc(var(--nl-r) + 30px),
+    #3a0000 calc(var(--nl-r) + 46px),  #a80800 calc(var(--nl-r) + 66px),
+    #ff2a00 calc(var(--nl-r) + 80px),  #ff6a00 calc(var(--nl-r) + 82px),
+    #ffe14a calc(var(--nl-r) + 83px),  #ff4a00 calc(var(--nl-r) + 85px),
+    #ff3000 calc(var(--nl-r) + 88px),  #ffd23a calc(var(--nl-r) + 89px),
+    #ff4a00 calc(var(--nl-r) + 91px),  #c01000 calc(var(--nl-r) + 96px),
+    #ff5a00 calc(var(--nl-r) + 98px),  #ffe14a calc(var(--nl-r) + 99px),
+    #6a0000 calc(var(--nl-r) + 101px), #2a0000 calc(var(--nl-r) + 108px),
+    #060000 calc(var(--nl-r) + 120px));
+  animation: nlRingsOut 6s linear infinite, nlRibbonPulse 4.5s ease-in-out infinite;
+  filter: saturate(1.15);
+}
+/* second, wider and slower ring layer for depth, with thin bright pinstripes */
+.nl-ribbons-back {
+  background-image:
+    repeating-radial-gradient(circle at 50% 50%,
+      transparent calc(var(--nl-r2) + 0px),
+      transparent calc(var(--nl-r2) + 9px),
+      rgba(255, 210, 90, 0.55) calc(var(--nl-r2) + 9px),
+      rgba(255, 210, 90, 0.55) calc(var(--nl-r2) + 10px),
+      transparent calc(var(--nl-r2) + 10px),
+      transparent calc(var(--nl-r2) + 13px)),
+    repeating-radial-gradient(circle at 50% 50%,
+      #050000 calc(var(--nl-r2) + 0px),   #050000 calc(var(--nl-r2) + 90px),
+      #4a0200 calc(var(--nl-r2) + 130px), #c01000 calc(var(--nl-r2) + 170px),
+      #ff3a10 calc(var(--nl-r2) + 190px), #6a0000 calc(var(--nl-r2) + 230px),
+      #050000 calc(var(--nl-r2) + 260px));
+  opacity: 0.55;
+  animation: nlRingsOutSlow 16s linear infinite;
+}
+@keyframes nlRingsOut {
+  from { --nl-r: 0px; }
+  to   { --nl-r: 120px; }
+}
+/* 260px is a whole number of 13px pinstripe periods, so the loop is seamless */
+@keyframes nlRingsOutSlow {
+  from { --nl-r2: 0px; }
+  to   { --nl-r2: 260px; }
+}
+@keyframes nlRibbonPulse {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
 }
 
-.lx-blob.b1 {
-  width: 52vmax;
-  height: 52vmax;
-  left: -16vmax;
-  top: -20vmax;
-  background: radial-gradient(circle, #ffffff 0%, rgba(255, 190, 130, 0.65) 55%, transparent 72%);
-  animation: lx-drift-a 22s ease-in-out infinite alternate;
-}
-
-.lx-blob.b2 {
-  width: 50vmax;
-  height: 50vmax;
-  right: -18vmax;
-  bottom: -22vmax;
-  background: radial-gradient(circle, rgba(255, 106, 0, 0.6) 0%, rgba(255, 150, 70, 0.32) 55%, transparent 72%);
-  animation: lx-drift-b 26s ease-in-out infinite alternate;
-}
-
-.lx-blob.b3 {
-  width: 34vmax;
-  height: 34vmax;
-  right: 8vmax;
-  top: -14vmax;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, transparent 70%);
-  animation: lx-drift-c 18s ease-in-out infinite alternate;
-}
-
-.lx-glow {
+/* darken toward the centre so the astronaut reads, keep the ribbons bright at the edges */
+.nl-shade {
   position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 52% 46% at 50% 50%, rgba(5, 0, 0, 0.8), rgba(5, 0, 0, 0.35) 70%, transparent 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent 22%, transparent 78%, rgba(0, 0, 0, 0.5));
+}
+.nl-glow {
+  position: absolute;
+  z-index: 2;
   left: 50%;
   top: 50%;
-  width: min(1100px, 150vw);
-  height: min(1100px, 150vw);
-  translate: -50% -50%;
+  width: 70%;
+  aspect-ratio: 1;
   border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    rgba(255, 255, 255, 0) 0deg,
-    rgba(255, 255, 255, 0.95) 70deg,
-    rgba(255, 140, 40, 0.6) 140deg,
-    rgba(255, 255, 255, 0) 200deg,
-    rgba(255, 106, 0, 0.45) 270deg,
-    rgba(255, 255, 255, 0) 340deg
-  );
-  -webkit-mask: radial-gradient(circle, #000 18%, transparent 68%);
-  mask: radial-gradient(circle, #000 18%, transparent 68%);
-  opacity: 0.85;
-  will-change: transform;
-  animation: lx-spin 34s linear infinite;
-}
-
-.lx-sweep {
-  position: absolute;
-  inset: -20%;
-  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.7) 50%, transparent 58%);
-  opacity: 0.5;
-  will-change: transform;
-  animation: lx-sweep 12s ease-in-out infinite;
-}
-
-.lx-grain {
-  position: absolute;
-  inset: 0;
-  opacity: 0.3;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.55  0 0 0 0 0.32  0 0 0 0 0.15  0 0 0 0.16 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-}
-
-/* ---------- card ---------- */
-
-.lx-tilt {
-  width: 100%;
-  max-width: 980px;
-  margin: auto; /* centres, but never clips the top when the screen is short */
-}
-
-.lx-tilt.shake { animation: lx-shake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
-
-.lx-card {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  min-height: 560px;
-  padding: 10px;
-  border-radius: 32px;
-  background: linear-gradient(160deg, rgba(255, 253, 251, 0.96), rgba(255, 244, 234, 0.93));
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  box-shadow:
-    0 50px 90px -40px rgba(190, 80, 10, 0.5),
-    0 16px 36px -16px rgba(190, 80, 10, 0.25),
-    inset 0 1px 0 #fff;
-  animation: lx-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-}
-
-/* ---------- left: liquid art panel ---------- */
-
-.lx-art {
-  position: relative;
-  overflow: hidden;
-  border-radius: 24px;
-  background:
-    radial-gradient(90% 70% at 30% 20%, #3a2417 0%, #15100c 55%, #070707 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 140, 40, 0.18), inset 0 -30px 60px -30px rgba(255, 106, 0, 0.18);
-}
-
-/* stippled dot texture, a nod to a printed illustration */
-.lx-art::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(rgba(255, 140, 40, 0.3) 1px, transparent 1.4px);
-  background-size: 12px 12px;
-  -webkit-mask: radial-gradient(ellipse 85% 80% at 50% 50%, #000 10%, transparent 80%);
-  mask: radial-gradient(ellipse 85% 80% at 50% 50%, #000 10%, transparent 80%);
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(255, 60, 20, 0.45), transparent 68%);
+  filter: blur(26px);
   pointer-events: none;
+  animation: nlGlow 5s ease-in-out infinite;
+}
+@keyframes nlGlow {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.92); }
+  50%      { opacity: 1;   transform: translate(-50%, -50%) scale(1.08); }
 }
 
-.lx-liquid {
+/* astronaut fills the whole box; only a thin feathered rim lets the rings glow around it */
+.nl-astro {
+  --nl-rim: 22px;
   position: absolute;
   inset: 0;
-}
-
-.lx-liquid canvas {
-  display: block;
+  z-index: 3;
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  object-position: 50% 38%;
+  border-radius: 22px;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent, #000 var(--nl-rim), #000 calc(100% - var(--nl-rim)), transparent),
+    linear-gradient(180deg, transparent, #000 var(--nl-rim), #000 calc(100% - var(--nl-rim)), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent, #000 var(--nl-rim), #000 calc(100% - var(--nl-rim)), transparent),
+    linear-gradient(180deg, transparent, #000 var(--nl-rim), #000 calc(100% - var(--nl-rim)), transparent);
+  mask-composite: intersect;
+  animation: nlFloat 8s ease-in-out infinite;
+}
+/* gentle breathing zoom (a slide would expose gaps now that it covers the box) */
+@keyframes nlFloat {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.035); }
 }
 
-/* ---------- right: form panel ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .nl-astro, .nl-ribbons, .nl-glow { animation: none; }
+}
 
-.lx-panel {
+/* ---------- RIGHT: FORM ---------- */
+.nl-panel {
+  position: relative;
   display: flex;
   flex-direction: column;
+  padding: 22px 52px 26px;
   min-width: 0;
-  padding: clamp(24px, 4vw, 30px) clamp(20px, 4.6vw, 44px) clamp(20px, 3vw, 28px);
+  min-height: 0;
 }
-
-/* forgot password: one clickable line in the top-right corner */
-.lx-help {
+.nl-forgot {
   align-self: flex-end;
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  padding: 3px 4px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  text-decoration: none;
-  color: var(--lx-grey);
-}
-
-.lx-help-ico {
-  flex: none;
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--lx-orange);
-  background: rgba(255, 106, 0, 0.14);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  transition: background 0.25s, color 0.25s, transform 0.25s;
-}
-
-.lx-help-text { transition: color 0.2s; }
-.lx-help:hover .lx-help-text { color: var(--lx-ink); text-decoration: underline; text-underline-offset: 3px; }
-.lx-help:hover .lx-help-ico { color: #fff; background: linear-gradient(180deg, var(--lx-orange-2), var(--lx-orange)); transform: rotate(-12deg); }
-.lx-help:focus-visible { outline: 2px solid var(--lx-ink-2); outline-offset: 2px; }
-
-.lx-logo {
-  display: inline-flex;
-  align-items: center;
-  gap: 13px;
-}
-
-.lx-logo-mark {
-  flex: none;
-  display: block;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #ffa552, #ff6a00);
-  box-shadow: 0 8px 16px -6px rgba(255, 106, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.6), inset 0 -2px 3px rgba(150, 50, 0, 0.35);
-}
-
-.lx-logo-mark svg { display: block; width: 100%; height: 100%; }
-
-.lx-logo-name {
-  font-family: var(--lx-tanker);
-  font-size: 44px;
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: 1px;
-  color: var(--lx-ink);
-}
-
-.lx-kicker {
-  margin: auto 0 6px;
-  padding-top: 32px;
-  font-size: 17px;
-  color: var(--lx-ink-2);
-}
-
-.lx-title {
-  margin: 0 0 30px;
-  font-family: var(--lx-serif);
-  font-size: clamp(36px, 5.2vw, 52px);
-  font-weight: 400;
-  line-height: 1.02;
-  letter-spacing: -0.8px;
-  background: linear-gradient(180deg, #0f0f11 40%, #ff6a00 175%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.lx-form { display: flex; flex-direction: column; gap: 12px; }
-
-.lx-field {
-  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 48px;
-  padding: 0 14px 0 16px;
-  border-radius: 12px;
-  background: rgba(255, 232, 214, 0.7);
-  border: 1px solid transparent;
-  transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
-}
-
-.lx-field:hover { background: rgba(255, 224, 200, 0.9); }
-
-.lx-field:focus-within {
-  background: #fff;
-  border-color: rgba(255, 106, 0, 0.7);
-  box-shadow: 0 0 0 4px rgba(255, 106, 0, 0.16);
-}
-
-/* underline that draws in on focus */
-.lx-field::after {
-  content: '';
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: -1px;
-  height: 2px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, transparent, #ff6a00, transparent);
-  transform: scaleX(0);
-  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-
-.lx-field:focus-within::after { transform: scaleX(1); }
-
-.lx-field input {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  border: 0;
-  outline: 0;
+  gap: 10px;
+  border: none;
   background: transparent;
+  color: #6b5547;
   font-size: 14px;
-  color: var(--lx-ink);
+  cursor: pointer;
 }
-
-.lx-field input::placeholder { color: #ad9585; }
-
-.lx-field input:-webkit-autofill {
-  -webkit-text-fill-color: var(--lx-ink);
+.nl-forgot-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #f26b0f;
+  background: #fde0cc;
+}
+.nl-form-wrap {
+  width: 100%;
+  max-width: 520px;
+  margin: auto 0;
+}
+.nl-eyebrow {
+  font-size: 18px;
+  line-height: 1.2;
+  color: #2a1a10;
+}
+.nl-title {
+  margin: 4px 0 clamp(14px, 3.4vh, 28px);
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(34px, 6.4vh, 58px);
+  line-height: 0.98;
+  letter-spacing: -1px;
+  color: #1a0d08;
+}
+.nl-title span {
+  display: block;
+  color: #5b2a0b;
+}
+.nl-input {
+  position: relative;
+  height: clamp(46px, 6.2vh, 56px);
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 0 20px;
+  background: #fde7d8;
+  border-radius: 15px;
+  transition: all 0.25s ease;
+}
+.nl-input:focus-within {
+  background: #fff;
+  box-shadow: 0 0 0 3px color-mix(in oklab, #af0300 50%, transparent);
+}
+.nl-input input {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #2a1a10;
+  font-size: 15px;
+}
+.nl-input input::placeholder {
+  color: #b08c75;
+}
+.nl-input input:-webkit-autofill {
+  -webkit-text-fill-color: #2a1a10;
   transition: background-color 5000s ease-in-out 0s;
 }
-
-.lx-ok {
-  flex: none;
-  padding: 3px;
-  box-sizing: content-box;
-  border-radius: 50%;
-  color: #fff;
-  background: linear-gradient(180deg, #ff8f2e, #ff6a00);
-  animation: lx-pop 0.35s cubic-bezier(0.2, 1.6, 0.4, 1) both;
-}
-
-.lx-eye {
-  display: grid;
-  place-items: center;
-  padding: 4px;
-  border: 0;
-  border-radius: 8px;
+.nl-eye {
+  display: flex;
+  align-items: center;
+  border: none;
   background: transparent;
-  color: var(--lx-grey);
+  color: #6b5547;
   cursor: pointer;
-  transition: color 0.2s, background 0.2s;
 }
-
-.lx-eye:hover { color: var(--lx-ink); background: rgba(255, 106, 0, 0.14); }
-
-.lx-eye:focus-visible,
-.lx-btn:focus-visible {
-  outline: 2px solid var(--lx-ink-2);
-  outline-offset: 2px;
-}
-
-.lx-hint {
-  margin: -2px 0 0 4px;
-  font-size: 11.5px;
-  color: var(--lx-grey);
-  animation: lx-in 0.3s both;
-}
-
-.lx-hint::before { content: '⇪ '; }
-
-.lx-error {
-  padding: 11px 14px;
-  border-radius: 12px;
-  font-size: 12.5px;
-  color: #7d2b2b;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(168, 70, 70, 0.3);
-}
-
-/* ---------- button ---------- */
-
-.lx-btn {
-  position: relative;
-  overflow: hidden;
+.nl-submit {
   width: 100%;
-  height: 50px;
+  height: clamp(48px, 6.4vh, 58px);
   margin-top: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  border: 0;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
+  gap: 10px;
+  border: none;
+  border-radius: 15px;
   color: #fff;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
-  background: linear-gradient(180deg, #2b2b2e 0%, #0b0b0c 100%);
-  box-shadow:
-    0 14px 26px -10px rgba(255, 106, 0, 0.55),
-    inset 0 1px 0 rgba(255, 160, 80, 0.3);
-  translate: var(--bx, 0px) var(--by, 0px);
-  transition: transform 0.25s, box-shadow 0.25s, opacity 0.25s, translate 0.18s ease-out;
+  background: linear-gradient(180deg, #2b2b2f, #09090b);
+  box-shadow: 0 12px 26px rgba(242, 107, 15, 0.35);
+  transition: all 0.3s ease;
 }
-
-.lx-btn:active:not(:disabled) { transform: translateY(0) scale(0.99); }
-.lx-btn:disabled { opacity: 0.65; cursor: not-allowed; }
-.lx-btn svg { transition: transform 0.25s; }
-.lx-btn:hover:not(:disabled) svg { transform: translateX(3px); }
-
-.lx-ripple {
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  margin: -6px 0 0 -6px;
-  border-radius: 50%;
-  background: rgba(255, 140, 40, 0.6);
-  pointer-events: none;
-  animation: lx-ripple 0.65s ease-out forwards;
+.nl-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(242, 107, 15, 0.45);
 }
-
-.lx-spinner { animation: lx-turn 0.8s linear infinite; }
-
-/* ---------- brand row ---------- */
-
-.lx-brand {
-  padding-top: 34px;
+.nl-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+.nl-error {
+  margin-bottom: 4px;
+  padding: 10px 14px;
+  border: 1px solid rgba(200, 40, 30, 0.3);
+  border-radius: 12px;
+  background: rgba(200, 40, 30, 0.08);
+  color: #b3261e;
+  font-size: 13px;
+}
+.nl-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #7a6455;
+}
+.nl-note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.nl-brand {
   display: flex;
   align-items: center;
+  gap: 12px;
+  margin-top: clamp(14px, 3vh, 26px);
+}
+.nl-brand-mark {
+  width: clamp(38px, 5.6vh, 50px);
+  height: clamp(38px, 5.6vh, 50px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #1a0d05;
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ffb04d, #f26b0f 65%, #d14d00);
+  box-shadow: 0 8px 20px rgba(242, 107, 15, 0.4);
+}
+.nl-brand-name {
+  font-family: 'Anton', Impact, sans-serif;
+  font-size: clamp(32px, 5vh, 44px);
+  letter-spacing: 1px;
+  color: #1a0d08;
 }
 
-/* ---------- motion ---------- */
-
-@keyframes lx-rise {
-  from { opacity: 0; transform: translateY(26px) scale(0.985); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes lx-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes lx-pop {
-  from { transform: scale(0); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
-}
-
-@keyframes lx-ripple { to { transform: scale(26); opacity: 0; } }
-@keyframes lx-turn   { to { rotate: 360deg; } }
-@keyframes lx-spin   { to { rotate: 360deg; } }
-
-@keyframes lx-sweep {
-  0%   { transform: translateX(-35%); }
-  100% { transform: translateX(35%); }
-}
-
-@keyframes lx-shake {
-  10%, 90% { translate: -2px 0; }
-  20%, 80% { translate: 4px 0; }
-  30%, 50%, 70% { translate: -7px 0; }
-  40%, 60% { translate: 7px 0; }
-}
-
-@keyframes lx-drift-a { to { transform: translate(8vmax, 6vmax) scale(1.1); } }
-@keyframes lx-drift-b { to { transform: translate(-7vmax, -5vmax) scale(1.12); } }
-@keyframes lx-drift-c { to { transform: translate(-6vmax, 5vmax) scale(0.9); } }
-
-/* ---------- responsive ---------- */
-
-/* small laptops / tablets landscape */
-@media (max-width: 980px) {
-  .lx-card { min-height: 500px; }
-}
-
-/* tablets portrait + large phones: stack art above form */
-@media (max-width: 820px) {
-  .lx-card {
+/* ---------- RESPONSIVE (phones / narrow windows) ---------- */
+@media (max-width: 900px) {
+  .nl-page {
+    overflow-y: auto;
+    align-items: flex-start;
+  }
+  .nl-card {
+    height: auto;
+    margin: auto;
     grid-template-columns: 1fr;
-    grid-template-rows: clamp(180px, 30vh, 260px) auto;
-    min-height: 0;
   }
-
-  .lx-tilt { max-width: 560px; }
-  .lx-title { margin-bottom: 22px; }
-  .lx-brand { padding-top: 24px; }
-}
-
-/* phones */
-@media (max-width: 480px) {
-  .lx-card { padding: 8px; border-radius: 26px; }
-  .lx-art { border-radius: 19px; }
-  .lx-panel { padding: 20px 14px 14px; }
-  .lx-kicker { padding-top: 22px; font-size: 15px; }
-  .lx-title { margin-bottom: 18px; }
-  .lx-form { gap: 10px; }
-  .lx-field { height: 46px; }
-  .lx-field input { font-size: 16px; } /* stops iOS zooming into the field */
-  .lx-btn { height: 48px; }
-  .lx-brand { padding-top: 18px; }
-  .lx-logo-name { font-size: 36px; }
-}
-
-/* very small phones */
-@media (max-width: 360px) {
-  .lx-panel { padding: 16px 10px 10px; }
-}
-
-/* landscape phones / very short screens: keep two columns, let the page scroll */
-@media (max-width: 900px) and (max-height: 520px) and (orientation: landscape) {
-  .lx-tilt { max-width: 760px; }
-  .lx-card {
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-    grid-template-rows: none;
-    min-height: 0;
+  .nl-visual {
+    height: 320px;
   }
-  .lx-art { min-height: 240px; }
-  .lx-panel { padding: 14px 18px; }
-  .lx-kicker { padding-top: 12px; }
-  .lx-title { font-size: 32px; margin-bottom: 14px; }
-  .lx-brand { padding-top: 14px; }
+  .nl-panel {
+    padding: 20px 20px 30px;
+  }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .lx-blob, .lx-glow, .lx-sweep, .lx-spinner { animation: none !important; }
-}
-
-/* slow GPU detected by LoginLiquid: freeze / remove decorative layers */
-.lx-lite .lx-blob,
-.lx-lite .lx-glow,
-.lx-lite .lx-sweep { animation: none; will-change: auto; }
-.lx-lite .lx-sweep,
-.lx-lite .lx-grain { display: none; }
-.lx-lite .lx-card { animation: none; }

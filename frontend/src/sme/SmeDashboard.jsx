@@ -17,6 +17,7 @@ import {
 } from '../sopUtils';
 import "../style.css";
 import "../styles/smedashboard.css";
+import "../styles/dashboard-glass.css";
 import {
   Clock3,
   Video,
@@ -189,7 +190,7 @@ const SmeDashboard = () => {
     return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
   return (
-    <div className="dashboard-content scrollable">
+    <div className="dashboard-content scrollable dash-glass">
       {/* TOPBAR */}
       <div className="dashboard-topbar">
         <div className="dashboard-greeting">
