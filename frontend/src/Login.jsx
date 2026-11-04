@@ -120,7 +120,7 @@ const Login = () => {
 
             <div className="nl-brand">
               <span className="nl-brand-mark">N</span>
-              <span className="nl-brand-name">NURO</span>
+              <span className="nl-brand-name">NEURO</span>
             </div>
           </div>
 
