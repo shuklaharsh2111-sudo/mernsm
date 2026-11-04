@@ -1,237 +1,96 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Users,
-  Settings,
-  LogOut,
-  CalendarDays,
-  FolderOpen,
-  Bookmark,
-  ChartNoAxesCombined,
-  FileBarChart,
-  Clock,
-  Building2,
-  Receipt,
-  CalendarCheck,
-  Palette,
-  UserCheck,
-  PanelLeftClose,
-  PanelLeftOpen
-} from 'lucide-react';
-
+import { LogOut, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { useAuth } from './AuthContext';
-const Sidebar = ({ collapsed = false, onToggle }) => {
+import { navFor } from './navConfig';
+
+const initialsOf = (name = 'User') =>
+  name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || 'U';
+
+const Sidebar = ({ collapsed = false, onToggle, mobileOpen = false, onClose }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
-  const isAdmin = user?.role === 'admin';
   const isSME = user?.role === 'sme';
+  const groups = navFor(user?.role);
 
-  // Reporting Manager with Admin fallback
-  const reportingManager =
-    user?.reportingManager ||
-    user?.reporting_manager ||
-    user?.defaultAdmin ||
-    user?.adminDetails ||
-    null;
+  const manager =
+    user?.reportingManager || user?.reporting_manager || user?.defaultAdmin || user?.adminDetails || null;
 
   const handleLogout = async () => {
     await logout();
     navigate('/login', { replace: true });
   };
 
-  // Admin Menu
-const adminMenuItems = [
-  {
-    title: 'Dashboard',
-    path: '/admin',
-    icon: LayoutDashboard
-  },
-  {
-    title: 'Users',
-    path: '/admin/users',
-    icon: Users
-  },
-  {
-    title: 'Companies',
-    path: '/admin/companies',
-    icon: Building2
-  },
-  {
-    title: 'Invoices',
-    path: '/admin/invoices',
-    icon: Receipt
-  },
-  {
-    title: 'Meetings',
-    path: '/admin/meetings',
-    icon: CalendarCheck
-  },
-  {
-    title: 'Creatives',
-    path: '/admin/creatives',
-    icon: Palette
-  },
-  {
-    title: 'Attendance',
-    path: '/admin/attendance',
-    icon: UserCheck
-  },
-  {
-    title: 'Calendar',
-    path: '/admin/calendar',
-    icon: CalendarDays
-  }
-];
-
-  // SME Menu
-  const smeMenuItems = [
-    {
-      title: 'Dashboard',
-      path: '/sme',
-      icon: LayoutDashboard
-    },
-    {
-      title: 'Calendar',
-      path: '/sme/calendar',
-      icon: CalendarDays
-    },
-    {
-      title: 'Records',
-      path: '/sme/records',
-      icon: FolderOpen
-    },
-    {
-      title: 'Saved',
-      path: '/sme/saved',
-      icon: Bookmark
-    },
-    {
-      title: 'Analytics',
-      path: '/sme/analytics',
-      icon: ChartNoAxesCombined
-    },
-    {
-      title: 'Settings',
-      path: '/sme/settings',
-      icon: Settings
-    },
-    {
-      title: 'Monthly Reports',
-      path: '/sme/monthly-reports',
-      icon: FileBarChart
-    },
-    {
-      title: 'Pending Creative',
-      path: '/sme/pending-creatives',
-      icon: Clock
-    }
-  ];
-
-  const menuItems = isAdmin ? adminMenuItems : smeMenuItems;
-
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
-
-      {/* Collapse / expand */}
-      <button
-        type="button"
-        className="sidebar-toggle"
-        onClick={onToggle}
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        aria-expanded={!collapsed}
-        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        {collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
-      </button>
-
-      {/* Sidebar Brand */}
-      <div className="sidebar-brand">
-        <div className="brand-icon">CM</div>
-
-        <div className="sidebar-brand-text">
-          <h2>Unstoppable Solutions</h2>
+    <aside className={`app-sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'open' : ''}`} aria-label="Main navigation">
+      {/* 1. Brand */}
+      <div className="side-brand">
+        <div className="side-logo">US</div>
+        <div className="side-brand-text">
+          <strong>Unstoppable Solutions</strong>
           <span>Social Media Manager</span>
         </div>
+        <button type="button" className="side-close" onClick={onClose} aria-label="Close menu"><X size={18} /></button>
       </div>
 
-      {/* User Profile */}
-      <div className="sidebar-profile">
-        <img
-          src={
-            user?.avatar ||
-            `https://ui-avatars.com/api/?name=${encodeURIComponent(
-              user?.name || 'User'
-            )}&background=6366f1&color=fff`
-          }
-          alt="Profile"
-        />
+      {/* 2. Navigation (the only part that scrolls) */}
+      <nav className="side-nav">
+        {groups.map((g) => (
+          <div className="side-group" key={g.heading}>
+            <p className="side-heading">{g.heading}</p>
+            {g.items.map(({ title, path, icon: Icon }) => (
+              <NavLink
+                key={path}
+                to={path}
+                end={path === '/admin' || path === '/sme'}
+                title={collapsed ? title : undefined}
+                className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}
+              >
+                <Icon size={18} />
+                <span>{title}</span>
+              </NavLink>
+            ))}
+          </div>
+        ))}
+      </nav>
 
-        <div className="profile-info">
-          <h3>{user?.name}</h3>
-          <p>{user?.email}</p>
-
-          <span className={`role-tag ${user?.role}`}>
-            {user?.role?.toUpperCase()}
-          </span>
-
-          {/* Reporting Manager - SME Only */}
-          {isSME && (
-            <div className="reporting-manager-info">
-              <span className="reporting-manager-label">
-                Reporting Manager
-              </span>
-
-              <h4>
-                {reportingManager?.name || 'Admin'}
-              </h4>
-
-              <p>
-                {reportingManager?.email || 'Admin email unavailable'}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Sidebar Navigation */}
-      <div className="sidebar-menu">
-        <p className="menu-heading">MAIN MENU</p>
-
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/admin' || item.path === '/sme'}
-              title={collapsed ? item.title : undefined}
-              className={({ isActive }) =>
-                `menu-link ${isActive ? 'active' : ''}`
-              }
-            >
-              <Icon size={19} />
-              <span>{item.title}</span>
-            </NavLink>
-          );
-        })}
-      </div>
-
-      {/* Logout */}
-      <div className="sidebar-bottom">
+      {/* 3. Account: collapse, profile, logout */}
+      <div className="side-footer">
         <button
-          className="logout-button"
-          onClick={handleLogout}
-          title={collapsed ? 'Logout' : undefined}
+          type="button"
+          className="side-collapse"
+          onClick={onToggle}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          <LogOut size={19} />
+          {collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+          <span>Collapse</span>
+        </button>
+
+        <div className="side-user">
+          {user?.avatar
+            ? <img src={user.avatar} alt="" />
+            : <div className="side-avatar">{initialsOf(user?.name)}</div>}
+          <div className="side-user-info">
+            <strong>{user?.name}</strong>
+            <span>{user?.email}</span>
+            <em className={`side-role ${user?.role}`}>{user?.role?.toUpperCase()}</em>
+          </div>
+        </div>
+
+        {isSME && (
+          <div className="side-manager">
+            <span>Reporting manager</span>
+            <strong>{manager?.name || 'Admin'}</strong>
+          </div>
+        )}
+
+        <button type="button" className="side-logout" onClick={handleLogout} title={collapsed ? 'Logout' : undefined}>
+          <LogOut size={18} />
           <span>Logout</span>
         </button>
       </div>
-
     </aside>
-);
+  );
 };
 
 export default Sidebar;
