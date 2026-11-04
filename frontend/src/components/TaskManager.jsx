@@ -29,6 +29,7 @@ const TaskManager = () => {
     const [creating, setCreating] = useState(false);
     const [actionId, setActionId] = useState('');
     const [selectedTask, setSelectedTask] = useState(null);
+    const [activeTab, setActiveTab] = useState(0);
     const [currentTime, setCurrentTime] = useState(new Date());
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -248,15 +249,40 @@ const TaskManager = () => {
                     {taskError}
                 </div>
             )}
-            <div className="sme-task-grid">
-                {taskCards.map(card => {
+            <div className="sme-task-tabs" role="tablist" aria-label="Task sections">
+                {taskCards.map((card, index) => {
+                    const TabIcon = card.icon;
+                    return (
+                        <button
+                            key={card.title}
+                            type="button"
+                            role="tab"
+                            aria-selected={activeTab === index}
+                            className={`sme-task-tab ${card.color} ${activeTab === index ? 'active' : ''}`}
+                            onClick={() => setActiveTab(index)}
+                        >
+                            <TabIcon size={17} />
+                            <span>{card.title}</span>
+                            <b>{loading ? '--' : String(card.count).padStart(2, '0')}</b>
+                        </button>
+                    );
+                })}
+            </div>
+            <div className="sme-task-grid single">
+                {taskCards.map((card, index) => {
+                    if (index !== activeTab) return null;
                     const Icon = card.icon;
                     return (
                         <div className={`sme-task-card ${card.color}`} key={card.title}>
                             <div className="sme-task-card-top">
                                 <div className={`sme-task-icon ${card.color}`}>
-                                    <Icon size={22} />
+                                    <Icon size={20} />
                                 </div>
+                                <div className="sme-task-titles">
+                                    <h4>{card.title}</h4>
+                                    <p>{card.description}</p>
+                                </div>
+                                <span className="sme-task-count">{loading ? '--' : String(card.count).padStart(2, '0')}</span>
                                 {card.add && (
                                     <button
                                         type="button"
@@ -265,14 +291,9 @@ const TaskManager = () => {
                                         title={`Add ${card.title} Task`}
                                         aria-label={`Add ${card.title} Task`}
                                     >
-                                        <Plus size={20} />
+                                        <Plus size={18} />
                                     </button>
                                 )}
-                            </div>
-                            <div className="sme-task-info">
-                                <h3>{loading ? '--' : String(card.count).padStart(2, '0')}</h3>
-                                <h4>{card.title}</h4>
-                                <p>{card.description}</p>
                             </div>
                             <div className="sme-task-card-list">
                                 {loading ? (
@@ -288,15 +309,17 @@ const TaskManager = () => {
                                                     {task.priority}
                                                 </span>
                                             </div>
-                                            <p className="tm-company">
-                                                <Building2 size={13} />
-                                                {task.company?.name || 'Company unavailable'}
-                                            </p>
-                                            <p className="tm-due-date">
-                                                <CalendarDays size={14} />
-                                                <strong>Due Date:</strong>
-                                                <span>{formatDueDate(task.dueDate)}</span>
-                                            </p>
+                                            <div className="tm-info-row">
+                                                <p className="tm-company">
+                                                    <Building2 size={13} />
+                                                    {task.company?.name || 'Company unavailable'}
+                                                </p>
+                                                <p className="tm-due-date">
+                                                    <CalendarDays size={14} />
+                                                    <strong>Due Date:</strong>
+                                                    <span>{formatDueDate(task.dueDate)}</span>
+                                                </p>
+                                            </div>
                                             <div className="tm-task-meta">
                                                 <span>{task.taskType}</span>
                                                 {task.category === 'recurring' && (

@@ -182,6 +182,14 @@ const SmeDashboard = () => {
     const [h, m] = t.split(':').map(Number);
     return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
+  const dateParts = (dateStr) => {
+    const d = new Date(`${dateStr}T00:00:00`);
+    return {
+      day: String(d.getDate()).padStart(2, '0'),
+      mon: d.toLocaleDateString('en-IN', { month: 'short' }),
+      wk: d.toLocaleDateString('en-IN', { weekday: 'short' })
+    };
+  };
   return (
     <div className="dashboard-content scrollable dash-glass">
       {/* MY COMPANIES */}
@@ -288,7 +296,10 @@ const SmeDashboard = () => {
         {/* MEETINGS */}
         <div className="glass-panel meeting-panel">
           <div className="meeting-header">
-            <h2>Meetings</h2>
+            <div className="meeting-header-title">
+              <h2>Meetings</h2>
+              <span className="meeting-count">{meetings ? String(activeMeetings.length).padStart(2, '0') : '--'}</span>
+            </div>
             <button
               type="button"
               className="add-meeting-btn"
@@ -319,23 +330,48 @@ const SmeDashboard = () => {
                   }
                 }}
               >
-                <div className="meeting-item-top">
-                  <div className="meeting-item-main">
+                <div className="mt-date" aria-hidden="true">
+                  <b>{dateParts(m.date).day}</b>
+                  <span>{dateParts(m.date).mon}</span>
+                </div>
+
+                <div className="mt-body">
+                  <div className="mt-top">
                     <span className="meeting-company">{m.company.name}</span>
                     {m.priority && (
                       <span className={`prio-pill ${m.priority}`} title="Scheduled from the previous meeting's MOM">
                         <Flag size={11} /> {m.priority}
                       </span>
                     )}
-                    <h3 className="meeting-title">{m.subject}</h3>
                   </div>
-                  <div className="meeting-item-when">
-                    <span>{fmtDay(m.date)}</span>
-                    <span>{fmtTime(m.time)}</span>
+                  <h3 className="meeting-title">{m.subject}</h3>
+                  <div className="mt-meta">
+                    <span className="mt-time">
+                      <Clock3 size={13} />
+                      {dateParts(m.date).wk}, {fmtTime(m.time)}
+                    </span>
+                    <span className={`mt-state ${hasStarted(m) ? 'live' : ''}`}>{hasStarted(m) ? 'Started' : 'Upcoming'}</span>
+                    <div className="avatar-stack" aria-label="Attendees">
+                      {m.attendees.slice(0, MAX_AVATARS).map((a, i) => (
+                        <span
+                          key={`${a.name}-${i}`}
+                          className="avatar"
+                          style={{ background: avatarColor(a.name) }}
+                          title={a.designation ? `${a.name} — ${a.designation}` : a.name}
+                        >
+                          {initials(a.name)}
+                        </span>
+                      ))}
+                      {m.attendees.length > MAX_AVATARS && (
+                        <span className="avatar avatar-more" title={m.attendees.slice(MAX_AVATARS).map((a) => a.name).join(', ')}>
+                          +{m.attendees.length - MAX_AVATARS}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="meeting-item-bottom">
+                <div className="mt-actions">
                   <button
                     type="button"
                     className="join-now-btn"
@@ -348,40 +384,20 @@ const SmeDashboard = () => {
                   >
                     <Video size={15} /> Join Now
                   </button>
-{m.joined && (
-  <button
-    type="button"
-    className={`send-mom-btn ${m.mom?.status || ''}`}
-    onClick={(e) => {
-      e.stopPropagation();
-      setMomMeeting(m);
-    }}
-    title={MOM_BTN[m.mom?.status] 
-      ? MOM_BTN[m.mom.status].title 
-      : MOM_BTN.none.title}
-  >
-    {MOM_BTN[m.mom?.status]?.icon || MOM_BTN.none.icon}
-    {MOM_BTN[m.mom?.status]?.label || MOM_BTN.none.label}
-  </button>
-)}
-
-                  <div className="avatar-stack" aria-label="Attendees">
-                    {m.attendees.slice(0, MAX_AVATARS).map((a, i) => (
-                      <span
-                        key={`${a.name}-${i}`}
-                        className="avatar"
-                        style={{ background: avatarColor(a.name) }}
-                        title={a.designation ? `${a.name} — ${a.designation}` : a.name}
-                      >
-                        {initials(a.name)}
-                      </span>
-                    ))}
-                    {m.attendees.length > MAX_AVATARS && (
-                      <span className="avatar avatar-more" title={m.attendees.slice(MAX_AVATARS).map((a) => a.name).join(', ')}>
-                        +{m.attendees.length - MAX_AVATARS}
-                      </span>
-                    )}
-                  </div>
+                  {m.joined && (
+                    <button
+                      type="button"
+                      className={`send-mom-btn ${m.mom?.status || ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMomMeeting(m);
+                      }}
+                      title={MOM_BTN[m.mom?.status] ? MOM_BTN[m.mom.status].title : MOM_BTN.none.title}
+                    >
+                      {MOM_BTN[m.mom?.status]?.icon || MOM_BTN.none.icon}
+                      {MOM_BTN[m.mom?.status]?.label || MOM_BTN.none.label}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
