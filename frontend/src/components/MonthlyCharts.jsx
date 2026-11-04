@@ -169,105 +169,135 @@ const Line = ({ labels, values, color }) => {
     );
 };
 
-/*
-  r      = the /sme/monthly-report response (creatives, companies, platforms, meetings)
-  social = { labels, followers, reach, engagement, growth: { start, added, lost, end } } typed in on this page
-*/
-const MonthlyCharts = ({ r, social }) => {
-    const s = r.stats, p = r.previousStats;
-    const hasCreatives = s.total > 0;
-    const statusSlices = [
+const PARTS = [
+    { key: 'approved', color: C.approved }, { key: 'pending', color: C.pending }, { key: 'redo', color: C.redo }
+];
+const PART_LEGEND = [
+    { label: 'Approved', color: C.approved }, { label: 'Pending', color: C.pending }, { label: 'Redo', color: C.redo }
+];
+
+/* Each chart is its own block so the report can place it right under its table. */
+
+export const StatusChart = ({ r }) => {
+    const s = r.stats;
+    const slices = [
         { label: 'Approved', value: s.approved, color: C.approved },
         { label: 'Pending', value: s.pending, color: C.pending },
         { label: 'Redo', value: s.redo, color: C.redo }
     ];
-    const compareGroups = [
-        ['Total', 'total'], ['Approved', 'approved'], ['Pending', 'pending'], ['Redo', 'redo'], ['Delays', 'delays'], ['Overdue', 'overdue']
-    ].map(([label, k]) => ({ label, values: [p[k], s[k]] }));
-    const companyRows = r.companyReports.filter(c => c.total > 0)
-        .map(c => ({ label: c.name, approved: c.approved, pending: c.pending, redo: c.redo }));
-    const platformRows = r.platformReports
-        .map(x => ({ label: PLATFORM_LABEL[x.platform] || x.platform, approved: x.approved, pending: x.pending, redo: x.redo }));
-    const m = r.meetingStats;
-    const g = social.growth;
-    const hasGrowth = [g.start, g.added, g.lost, g.end].some(v => v !== null);
-    const hasOverview = [...social.followers, ...social.reach, ...social.engagement].some(v => v !== null);
-    const parts = [
-        { key: 'approved', color: C.approved }, { key: 'pending', color: C.pending }, { key: 'redo', color: C.redo }
-    ];
-    const partLegend = [
-        { label: 'Approved', color: C.approved }, { label: 'Pending', color: C.pending }, { label: 'Redo', color: C.redo }
-    ];
-
     return (
-        <section className="mr-flow">
-            <h2>Charts &amp; Visual Summary</h2>
-            <div className="mr-charts">
-                <Card title="Creative status" sub={`${r.month}`}>
-                    {hasCreatives ? (
-                        <div className="mr-donut-row">
-                            <Donut slices={statusSlices} center={s.total} sub="creatives" />
-                            <Legend items={statusSlices.map(x => ({ ...x, value: x.value }))} />
-                        </div>
-                    ) : <Empty />}
-                </Card>
-
-                <Card title="This month vs last month" sub="Creative counts">
-                    {hasCreatives || p.total > 0 ? (
-                        <>
-                            <GroupedBars groups={compareGroups} series={[{ color: C.lastMonth }, { color: C.thisMonth }]} />
-                            <Legend items={[{ label: r.previousMonth, color: C.lastMonth }, { label: r.month, color: C.thisMonth }]} />
-                        </>
-                    ) : <Empty />}
-                </Card>
-
-                <Card title="Company-wise creatives" sub="Approved, pending and redo per company">
-                    {companyRows.length ? (<><StackedRows rows={companyRows} parts={parts} /><Legend items={partLegend} /></>) : <Empty />}
-                </Card>
-
-                <Card title="Platform-wise creatives" sub="A creative on several platforms counts for each">
-                    {platformRows.length ? (<><StackedRows rows={platformRows} parts={parts} /><Legend items={partLegend} /></>) : <Empty />}
-                </Card>
-
-                <Card title="Audience growth" sub={`${r.month} — followers movement`}>
-                    {hasGrowth ? (
-                        <GroupedBars
-                            groups={[
-                                { label: 'Started', values: [g.start] }, { label: 'New', values: [g.added] },
-                                { label: 'Unfollowed', values: [g.lost] }, { label: 'Closing', values: [g.end] }
-                            ]}
-                            series={[{ color: C.thisMonth }]}
-                        />
-                    ) : <Empty text="Enter the audience growth numbers" />}
-                </Card>
-
-                <Card title="Followers — 3 months" sub="Total followers at the end of each month">
-                    {social.followers.some(v => v !== null) ? <Line labels={social.labels} values={social.followers} color={C.thisMonth} /> : <Empty text="Enter the 3-month overview" />}
-                </Card>
-
-                <Card title="Reach &amp; engagement — 3 months" sub="Accounts reached vs accounts engaged">
-                    {hasOverview && (social.reach.some(v => v !== null) || social.engagement.some(v => v !== null)) ? (
-                        <>
-                            <GroupedBars
-                                groups={social.labels.map((label, i) => ({ label, values: [social.reach[i], social.engagement[i]] }))}
-                                series={[{ color: C.blue }, { color: C.pink }]}
-                            />
-                            <Legend items={[{ label: 'Reach', color: C.blue }, { label: 'Engagement', color: C.pink }]} />
-                        </>
-                    ) : <Empty text="Enter the 3-month overview" />}
-                </Card>
-
-                <Card title="Meetings" sub="Completed vs pending">
-                    {m.total > 0 ? (
-                        <div className="mr-donut-row">
-                            <Donut slices={[{ label: 'Completed', value: m.done, color: C.approved }, { label: 'Pending', value: m.notDone, color: C.pending }]} center={m.total} sub="meetings" />
-                            <Legend items={[{ label: 'Completed', color: C.approved, value: m.done }, { label: 'Pending', color: C.pending, value: m.notDone }]} />
-                        </div>
-                    ) : <Empty text="No meetings this month" />}
-                </Card>
-            </div>
-        </section>
+        <div className="mr-charts one">
+            <Card title="Creative status" sub={`${r.month}`}>
+                {s.total > 0 ? (
+                    <div className="mr-donut-row">
+                        <Donut slices={slices} center={s.total} sub="creatives" />
+                        <Legend items={slices} />
+                    </div>
+                ) : <Empty />}
+            </Card>
+        </div>
     );
 };
 
-export default MonthlyCharts;
+export const CompareChart = ({ r }) => {
+    const s = r.stats, p = r.previousStats;
+    const groups = [
+        ['Total', 'total'], ['Approved', 'approved'], ['Pending', 'pending'], ['Redo', 'redo'], ['Delays', 'delays'], ['Overdue', 'overdue']
+    ].map(([label, k]) => ({ label, values: [p[k], s[k]] }));
+    return (
+        <div className="mr-charts one">
+            <Card title="This month vs last month" sub="Creative counts">
+                {s.total > 0 || p.total > 0 ? (
+                    <>
+                        <GroupedBars groups={groups} series={[{ color: C.lastMonth }, { color: C.thisMonth }]} />
+                        <Legend items={[{ label: r.previousMonth, color: C.lastMonth }, { label: r.month, color: C.thisMonth }]} />
+                    </>
+                ) : <Empty />}
+            </Card>
+        </div>
+    );
+};
+
+export const CompanyChart = ({ r }) => {
+    const rows = r.companyReports.filter(c => c.total > 0)
+        .map(c => ({ label: c.name, approved: c.approved, pending: c.pending, redo: c.redo }));
+    return (
+        <div className="mr-charts one">
+            <Card title="Company-wise creatives" sub="Approved, pending and redo per company">
+                {rows.length ? (<><StackedRows rows={rows} parts={PARTS} /><Legend items={PART_LEGEND} /></>) : <Empty />}
+            </Card>
+        </div>
+    );
+};
+
+export const PlatformChart = ({ r }) => {
+    const rows = r.platformReports
+        .map(x => ({ label: PLATFORM_LABEL[x.platform] || x.platform, approved: x.approved, pending: x.pending, redo: x.redo }));
+    return (
+        <div className="mr-charts one">
+            <Card title="Platform-wise creatives" sub="A creative on several platforms counts for each">
+                {rows.length ? (<><StackedRows rows={rows} parts={PARTS} /><Legend items={PART_LEGEND} /></>) : <Empty />}
+            </Card>
+        </div>
+    );
+};
+
+export const MeetingsChart = ({ r }) => {
+    const m = r.meetingStats;
+    return (
+        <div className="mr-charts one">
+            <Card title="Meetings" sub="Completed vs pending">
+                {m.total > 0 ? (
+                    <div className="mr-donut-row">
+                        <Donut slices={[{ label: 'Completed', value: m.done, color: C.approved }, { label: 'Pending', value: m.notDone, color: C.pending }]} center={m.total} sub="meetings" />
+                        <Legend items={[{ label: 'Completed', color: C.approved, value: m.done }, { label: 'Pending', color: C.pending, value: m.notDone }]} />
+                    </div>
+                ) : <Empty text="No meetings this month" />}
+            </Card>
+        </div>
+    );
+};
+
+/* social = { labels, followers, reach, engagement, growth: { start, added, lost, end } } typed in on the page */
+
+export const GrowthChart = ({ social, month }) => {
+    const g = social.growth;
+    const has = [g.start, g.added, g.lost, g.end].some(v => v !== null);
+    return (
+        <div className="mr-charts one">
+            <Card title="Audience growth" sub={`${month} — followers movement`}>
+                {has ? (
+                    <GroupedBars
+                        groups={[
+                            { label: 'Started', values: [g.start] }, { label: 'New', values: [g.added] },
+                            { label: 'Unfollowed', values: [g.lost] }, { label: 'Closing', values: [g.end] }
+                        ]}
+                        series={[{ color: C.thisMonth }]}
+                    />
+                ) : <Empty text="Enter the audience growth numbers" />}
+            </Card>
+        </div>
+    );
+};
+
+export const OverviewCharts = ({ social }) => {
+    const hasReach = social.reach.some(v => v !== null) || social.engagement.some(v => v !== null);
+    return (
+        <div className="mr-charts">
+            <Card title="Followers — 3 months" sub="Total followers at the end of each month">
+                {social.followers.some(v => v !== null) ? <Line labels={social.labels} values={social.followers} color={C.thisMonth} /> : <Empty text="Enter the 3-month overview" />}
+            </Card>
+            <Card title="Reach &amp; engagement — 3 months" sub="Accounts reached vs accounts engaged">
+                {hasReach ? (
+                    <>
+                        <GroupedBars
+                            groups={social.labels.map((label, i) => ({ label, values: [social.reach[i], social.engagement[i]] }))}
+                            series={[{ color: C.blue }, { color: C.pink }]}
+                        />
+                        <Legend items={[{ label: 'Reach', color: C.blue }, { label: 'Engagement', color: C.pink }]} />
+                    </>
+                ) : <Empty text="Enter the 3-month overview" />}
+            </Card>
+        </div>
+    );
+};

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
+import ReportSignature from './ReportSignature';
 import { errMsg, fmtDay, todayStr } from '../sopUtils';
-import MonthlyCharts from './MonthlyCharts';
+import { StatusChart, CompareChart, CompanyChart, PlatformChart, MeetingsChart } from './MonthlyCharts';
 
 /*
   Performance part of the monthly report (creatives, companies, platforms, SOPs, meetings).
@@ -21,7 +22,8 @@ const Health = ({ value }) => (
     <span className={`mr-health mr-health-${value}`}>{HEALTH_LABEL[value] || value}</span>
 );
 
-const MonthlyPerformance = ({ month, social }) => {
+const MonthlyPerformance = ({ month, header, socialSection, footer, preparedBy }) => {
+    const signDate = fmtDay(todayStr());
     const [r, setR] = useState(null);
     const [error, setError] = useState('');
 
@@ -35,9 +37,18 @@ const MonthlyPerformance = ({ month, social }) => {
         return () => { cancelled = true; };
     }, [month]);
 
-    if (error) return <p className="mr-note mr-noprint">Performance report: {error}</p>;
-    if (!r) return <p className="mr-note mr-noprint">Loading performance report…</p>;
-    if (!r.companyCount) return null;
+    if (error || !r || !r.companyCount) {
+        return (
+            <>
+                {header}
+                {socialSection}
+                {error && <p className="mr-note mr-noprint">Performance report: {error}</p>}
+                {!error && !r && <p className="mr-note mr-noprint">Loading performance report…</p>}
+                <ReportSignature preparedBy={preparedBy} date={signDate} />
+                {footer}
+            </>
+        );
+    }
 
     const s = r.stats;
     const p = r.previousStats;
@@ -58,8 +69,9 @@ const MonthlyPerformance = ({ month, social }) => {
 
     return (
         <>
+            {header}
             <section>
-                <h2>Performance Report <Health value={r.overallHealth} /></h2>
+                <h2>Report Details <Health value={r.overallHealth} /></h2>
                 <table className="mr-table mr-left mr-meta">
                     <tbody>
                         <tr><th>Prepared for</th><td>{r.sme.name || '-'}</td><th>Position</th><td>{r.sme.position}</td></tr>
@@ -82,7 +94,10 @@ const MonthlyPerformance = ({ month, social }) => {
                     <div className="mr-stat"><span>Delays</span><strong>{num(s.delays)}</strong><small>Sent after the creative date</small></div>
                     <div className="mr-stat"><span>Overdue</span><strong>{num(s.overdue)}</strong><small>Not approved, date passed</small></div>
                 </div>
+                <StatusChart r={r} />
             </section>
+
+            {socialSection}
 
             <section>
                 <h2>Month-over-Month Comparison</h2>
@@ -98,6 +113,7 @@ const MonthlyPerformance = ({ month, social }) => {
                         </tr>
                     </tbody>
                 </table>
+                <CompareChart r={r} />
             </section>
 
             <section className="mr-flow">
@@ -125,6 +141,7 @@ const MonthlyPerformance = ({ month, social }) => {
                 <p className="mr-note">
                     <strong>Health rules.</strong> Healthy: no delays, redo, rejections or overdue · At Risk: 2+ delays, 4+ redo, 2+ rejections or 2+ overdue · Critical: 3+ delays, 5+ redo, 3+ rejections or 3+ overdue.
                 </p>
+                <CompanyChart r={r} />
             </section>
 
             {r.platformReports.length > 0 && (
@@ -142,6 +159,7 @@ const MonthlyPerformance = ({ month, social }) => {
                         </tbody>
                     </table>
                     <p className="mr-note">A creative planned for more than one platform is counted once for each platform.</p>
+                    <PlatformChart r={r} />
                 </section>
             )}
 
@@ -160,6 +178,7 @@ const MonthlyPerformance = ({ month, social }) => {
                     <thead><tr><th>Total meetings</th><th>Completed</th><th>Pending</th><th>Completion rate</th></tr></thead>
                     <tbody><tr><td>{r.meetingStats.total}</td><td>{r.meetingStats.done}</td><td>{r.meetingStats.notDone}</td><td>{meetingPct}%</td></tr></tbody>
                 </table>
+                <MeetingsChart r={r} />
 
                 <h3 className="mr-sub">By company</h3>
                 <table className="mr-table">
@@ -205,7 +224,8 @@ const MonthlyPerformance = ({ month, social }) => {
                 </section>
             )}
 
-            {social && <MonthlyCharts r={r} social={social} />}
+            <ReportSignature preparedBy={r.sme.name || preparedBy} position={r.sme.position} manager={r.sme.manager} date={signDate} />
+            {footer}
         </>
     );
 };

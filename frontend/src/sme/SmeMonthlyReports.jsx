@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle2, Plus, Printer, Save, Trash2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Download, Eye, Plus, Save, Trash2, X } from 'lucide-react';
 import api from '../api';
 import { errMsg, todayStr } from '../sopUtils';
 import AnSelect from '../components/AnSelect';
 import MonthlyPerformance from '../components/MonthlyPerformance';
+import { GrowthChart, OverviewCharts } from '../components/MonthlyCharts';
 import '../styles/analytics.css';
 import '../styles/monthlyreport.css';
 
@@ -168,6 +169,8 @@ const SmeMonthlyReports = () => {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [saved, setSaved] = useState('');
+    const [downloading, setDownloading] = useState(false);
+    const [preview, setPreview] = useState(false);
 
     useEffect(() => {
         api.get('/sme/companies')
@@ -200,6 +203,14 @@ const SmeMonthlyReports = () => {
             .finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
     }, [companyId, month]);
+
+    useEffect(() => {
+        if (!preview) return undefined;
+        const onKey = (e) => { if (e.key === 'Escape') setPreview(false); };
+        window.addEventListener('keydown', onKey);
+        document.body.style.overflow = 'hidden';
+        return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+    }, [preview]);
 
     const set = (k) => (v) => { setSaved(''); setForm(f => ({ ...f, [k]: v })); };
     const companyName = companies.find(c => c.id === companyId)?.name || '';
@@ -256,6 +267,28 @@ const SmeMonthlyReports = () => {
         }
     };
 
+    const downloadReport = async () => {
+        const el = document.getElementById('social-report');
+        if (!el) return;
+        setDownloading(true); setError('');
+        try {
+            const { default: html2pdf } = await import('html2pdf.js');
+            const safe = `${companyName || 'Company'}-${month}`.replace(/[^\w-]+/g, '_');
+            await html2pdf().set({
+                margin: [10, 8, 10, 8],
+                filename: `Monthly-Report-${safe}.pdf`,
+                image: { type: 'jpeg', quality: 0.95 },
+                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', '.mr-chart', '.mr-stat', '.mr-best-card'] }
+            }).from(el).save();
+        } catch (err) {
+            setError(errMsg(err) || 'Could not create the report file');
+        } finally {
+            setDownloading(false);
+        }
+    };
+
     const rows = [
         ['Followers (started with)', fmt(pForm?.followersStart), fmt(form.followersStart)],
         ['New followers', fmt(pForm?.newFollowers), fmt(form.newFollowers)],
@@ -282,7 +315,7 @@ const SmeMonthlyReports = () => {
                     <div>
                         <span className="page-label">SME WORKSPACE</span>
                         <h1>Monthly Reports</h1>
-                        <p>Type in the social-media numbers that are not in the system, then print the monthly report.</p>
+                        <p>Type in the social-media numbers that are not in the system, then download the monthly report.</p>
                     </div>
                 </div>
 
@@ -411,7 +444,8 @@ const SmeMonthlyReports = () => {
 
                         <div className="mr-actions">
                             <button type="button" className="mr-btn primary" onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save numbers'}</button>
-                            <button type="button" className="mr-btn" onClick={() => window.print()}><Printer size={15} /> Print / Save PDF</button>
+                            <button type="button" className="mr-btn" onClick={() => setPreview(true)}><Eye size={15} /> Preview Report</button>
+                            <button type="button" className="mr-btn" onClick={downloadReport} disabled={downloading}><Download size={15} /> {downloading ? 'Preparing…' : 'Download Report'}</button>
                             {saved && <span className="mr-saved"><CheckCircle2 size={14} /> {saved}</span>}
                         </div>
                     </div>
@@ -420,13 +454,30 @@ const SmeMonthlyReports = () => {
 
             {/* ---------------- printable report ---------------- */}
             {!loading && companyId && (
+                <div className={preview ? 'mr-preview-overlay' : 'mr-offscreen'} onClick={e => { if (preview && e.target === e.currentTarget) setPreview(false); }}>
+                    {preview && (
+                        <div className="mr-preview-bar">
+                            <strong>Report preview <small>{companyName} · {monthName(month)}</small></strong>
+                            <div>
+                                <button type="button" className="mr-btn primary" onClick={downloadReport} disabled={downloading}><Download size={15} /> {downloading ? 'Preparing…' : 'Download Report'}</button>
+                                <button type="button" className="mr-btn" onClick={() => setPreview(false)}><X size={15} /> Close</button>
+                            </div>
+                        </div>
+                    )}
                 <article className="mr-doc" id="social-report">
+                    <MonthlyPerformance
+                        month={month}
+                        header={(
+                            <>
                     <header className="mr-doc-head">
                         <img src="/assets/images/logo.png" alt="Unstoppable" onError={e => { e.currentTarget.style.display = 'none'; }} />
                         <h1>Social Media Report</h1>
                         <p>{companyName} · {monthName(month)}</p>
                     </header>
-
+                            </>
+                        )}
+                        socialSection={(
+                            <>
                     <section>
                         <h2>Summary</h2>
                         <p>{form.summaryNote || autoSummary || 'No numbers entered yet.'}</p>
@@ -438,6 +489,7 @@ const SmeMonthlyReports = () => {
                             <thead><tr><th>Metric</th><th>{monthName(prevLabel)}</th><th>{monthName(month)}</th></tr></thead>
                             <tbody>{rows.map(r => <tr key={r[0]}><td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td></tr>)}</tbody>
                         </table>
+                        <GrowthChart social={chartSocial} month={monthName(month)} />
                     </section>
 
                     <section>
@@ -463,6 +515,7 @@ const SmeMonthlyReports = () => {
                                 <tr><td>Engagement</td><td>{fmt(ovEarlier.engagement)}</td><td>{fmt(ovPrev.engagement)}</td><td>{fmt(form.accountsEngaged)}</td></tr>
                             </tbody>
                         </table>
+                        <OverviewCharts social={chartSocial} />
                         {form.paidPromotion && (
                             <p className="mr-note"><strong>Paid Promotion Note:</strong> {form.paidNote || `Some posts during ${shortMonth(month)} were boosted to increase visibility, expand reach, and drive engagement. The reported performance includes the impact of paid promotions.`}</p>
                         )}
@@ -502,10 +555,14 @@ const SmeMonthlyReports = () => {
                             </div>
                         </section>
                     )}
-                    <MonthlyPerformance month={month} social={chartSocial} />
-
+                            </>
+                        )}
+                        footer={(
                     <footer className="mr-doc-foot">Generated on {todayStr()} · figures are entered by the SME from platform insights.</footer>
+                        )}
+                    />
                 </article>
+                </div>
             )}
         </div>
     );
