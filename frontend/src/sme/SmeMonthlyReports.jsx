@@ -31,7 +31,7 @@ const fromDoc = (d) => {
     return {
         ...base,
         platform: d.platform || 'Instagram',
-        periodFrom: d.periodFrom || '', periodTo: d.periodTo || '',
+        periodFrom: '', periodTo: '', // monthly report: always the whole month
         paidPromotion: !!d.paidPromotion, paidNote: d.paidNote || '',
         bestContent: d.bestContent?.length
             ? d.bestContent.map(b => ({ title: b.title, note: b.note, views: b.views ?? '', boosted: !!b.boosted }))
@@ -96,7 +96,7 @@ const derive = (f) => {
 
 const buildSummary = (company, f, d, month) => {
     const bits = [];
-    const when = periodText(month, f.periodFrom, f.periodTo);
+    const when = periodText(month, '', '');
     const views = n(f.views), reach = n(f.accountsReached);
     if (views !== null || reach !== null) {
         const parts = [];
@@ -209,6 +209,11 @@ const SmeMonthlyReports = () => {
     const eForm = earlier ? fromDoc(earlier) : null;
     const ed = eForm ? derive(eForm) : null;
     const autoSummary = buildSummary(companyName, form, d, month);
+    const prevLabelKey = shiftMonth(month, -1);
+    const chartMonth = (key) => {
+        const [y, m] = key.split('-').map(Number);
+        return `${new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'short' })} ${String(y).slice(2)}`;
+    };
     // content output comes from the approved creatives (not typed in)
     const outNow = output?.[month] || { total: 0, platforms: {} };
     const outPrev = output?.[shiftMonth(month, -1)] || { total: 0, platforms: {} };
@@ -223,6 +228,14 @@ const SmeMonthlyReports = () => {
         followers: n(form.ovEarlierFollowers) ?? ed?.end ?? null,
         reach: n(form.ovEarlierReach) ?? n(eForm?.accountsReached),
         engagement: n(form.ovEarlierEngagement) ?? n(eForm?.accountsEngaged)
+    };
+    // numbers for the charts at the bottom of the report
+    const chartSocial = {
+        labels: [chartMonth(shiftMonth(month, -2)), chartMonth(prevLabelKey), chartMonth(month)],
+        followers: [ovEarlier.followers, ovPrev.followers, d.end],
+        reach: [ovEarlier.reach, ovPrev.reach, n(form.accountsReached)],
+        engagement: [ovEarlier.engagement, ovPrev.engagement, n(form.accountsEngaged)],
+        growth: { start: n(form.followersStart), added: n(form.newFollowers), lost: n(form.unfollowers), end: d.end }
     };
 
     const save = async () => {
@@ -294,13 +307,6 @@ const SmeMonthlyReports = () => {
                         <div className="mr-grid">
                             <label className="mr-field"><span>Platform</span>
                                 <div className="mr-input-wrap"><input type="text" value={form.platform} maxLength={30} onChange={e => set('platform')(e.target.value)} /></div>
-                            </label>
-                            <label className="mr-field"><span>From (optional)</span>
-                                <div className="mr-input-wrap"><input type="date" value={form.periodFrom} min={`${month}-01`} max={`${month}-31`} onChange={e => set('periodFrom')(e.target.value)} /></div>
-                                <small>Leave empty for the whole month</small>
-                            </label>
-                            <label className="mr-field"><span>To (optional)</span>
-                                <div className="mr-input-wrap"><input type="date" value={form.periodTo} min={`${month}-01`} max={`${month}-31`} onChange={e => set('periodTo')(e.target.value)} /></div>
                             </label>
                         </div>
                         <div className="mr-grid one" style={{ marginTop: 14 }}>
@@ -418,7 +424,7 @@ const SmeMonthlyReports = () => {
                     <header className="mr-doc-head">
                         <img src="/assets/images/logo.png" alt="Unstoppable" onError={e => { e.currentTarget.style.display = 'none'; }} />
                         <h1>Social Media Report</h1>
-                        <p>{companyName} · {monthName(month)}{form.periodFrom || form.periodTo ? ` (${periodText(month, form.periodFrom, form.periodTo)})` : ''}</p>
+                        <p>{companyName} · {monthName(month)}</p>
                     </header>
 
                     <section>
@@ -496,7 +502,7 @@ const SmeMonthlyReports = () => {
                             </div>
                         </section>
                     )}
-                    <MonthlyPerformance month={month} />
+                    <MonthlyPerformance month={month} social={chartSocial} />
 
                     <footer className="mr-doc-foot">Generated on {todayStr()} · figures are entered by the SME from platform insights.</footer>
                 </article>
