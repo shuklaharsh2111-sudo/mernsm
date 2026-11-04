@@ -1,26 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Eye, EyeOff, KeyRound, Lock, Mail, MapPin } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, KeyRound, MapPin } from 'lucide-react';
 
 import { useAuth } from './AuthContext';
-import SpaceSuitViewer from './components/SpaceSuitViewer';
+import astronaut from './assets/images/astronaut-login.png';
 import './styles/login.css';
-
-/* Orange tick: ripple ring + spring-in badge + drawn check + tiny sparks.
-   Mounted only while the field has text, so it plays once when the field gets filled. */
-const Tick = () => (
-  <span className="nl-tick" aria-hidden="true">
-    <span className="nl-tick-ripple" />
-    <span className="nl-tick-badge">
-      <svg viewBox="0 0 24 24" fill="none">
-        <path className="nl-tick-check" d="M6.5 12.8l3.6 3.6 7.4-7.8" />
-      </svg>
-    </span>
-    {[0, 1, 2, 3, 4, 5].map((i) => (
-      <i key={i} className="nl-spark" style={{ '--a': `${i * 60}deg` }} />
-    ))}
-  </span>
-);
 
 const Login = () => {
   const { login } = useAuth();
@@ -56,36 +40,33 @@ const Login = () => {
     }
   };
 
-  const emailFilled = email.trim() !== '';
-  const passwordFilled = password !== '';
-
   return (
     <div className="nl-page">
       <div className="nl-card">
 
         {/* LEFT: 3D astronaut */}
-        <div className="nl-visual">
-          <SpaceSuitViewer />
+        <div className="nl-visual" aria-hidden="true">
+          <div className="nl-rings">
+            {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+              <span key={i} className="nl-ring" style={{ '--i': i }} />
+            ))}
+          </div>
+          <div className="nl-shade" />
+          <span className="nl-glow" />
+          <img className="nl-astro" src={astronaut} alt="" draggable="false" />
         </div>
 
-        {/* RIGHT: top bar / form / footer note */}
+        {/* RIGHT: form */}
         <div className="nl-panel">
 
-          <header className="nl-top">
-            <div className="nl-brand">
-              <span className="nl-brand-mark">N</span>
-              <span className="nl-brand-name">NURO</span>
-            </div>
-
-            <button
-              type="button"
-              className="nl-forgot"
-              onClick={() => setError('Please contact your admin to reset your password.')}
-            >
-              <span className="nl-forgot-icon"><KeyRound size={16} /></span>
-              Forgot password?
-            </button>
-          </header>
+          <button
+            type="button"
+            className="nl-forgot"
+            onClick={() => setError('Please contact your admin to reset your password.')}
+          >
+            <span className="nl-forgot-icon"><KeyRound size={16} /></span>
+            Forgot password?
+          </button>
 
           <div className="nl-form-wrap">
             <p className="nl-eyebrow">Login to</p>
@@ -95,8 +76,7 @@ const Login = () => {
             </h1>
 
             <form onSubmit={handleSubmit}>
-              <div className={`nl-input${emailFilled ? ' is-filled' : ''}`}>
-                <Mail size={18} className="nl-input-icon" />
+              <div className="nl-input">
                 <input
                   type="email"
                   placeholder="Enter email"
@@ -105,11 +85,9 @@ const Login = () => {
                   autoComplete="username"
                   required
                 />
-                {emailFilled && <Tick />}
               </div>
 
-              <div className={`nl-input${passwordFilled ? ' is-filled' : ''}`}>
-                <Lock size={18} className="nl-input-icon" />
+              <div className="nl-input">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter password"
@@ -136,12 +114,17 @@ const Login = () => {
                 )}
               </button>
             </form>
-          </div>
 
-          <p className="nl-note">
-            <MapPin size={14} />
-            Staff logins work only from the office. Allow location access when your browser asks.
-          </p>
+            <p className="nl-note">
+              <MapPin size={13} />
+              Staff logins work only from the office. Allow location access when your browser asks.
+            </p>
+
+            <div className="nl-brand">
+              <span className="nl-brand-mark">N</span>
+              <span className="nl-brand-name">NURO</span>
+            </div>
+          </div>
 
         </div>
       </div>

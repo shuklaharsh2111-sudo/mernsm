@@ -14,11 +14,13 @@ import {
   Receipt,
   CalendarCheck,
   Palette,
-  UserCheck
+  UserCheck,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 
 import { useAuth } from './AuthContext';
-const Sidebar = () => {
+const Sidebar = ({ collapsed = false, onToggle }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -129,13 +131,25 @@ const adminMenuItems = [
   const menuItems = isAdmin ? adminMenuItems : smeMenuItems;
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+
+      {/* Collapse / expand */}
+      <button
+        type="button"
+        className="sidebar-toggle"
+        onClick={onToggle}
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        aria-expanded={!collapsed}
+        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
+        {collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
+      </button>
 
       {/* Sidebar Brand */}
       <div className="sidebar-brand">
         <div className="brand-icon">CM</div>
 
-        <div>
+        <div className="sidebar-brand-text">
           <h2>Unstoppable Solutions</h2>
           <span>Social Media Manager</span>
         </div>
@@ -192,6 +206,7 @@ const adminMenuItems = [
               key={item.path}
               to={item.path}
               end={item.path === '/admin' || item.path === '/sme'}
+              title={collapsed ? item.title : undefined}
               className={({ isActive }) =>
                 `menu-link ${isActive ? 'active' : ''}`
               }
@@ -208,6 +223,7 @@ const adminMenuItems = [
         <button
           className="logout-button"
           onClick={handleLogout}
+          title={collapsed ? 'Logout' : undefined}
         >
           <LogOut size={19} />
           <span>Logout</span>
