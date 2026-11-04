@@ -225,3 +225,154 @@
     max-height: 520px;
   }
 }
+
+
+/* =====================================================================
+   Meetings panel · restructured
+   [date tile] [company / title / time + attendees] [Join + MoM]
+   SOP and Meetings panels share one height, each list scrolls inside its panel.
+===================================================================== */
+.dash-glass .sop-meeting-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+.dash-glass .sop-meeting-row > .glass-panel {
+  display: flex;
+  flex-direction: column;
+  height: 560px;
+  min-width: 0;
+  padding: 20px;
+  box-sizing: border-box;
+}
+@media (max-width: 1100px) {
+  .dash-glass .sop-meeting-row { grid-template-columns: minmax(0, 1fr); }
+  .dash-glass .sop-meeting-row > .glass-panel { height: auto; max-height: 600px; }
+}
+
+.meeting-panel { container-type: inline-size; }
+
+/* header */
+.meeting-panel .meeting-header {
+  flex: 0 0 auto;
+  min-height: 0;
+  margin: 0 0 16px;
+  padding-bottom: 14px;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+.meeting-panel .meeting-header-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.meeting-panel .meeting-header h2 { margin: 0; font-size: 18px; font-weight: 700; color: #fff; }
+.meeting-panel .meeting-count {
+  min-width: 28px;
+  padding: 2px 9px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffb04d;
+  background: rgba(242, 107, 15, .14);
+  border: 1px solid rgba(242, 107, 15, .3);
+  border-radius: 999px;
+}
+.meeting-panel .add-meeting-btn { flex: 0 0 auto; white-space: nowrap; }
+
+/* list */
+.meeting-panel .meeting-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.meeting-panel > p.muted {
+  margin: 0;
+  padding: 36px 12px;
+  text-align: center;
+  border: 1px dashed rgba(255, 255, 255, .14);
+  border-radius: 12px;
+}
+
+/* one meeting */
+.meeting-panel .meeting-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "date body actions";
+  align-items: center;
+  gap: 14px;
+  flex: 0 0 auto;
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+.meeting-panel .meeting-item.clickable:hover { transform: none; }
+
+.meeting-panel .mt-date {
+  grid-area: date;
+  width: 54px;
+  padding: 8px 0 7px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  line-height: 1;
+  background: rgba(242, 107, 15, .12);
+  border: 1px solid rgba(242, 107, 15, .3);
+  border-radius: 12px;
+}
+.meeting-panel .mt-date b { font-size: 22px; font-weight: 800; color: #fff; }
+.meeting-panel .mt-date span { font-size: 10.5px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: #ffb04d; }
+
+.meeting-panel .mt-body { grid-area: body; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.meeting-panel .mt-top { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-width: 0; }
+.meeting-panel .meeting-company { font-size: 11.5px; line-height: 1.3; overflow-wrap: anywhere; }
+.meeting-panel .mt-top .prio-pill { margin: 0; padding: 2px 8px; font-size: 10px; vertical-align: 0; }
+.meeting-panel .meeting-title {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.35;
+  font-weight: 700;
+  color: #fff;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.meeting-panel .mt-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin-top: 2px; }
+.meeting-panel .mt-time { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; color: #b9aca2; white-space: nowrap; }
+.meeting-panel .mt-state {
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: #b9aca2;
+  background: rgba(255, 255, 255, .06);
+  border-radius: 999px;
+}
+.meeting-panel .mt-state.live { color: #7ce0af; background: rgba(70, 197, 138, .14); }
+.meeting-panel .avatar-stack { margin-left: auto; }
+.meeting-panel .avatar { width: 26px; height: 26px; margin-left: -7px; font-size: 9.5px; }
+
+.meeting-panel .mt-actions { grid-area: actions; display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.meeting-panel .mt-actions .join-now-btn,
+.meeting-panel .mt-actions .send-mom-btn {
+  justify-content: center;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+/* narrow panel: actions drop under the details, side by side */
+@container (max-width: 520px) {
+  .meeting-panel .meeting-item {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "date body" "actions actions";
+    row-gap: 10px;
+  }
+  .meeting-panel .mt-actions { flex-direction: row; flex-wrap: wrap; }
+  .meeting-panel .mt-actions > * { flex: 1 1 130px; }
+}
+
+.meeting-panel .meeting-header h2 { line-height: 1.2; }
