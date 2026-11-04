@@ -24,7 +24,6 @@ const taskImageUpload = multer({
         cb(new Error('Only JPG, PNG and WEBP images are allowed.'));
     }
 });
-
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 5 },
@@ -104,9 +103,7 @@ router.put('/sop-assignments/completions', async (req, res) => {
   }
   res.json({ assignments: await listFor(req.user.id, today), today });
 });
-// =========================================
 // TASK MANAGER APIs
-// =========================================
 // GET: Logged-in SME ke saare tasks
 router.get('/tasks', async (req, res) => {
   try {
@@ -650,7 +647,6 @@ router.get('/social-metrics', async (req, res) => {
     const m2 = prevMonthOf(m1);
     const docs = await SocialMetrics.find({ user: req.user.id, company, month: { $in: [month, m1, m2] } });
     const by = Object.fromEntries(docs.map((d) => [d.month, d]));
-
     // Content output = the creatives the admin approved for this company, counted per month and platform.
     const approved = await Creative.find({
       user: req.user.id,
@@ -667,7 +663,6 @@ router.get('/social-metrics', async (req, res) => {
       o.total += 1;
       for (const pf of c.contentPillar?.platforms || []) o.platforms[pf] = (o.platforms[pf] || 0) + 1;
     }
-
     res.json({
       current: metricsView(by[month]),
       previous: metricsView(by[m1]),
@@ -751,7 +746,6 @@ const addToStats = (m, c, today) => {
 };
 const withHealth = (m) => ({ ...m, health: m.total ? healthOf(m) : 'nodata' });
 const pctOf = (a, b) => (b ? Math.round((a / b) * 1000) / 10 : 0);
-
 // GET /monthly-report?month=YYYY-MM&today=YYYY-MM-DD
 router.get('/monthly-report', async (req, res) => {
   try {
@@ -761,21 +755,18 @@ router.get('/monthly-report', async (req, res) => {
     const start = `${month}-01`;
     const end = `${monthAfter(month)}-01`;
     const prevStart = `${prevMonth}-01`;
-
     const me = await Sme.findById(req.user.id);
     if (!me) return res.status(401).json({ message: 'User not found' });
     const ids = (me.companies || []).map(String);
     const found = await Company.find({ _id: { $in: ids } });
     const byId = Object.fromEntries(found.map((c) => [String(c._id), c]));
     const companyIds = ids.filter((id) => byId[id]);
-
     // Reporting manager (the admin the SME reports to)
     let manager = '';
     if (me.reportingManagerId) {
       const adm = await Admin.findById(me.reportingManagerId).select('name fullname email').lean();
       manager = adm?.name || adm?.fullname || adm?.email || '';
     }
-
     // ---- creatives: this month + previous month
     const [creatives, prevCreatives] = await Promise.all([
       Creative.find({ user: req.user.id, company: { $in: companyIds }, date: { $gte: start, $lt: end } })
@@ -785,7 +776,6 @@ router.get('/monthly-report', async (req, res) => {
         .select('company date status createdAt rejectionCount')
         .lean(),
     ]);
-
     const stats = blankStats();
     const previousStats = blankStats();
     const perCompany = Object.fromEntries(companyIds.map((id) => [id, blankStats()]));
@@ -801,14 +791,12 @@ router.get('/monthly-report', async (req, res) => {
       }
     }
     for (const c of prevCreatives) addToStats(previousStats, c, today);
-
     const companyReports = companyIds
       .map((id) => ({ id, name: byId[id].name, ...withHealth(perCompany[id]), approvalRate: pctOf(perCompany[id].approved, perCompany[id].total) }))
       .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
     const platformReports = Object.entries(perPlatform)
       .map(([platform, m]) => ({ platform, ...m }))
       .sort((a, b) => b.total - a.total || a.platform.localeCompare(b.platform));
-
     const creativeList = creatives.slice(0, 300).map((c) => ({
       id: c._id,
       date: c.date,
@@ -820,7 +808,6 @@ router.get('/monthly-report', async (req, res) => {
       overdue: c.status !== 'approved' && c.date < today,
       remark: c.status === 'rejected' ? c.reviewNote || '' : '',
     }));
-
     // ---- SOPs: scheduled (start date inside the month) + ticks saved during the month
     const sops = await SopAssignment.find({ user: req.user.id, company: { $in: companyIds } })
       .select('type date completions')
@@ -835,7 +822,6 @@ router.get('/monthly-report', async (req, res) => {
       }
       sopStats.ticks += (sp.completions || []).filter((c) => c.at >= monthStartAt && c.at < monthEndAt).length;
     }
-
     // ---- meetings of the month (done = the SME joined it)
     const meetings = await Meeting.find({ user: req.user.id, company: { $in: companyIds }, date: { $gte: start, $lt: end } })
       .sort({ date: 1, time: 1 })
@@ -865,7 +851,6 @@ router.get('/monthly-report', async (req, res) => {
       done: !!m.joinedAt,
       momStatus: m.mom?.status || 'not_sent',
     }));
-
     res.json({
       month,
       previousMonth: prevMonth,
@@ -898,7 +883,6 @@ router.get('/monthly-report', async (req, res) => {
     res.status(500).json({ message: 'Unable to generate the monthly report' });
   }
 });
-
 // =========================================
 // SETTINGS: PROFILE + PASSWORD
 // =========================================
@@ -1107,65 +1091,125 @@ router.put('/meetings/:id/mom', async (req, res) => {
   await meeting.save();
   res.json({ meeting: meetingView(meeting) });
 });
-router.post('/tasks/:taskId/image-attachments', taskImageUpload.array('images', 5), async (req, res) => {
+router.get('/tasks/:taskId/image-attachments', async (req, res) => {
     try {
-        const task = await Task.findOne({ _id: req.params.taskId, user: req.user.id });
-        if (!task) return res.status(404).json({ message: 'Task not found.' });
-        if (!req.files?.length) return res.status(400).json({ message: 'Please select an image.' });
-        const existingCount = await TaskAttachment.countDocuments({ task: task._id, user: req.user.id });
-if (existingCount + req.files.length > 5) return res.status(400).json({ message: 'Maximum 5 images are allowed per task.' });
-        const attachments = await TaskAttachment.insertMany(req.files.map(file => ({
+        const task = await Task.findOne({
+            _id: req.params.taskId,
+            user: req.user.id
+        });
+        if (!task) {
+            return res.status(404).json({ message: 'Task not found.' });
+        }
+        const attachments = await TaskAttachment.find({
             task: task._id,
-            user: req.user.id,
-            originalName: file.originalname,
-            mimeType: file.mimetype,
-            size: file.size,
-            imageData: file.buffer
-        })));
+            user: req.user.id
+        })
+            .select('_id originalName mimeType size imageUrl publicId createdAt')
+            .sort({ createdAt: -1 })
+            .lean();
+        res.json({ attachments });
+    } catch (error) {
+        console.error('Fetch task images error:', error);
+        res.status(500).json({
+            message: 'Unable to load task images.'
+        });
+    }
+});
+router.post('/tasks/:taskId/image-attachments', (req, res, next) => {
+    taskImageUpload.array('images', 5)(req, res, err => {
+        if (err) return res.status(400).json({ message: err.message });
+        next();
+    });
+}, async (req, res) => {
+    const uploadedImages = [];
+    try {
+        const { taskId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(taskId)) {
+            return res.status(400).json({ message: 'Invalid task ID.' });
+        }
+        const task = await Task.findOne({ _id: taskId, user: req.user.id });
+        if (!task) {
+            return res.status(404).json({ message: 'Task not found.' });
+        }
+        if (!req.files?.length) {
+            return res.status(400).json({ message: 'Please select at least one image.' });
+        }
+        const existingCount = await TaskAttachment.countDocuments({
+            task: taskId,
+            user: req.user.id
+        });
+        if (existingCount + req.files.length > 5) {
+            return res.status(400).json({
+                message: `You can upload only ${5 - existingCount} more image(s).`
+            });
+        }
+        for (const file of req.files) {
+            const result = await uploadToCloudinary(file.buffer, 'creative-manager/tasks');
+            uploadedImages.push({
+                task: taskId,
+                user: req.user.id,
+                originalName: file.originalname,
+                mimeType: file.mimetype,
+                size: file.size,
+                imageUrl: result.secure_url,
+                publicId: result.public_id
+            });
+        }
+        const savedImages = await TaskAttachment.insertMany(uploadedImages);
         res.status(201).json({
             message: 'Images uploaded successfully.',
-            attachments: attachments.map(item => ({
+            attachments: savedImages.map(item => ({
                 _id: item._id,
                 originalName: item.originalName,
                 mimeType: item.mimeType,
                 size: item.size,
-                createdAt: item.createdAt,
-                imageUrl: `/api/sme/tasks/${task._id}/attachments/${item._id}/image`
+                imageUrl: item.imageUrl,
+                createdAt: item.createdAt
             }))
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-router.get('/tasks/:taskId/attachments/:attachmentId/image', async (req, res) => {
-    try {
-        const attachment = await TaskAttachment.findOne({
-            _id: req.params.attachmentId,
-            task: req.params.taskId,
-            user: req.user.id
-        });
-        if (!attachment) return res.status(404).json({ message: 'Image not found.' });
-        res.set('Content-Type', attachment.mimeType);
-        res.set('Content-Length', attachment.size);
-        res.set('Cache-Control', 'private, no-store');
-        res.send(attachment.imageData);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+        await Promise.all(
+            uploadedImages.map(item =>
+                cloudinary.uploader.destroy(item.publicId).catch(() => {})
+            )
+        );
+        console.error('Task Image Upload Error:', error);
+        res.status(500).json({ message: error.message || 'Image upload failed.' });
     }
 });
 router.delete('/tasks/:taskId/attachments/:attachmentId', async (req, res) => {
     try {
-        const task = await Task.findOne({ _id: req.params.taskId, user: req.user.id });
-        if (!task) return res.status(404).json({ message: 'Task not found.' });
-        const attachment = await TaskAttachment.findOneAndDelete({
+        const task = await Task.findOne({
+            _id: req.params.taskId,
+            user: req.user.id
+        });
+        if (!task) {
+            return res.status(404).json({ message: 'Task not found.' });
+        }
+        const attachment = await TaskAttachment.findOne({
             _id: req.params.attachmentId,
             task: task._id,
             user: req.user.id
         });
-        if (!attachment) return res.status(404).json({ message: 'Image not found.' });
-        res.json({ message: 'Image deleted successfully.' });
+        if (!attachment) {
+            return res.status(404).json({ message: 'Image not found.' });
+        }
+        if (attachment.publicId) {
+            await cloudinary.uploader.destroy(attachment.publicId, {
+                resource_type: 'image'
+            });
+        }
+        await TaskAttachment.deleteOne({
+            _id: attachment._id
+        });
+        res.json({
+            message: 'Image deleted successfully.'
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Delete task image error:', error);
+        res.status(500).json({
+            message: 'Unable to delete image.'
+        });
     }
 });
 export default router;
