@@ -21,7 +21,6 @@
     radial-gradient(520px 220px at 100% 0%, rgba(242, 107, 15, .28), transparent 70%),
     radial-gradient(420px 220px at 0% 100%, rgba(175, 3, 0, .35), transparent 70%),
     #121214;
-<<<<<<< HEAD
 }
 .dash-hero::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--grad); }
 .dash-hero .page-label { font-size: 10.5px; letter-spacing: 1.6px; color: var(--orange-light); }
@@ -167,8 +166,6 @@ body:has(.app-shell .dash-glass) {
   background-size: 64px 64px, 64px 64px, 100% 100%, 100% 100%, 100% 100%;
   background-position: -1px -1px, -1px -1px, 0 0, 0 0, 0 0;
   background-attachment: fixed;
-=======
->>>>>>> 2795ce4d0935b2d29bfb7bb14839f1e2600dc8af
 }
 .dash-hero::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--grad); }
 .dash-hero .page-label { font-size: 10.5px; letter-spacing: 1.6px; color: var(--orange-light); }
@@ -180,7 +177,6 @@ body:has(.app-shell .dash-glass) {
 .dash-btn.primary { border-color: transparent; background: var(--grad); color: #fff; box-shadow: 0 8px 22px rgba(242, 107, 15, .32); }
 .dash-btn.primary:hover { filter: brightness(1.08); }
 
-<<<<<<< HEAD
 /* top bar + shared surfaces become blurred glass */
 body:has(.app-shell .dash-glass) .app-topbar {
   background: rgba(10, 8, 8, 0.35);
@@ -217,7 +213,6 @@ body:has(.app-shell .dash-glass) .app-topbar {
   border-color: rgba(255, 255, 255, 0.10);
 }
 .dash-glass .meeting-item.clickable:hover { background: rgba(255, 255, 255, 0.09); }
-=======
 /* ---------- KPI cards ---------- */
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 22px; }
 .kpi-card { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 18px 18px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; transition: border-color .15s, transform .15s; }
@@ -326,4 +321,3 @@ body:has(.app-shell .dash-glass) .app-topbar {
 .sop-status.done { color: #7ee7b9; background: rgba(52, 211, 153, .14); }
 .sop-status.todo { color: var(--orange-light); background: rgba(242, 107, 15, .16); }
 .sop-status.later { color: var(--ink-3); background: rgba(255, 255, 255, .07); }
->>>>>>> 2795ce4d0935b2d29bfb7bb14839f1e2600dc8af
