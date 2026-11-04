@@ -38,7 +38,7 @@
 
 .cal-brand.active .company-circle {
   border-color: #ffffff;
-  box-shadow: 0 0 0 4px rgba(130, 146, 255, 0.55), 0 8px 24px rgba(8, 13, 65, 0.35);
+  box-shadow: 0 0 0 4px rgba(210, 190, 175, 0.55), 0 8px 24px rgba(24, 18, 16, 0.35);
 }
 
 /* company health: colored logo border + small pill in the top-right corner */
@@ -52,7 +52,7 @@
   border: 4px solid var(--health-color);
 }
 .cal-brand.active[class*='health-'] .company-circle {
-  box-shadow: 0 0 0 4px rgba(130, 146, 255, 0.55), 0 8px 24px rgba(8, 13, 65, 0.35);
+  box-shadow: 0 0 0 4px rgba(210, 190, 175, 0.55), 0 8px 24px rgba(24, 18, 16, 0.35);
 }
 
 .cal-health-toggle {
@@ -70,7 +70,7 @@
   border-radius: 9px;
   transition: background 0.15s, color 0.15s;
 }
-.cal-health-opt.on { color: #fff; box-shadow: 0 2px 8px rgba(8, 13, 65, 0.45); }
+.cal-health-opt.on { color: #fff; box-shadow: 0 2px 8px rgba(24, 18, 16, 0.45); }
 .cal-health-opt.on.healthy { background: #2fa56e; }
 .cal-health-opt.on.risk { background: #d98d2b; }
 .cal-health-opt.on.critical { background: #e63c52; }
@@ -87,7 +87,7 @@
   padding: 0;
   cursor: pointer;
   color: var(--text-muted);
-  background: rgba(213, 204, 255, 0.1);
+  background: rgba(237, 229, 222, 0.1);
   border: 1px solid var(--glass-border);
   border-radius: 10px;
 }
@@ -122,7 +122,7 @@
 
 .cal-toggle button.active {
   color: #fff;
-  background: #5369db;
+  background: #f27b36;
 }
 
 /* Month grid */
@@ -170,7 +170,7 @@
   border: 1px solid var(--glass-border);
   border-radius: 12px;
   overflow: hidden;
-  background: rgba(8, 13, 65, 0.35);
+  background: rgba(24, 18, 16, 0.35);
 }
 
 .cal-dow {
@@ -212,7 +212,7 @@
 }
 
 .cal-cell.today .cal-day {
-  background: #5369db;
+  background: #f27b36;
 }
 
 @media (max-width: 700px) {
@@ -240,7 +240,7 @@
   height: 22px;
   padding: 0;
   color: #fff;
-  background: rgba(83, 105, 219, 0.35);
+  background: rgba(242, 123, 54, 0.35);
   border: 1px solid var(--glass-border);
   border-radius: 6px;
   cursor: pointer;
@@ -254,15 +254,15 @@
 }
 
 .cal-add:hover {
-  background: #5369db;
+  background: #f27b36;
 }
 
 .cal-creative {
   position: relative;
   display: flex;
   min-width: 0;
-  background: rgba(83, 105, 219, 0.28);
-  border: 1px solid rgba(130, 146, 255, 0.4);
+  background: rgba(242, 123, 54, 0.28);
+  border: 1px solid rgba(210, 190, 175, 0.4);
   border-radius: 8px;
 }
 
@@ -289,7 +289,7 @@
   height: 30px;
   overflow: hidden;
   color: var(--text-muted);
-  background: rgba(8, 13, 65, 0.5);
+  background: rgba(24, 18, 16, 0.5);
   border-radius: 6px;
 }
 
@@ -366,14 +366,14 @@
   font-size: 13px;
   font-weight: 600;
   color: #fff;
-  background: rgba(213, 204, 255, 0.08);
-  border: 1px dashed rgba(226, 218, 255, 0.4);
+  background: rgba(237, 229, 222, 0.08);
+  border: 1px dashed rgba(242, 236, 231, 0.4);
   border-radius: 12px;
   cursor: pointer;
 }
 
 .creative-drop:hover:not(:disabled) {
-  background: rgba(130, 146, 255, 0.2);
+  background: rgba(210, 190, 175, 0.2);
 }
 
 .creative-drop:disabled {
@@ -412,7 +412,7 @@
   height: 20px;
   padding: 0;
   color: #fff;
-  background: #5369db;
+  background: #f27b36;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 50%;
   cursor: pointer;
@@ -425,7 +425,7 @@
   padding: 16px;
   border: 1px solid var(--glass-border);
   border-radius: 14px;
-  background: rgba(213, 204, 255, 0.05);
+  background: rgba(237, 229, 222, 0.05);
 }
 
 .creative-pillar h3 {
@@ -451,7 +451,7 @@
   padding: 8px 12px;
   font-size: 13px;
   color: var(--text-secondary);
-  background: rgba(213, 204, 255, 0.08);
+  background: rgba(237, 229, 222, 0.08);
   border: 1px solid var(--glass-border);
   border-radius: 10px;
   cursor: pointer;
@@ -470,12 +470,12 @@
 
 .creative-check.on {
   color: #fff;
-  background: #5369db;
+  background: #f27b36;
   border-color: rgba(255, 255, 255, 0.35);
 }
 
 .creative-check:focus-within {
-  outline: 2px solid rgba(173, 160, 255, 0.8);
+  outline: 2px solid rgba(221, 206, 194, 0.8);
   outline-offset: 2px;
 }
 
@@ -504,7 +504,7 @@
   padding: 16px;
   border: 1px solid var(--glass-border);
   border-radius: 14px;
-  background: rgba(8, 13, 65, 0.35);
+  background: rgba(24, 18, 16, 0.35);
 }
 
 .creative-preview h3 {
@@ -518,12 +518,12 @@
 }
 
 .creative-thumb.cover img {
-  outline: 2px solid #8292ff;
+  outline: 2px solid #d2beaf;
   outline-offset: 2px;
 }
 
 .creative-link {
-  color: #c9d1ff;
+  color: #ece3dc;
   text-decoration: underline;
   overflow-wrap: anywhere;
 }
@@ -564,16 +564,16 @@
 .pp-card {
   overflow: hidden;
   background: #fff;
-  color: #1a1f3d;
+  color: #1d1613;
   border-radius: 12px;
-  box-shadow: 0 8px 22px rgba(2, 4, 28, 0.35);
+  box-shadow: 0 8px 22px rgba(10, 8, 6, 0.35);
 }
 
 .pp-media {
   position: relative;
   width: 100%;
   overflow: hidden;
-  background: #e7e9f5;
+  background: #f3ede9;
 }
 
 .pp-media img {
@@ -592,7 +592,7 @@
   justify-content: center;
   gap: 4px;
   font-size: 11px;
-  color: #7a80a8;
+  color: #f27730;
 }
 
 .pp-play {
@@ -623,7 +623,7 @@
   margin-top: 3px;
   font-size: 11px;
   line-height: 1.4;
-  color: #4a5078;
+  color: #dd5a0e;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -692,7 +692,7 @@
 }
 
 .creative-toggle.on {
-  background: rgba(83, 105, 219, 0.45);
+  background: rgba(242, 123, 54, 0.45);
 }
 
 .creative-layout.no-preview {
@@ -726,7 +726,7 @@
   height: 84px;
   overflow: hidden;
   color: var(--text-muted);
-  background: rgba(8, 13, 65, 0.5);
+  background: rgba(24, 18, 16, 0.5);
   border-radius: 12px;
 }
 
@@ -762,7 +762,7 @@
   gap: 5px;
   padding: 3px 9px;
   font-size: 12px;
-  background: rgba(213, 204, 255, 0.1);
+  background: rgba(237, 229, 222, 0.1);
   border: 1px solid var(--glass-border);
   border-radius: 999px;
 }
@@ -824,19 +824,19 @@
   padding: 9px 10px;
   text-align: left;
   color: var(--text-secondary);
-  background: rgba(213, 204, 255, 0.08);
+  background: rgba(237, 229, 222, 0.08);
   border: 1px solid var(--glass-border);
   border-radius: 10px;
   cursor: pointer;
 }
 
 .pps-tab:hover {
-  background: rgba(130, 146, 255, 0.2);
+  background: rgba(210, 190, 175, 0.2);
 }
 
 .pps-tab.on {
   color: #fff;
-  background: #5369db;
+  background: #f27b36;
   border-color: rgba(255, 255, 255, 0.35);
 }
 
@@ -894,13 +894,13 @@
   align-items: center;
   gap: 6px;
   padding: 7px 9px;
-  background: rgba(213, 204, 255, 0.08);
+  background: rgba(237, 229, 222, 0.08);
   border: 1px solid var(--glass-border);
   border-radius: 10px;
 }
 
 .tag-input:focus-within {
-  border-color: rgba(173, 160, 255, 0.8);
+  border-color: rgba(221, 206, 194, 0.8);
 }
 
 .tag-input input {
@@ -915,7 +915,7 @@
 }
 
 .tag-input input::placeholder {
-  color: rgba(230, 224, 255, 0.5);
+  color: rgba(244, 239, 235, 0.5);
 }
 
 .tag-chip {
@@ -925,7 +925,7 @@
   padding: 3px 4px 3px 9px;
   font-size: 12px;
   color: #fff;
-  background: rgba(83, 105, 219, 0.55);
+  background: rgba(242, 123, 54, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 999px;
 }
@@ -954,8 +954,8 @@
 }
 
 .tag-chip.hash {
-  background: rgba(83, 105, 219, 0.3);
-  color: #c9d1ff;
+  background: rgba(242, 123, 54, 0.3);
+  color: #ece3dc;
 }
 
 .creative-links-head {
@@ -984,15 +984,15 @@
 }
 
 .creative-check.viewing {
-  box-shadow: 0 0 0 2px rgba(173, 160, 255, 0.9);
+  box-shadow: 0 0 0 2px rgba(221, 206, 194, 0.9);
 }
 
 .pp-text .pp-tags {
-  color: #3b5bdb;
+  color: #f17025;
 }
 
 .pp-youtube .pp-text .pp-tags {
-  color: #8fa4ff;
+  color: #d7c5b7;
 }
 
 .creative-details {
@@ -1067,7 +1067,7 @@
 
 .cal-plat-tabs button.active {
   color: #fff;
-  background: var(--plat, #5369db);
+  background: var(--plat, #f27b36);
 }
 
 .cal-plat-count {
@@ -1081,19 +1081,19 @@
 
 /* platform brand colours */
 [data-platform="instagram"] {
-  --plat: #d6249f;
+  --plat: #eb600f;
 }
 
 [data-platform="facebook"] {
-  --plat: #1877f2;
+  --plat: #f26818;
 }
 
 [data-platform="linkedin"] {
-  --plat: #0a66c2;
+  --plat: #df590c;
 }
 
 [data-platform="x"] {
-  --plat: #4b5563;
+  --plat: #dd5a0e;
 }
 
 [data-platform="youtube"] {
@@ -1112,20 +1112,20 @@
 }
 
 .cal-grid .cal-cell.today .cal-day {
-  background: var(--plat, #5369db);
+  background: var(--plat, #f27b36);
 }
 
 .cal-grid .cal-add {
-  background: color-mix(in srgb, var(--plat, #5369db) 40%, transparent);
+  background: color-mix(in srgb, var(--plat, #f27b36) 40%, transparent);
 }
 
 .cal-grid .cal-add:hover {
-  background: var(--plat, #5369db);
+  background: var(--plat, #f27b36);
 }
 
 .cal-grid .cal-creative {
-  background: color-mix(in srgb, var(--plat, #5369db) 28%, transparent);
-  border-color: color-mix(in srgb, var(--plat, #5369db) 70%, white 10%);
+  background: color-mix(in srgb, var(--plat, #f27b36) 28%, transparent);
+  border-color: color-mix(in srgb, var(--plat, #f27b36) 70%, white 10%);
 }
 
 /* ---- Instagram: calendar / grid / story views ---- */
@@ -1158,7 +1158,7 @@
 
 .cal-views button.active {
   color: #fff;
-  background: var(--plat, #5369db);
+  background: var(--plat, #f27b36);
 }
 
 .ig-empty {
@@ -1172,7 +1172,7 @@
   overflow: hidden;
   border: 1px solid var(--glass-border);
   border-radius: 18px;
-  background: rgba(8, 13, 65, 0.45);
+  background: rgba(24, 18, 16, 0.45);
 }
 
 .ig-profile {
@@ -1207,10 +1207,10 @@
   height: 56px;
   font-size: 18px;
   font-weight: 800;
-  color: #1a1f3d;
+  color: #1d1613;
   background: #fff;
   border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(214, 36, 159, 0.8);
+  box-shadow: 0 0 0 3px rgba(235, 96, 15, 0.8);
 }
 
 .ig-avatar.sm {
@@ -1233,7 +1233,7 @@
   padding: 0;
   overflow: hidden;
   color: #fff;
-  background: rgba(8, 13, 65, 0.6);
+  background: rgba(24, 18, 16, 0.6);
   border: 0;
   cursor: pointer;
 }
@@ -1274,7 +1274,7 @@
   gap: 2px;
   padding: 8px;
   text-align: left;
-  background: linear-gradient(transparent 40%, rgba(2, 4, 28, 0.85));
+  background: linear-gradient(transparent 40%, rgba(10, 8, 6, 0.85));
   opacity: 0;
   transition: opacity 0.15s;
 }
@@ -1332,14 +1332,14 @@
   padding: 3px;
   overflow: hidden;
   border-radius: 50%;
-  background: linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #962fbf, #4f5bd5);
+  background: linear-gradient(45deg, #feda75, #fa7e1e, #d62976, #e05b0e, #f27832);
 }
 
 .ig-ring-img img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border: 2px solid #0e1450;
+  border: 2px solid #201814;
   border-radius: 50%;
 }
 
@@ -1385,9 +1385,9 @@
   aspect-ratio: 9 / 16;
   overflow: hidden;
   color: #fff;
-  background: #0b0f3a;
+  background: #17110f;
   border-radius: 18px;
-  box-shadow: 0 14px 40px rgba(2, 4, 28, 0.55);
+  box-shadow: 0 14px 40px rgba(10, 8, 6, 0.55);
 }
 
 .ig-story-bg {
@@ -1399,7 +1399,7 @@
 }
 
 .ig-story-blank {
-  background: linear-gradient(160deg, #5369db, #962fbf);
+  background: linear-gradient(160deg, #f27b36, #e05b0e);
 }
 
 .ig-story-shade {
@@ -1493,7 +1493,7 @@
 
 .ig-story-foot span {
   font-size: 12px;
-  color: #9fb0ff;
+  color: #dccdc2;
   overflow-wrap: anywhere;
 }
 
@@ -1581,7 +1581,7 @@
 }
 
 .cal-cell.clickable:focus-visible {
-  outline: 2px solid rgba(173, 160, 255, 0.9);
+  outline: 2px solid rgba(221, 206, 194, 0.9);
   outline-offset: -2px;
 }
 
@@ -1599,7 +1599,7 @@
   display: flex;
   align-items: stretch;
   gap: 6px;
-  background: rgba(213, 204, 255, 0.07);
+  background: rgba(237, 229, 222, 0.07);
   border: 1px solid var(--glass-border);
   border-left-width: 4px;
   border-radius: 12px;
@@ -1633,7 +1633,7 @@
 }
 
 .day-item-open:hover {
-  background: rgba(130, 146, 255, 0.14);
+  background: rgba(210, 190, 175, 0.14);
 }
 
 .day-item-thumb {
@@ -1644,7 +1644,7 @@
   height: 64px;
   overflow: hidden;
   color: var(--text-muted);
-  background: rgba(8, 13, 65, 0.5);
+  background: rgba(24, 18, 16, 0.5);
   border-radius: 10px;
 }
 
@@ -1752,5 +1752,5 @@
 
 .day-item-edit:hover {
   color: #fff;
-  background: rgba(130, 146, 255, 0.25);
+  background: rgba(210, 190, 175, 0.25);
 }
