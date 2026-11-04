@@ -586,6 +586,7 @@ const NUM_FIELDS = [
   'followersStart', 'newFollowers', 'unfollowers', 'followersEnd',
   'accountsReached', 'accountsEngaged', 'views', 'profileVisits', 'websiteVisits',
   'posts', 'reels', 'stories',
+  'ovPrevFollowers', 'ovPrevReach', 'ovPrevEngagement', 'ovEarlierFollowers', 'ovEarlierReach', 'ovEarlierEngagement',
 ];
 const MONTH_RE = /^\d{4}-\d{2}$/;
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -638,10 +639,29 @@ router.get('/social-metrics', async (req, res) => {
     const m2 = prevMonthOf(m1);
     const docs = await SocialMetrics.find({ user: req.user.id, company, month: { $in: [month, m1, m2] } });
     const by = Object.fromEntries(docs.map((d) => [d.month, d]));
+
+    // Content output = the creatives the admin approved for this company, counted per month and platform.
+    const approved = await Creative.find({
+      user: req.user.id,
+      company,
+      status: 'approved',
+      date: { $gte: `${m2}-01`, $lt: `${monthAfter(month)}-01` },
+    })
+      .select('date contentPillar.platforms')
+      .lean();
+    const output = { [month]: { total: 0, platforms: {} }, [m1]: { total: 0, platforms: {} }, [m2]: { total: 0, platforms: {} } };
+    for (const c of approved) {
+      const o = output[c.date.slice(0, 7)];
+      if (!o) continue;
+      o.total += 1;
+      for (const pf of c.contentPillar?.platforms || []) o.platforms[pf] = (o.platforms[pf] || 0) + 1;
+    }
+
     res.json({
       current: metricsView(by[month]),
       previous: metricsView(by[m1]),
       earlier: metricsView(by[m2]),
+      output,
     });
   } catch (error) {
     console.error('Social metrics load error:', error);
