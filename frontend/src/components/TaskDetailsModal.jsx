@@ -1,9 +1,6 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
-<<<<<<< HEAD
-import { X, CalendarDays, Building2, Clock3, Play, Square, Upload, Image as ImageIcon, Trash2, LoaderCircle, AlertCircle, Repeat, UserRound, FileText, Flag, Target } from 'lucide-react';
-=======
 import { X, CalendarDays, Building2, Clock3, Play, Square, Upload, Image as ImageIcon, Trash2, LoaderCircle, AlertCircle, Repeat, UserRound, FileText, Flag, Target, FolderOpen } from 'lucide-react';
->>>>>>> 2795ce4d0935b2d29bfb7bb14839f1e2600dc8af
 import api from '../api';
 import '../styles/taskdetailsmodal.css';
 const formatDate = date => {
@@ -28,21 +25,14 @@ const TaskDetailsModal = ({ task, onClose }) => {
     const [uploading, setUploading] = useState(false);
     const [deletingId, setDeletingId] = useState('');
     const [error, setError] = useState('');
-<<<<<<< HEAD
-=======
     const [selectedImages, setSelectedImages] = useState([]);
->>>>>>> 2795ce4d0935b2d29bfb7bb14839f1e2600dc8af
     const fileInputRef = useRef(null);
     useEffect(() => {
         const fetchAttachments = async () => {
             try {
                 setLoadingImages(true);
-<<<<<<< HEAD
-                const response = await api.post(`/sme/tasks/${task._id}/image-attachments`, formData);
-=======
                 setError('');
                 const response = await api.get(`/sme/tasks/${task._id}/image-attachments`);
->>>>>>> 2795ce4d0935b2d29bfb7bb14839f1e2600dc8af
                 setAttachments(response.data.attachments || []);
             } catch (err) {
                 setError(err.response?.data?.message || 'Unable to load task images.');
@@ -52,34 +42,6 @@ const TaskDetailsModal = ({ task, onClose }) => {
         };
         fetchAttachments();
     }, [task._id]);
-<<<<<<< HEAD
-    const handleUpload = async event => {
-        const files = Array.from(event.target.files || []);
-        event.target.value = '';
-        if (!files.length) return;
-        const validFiles = files.filter(file => ['image/jpeg', 'image/png', 'image/webp'].includes(file.type) && file.size <= 5 * 1024 * 1024);
-        if (validFiles.length !== files.length) {
-            setError('Only JPG, PNG or WEBP images up to 5 MB each are allowed.');
-            return;
-        }
-        if (attachments.length + validFiles.length > 5) {
-            setError('Maximum 5 images are allowed per task.');
-            return;
-        }
-        try {
-            setUploading(true);
-            setError('');
-            const formData = new FormData();
-            validFiles.forEach(file => formData.append('images', file));
-            const response = await api.post(`/sme/tasks/${task._id}/attachments`, formData);
-            setAttachments(prev => [...response.data.attachments, ...prev]);
-        } catch (err) {
-            setError(err.response?.data?.message || 'Image upload failed.');
-        } finally {
-            setUploading(false);
-        }
-    };
-=======
     const handleImageSelection = event => {
         const files = Array.from(event.target.files || []);
         const remaining = 5 - attachments.length;
@@ -135,7 +97,6 @@ const handleUpload = async () => {
         setUploading(false);
     }
 };
->>>>>>> 2795ce4d0935b2d29bfb7bb14839f1e2600dc8af
     const handleDeleteImage = async attachmentId => {
         if (!window.confirm('Are you sure you want to delete this image?')) return;
         try {
@@ -163,7 +124,7 @@ const handleUpload = async () => {
         { label: 'Completed Date', value: task.status === 'completed' ? formatDate(task.endedAt) : 'Not completed', icon: Square },
         { label: 'Actual TAT', value: formatDuration(task.startedAt, task.endedAt), icon: Clock3 }
     ];
-    return (
+    return createPortal(
         <div className="tdm-overlay" onClick={onClose}>
             <div className="tdm-modal" role="dialog" aria-modal="true" aria-labelledby="tdm-title" onClick={event => event.stopPropagation()}>
                 <div className="tdm-header">
@@ -201,15 +162,6 @@ const handleUpload = async () => {
                     </section>
                     <section className="tdm-section">
                         <div className="tdm-attachments-heading">
-<<<<<<< HEAD
-                            <div><h3><ImageIcon size={18} /> Task Images</h3><p>Upload and manage task reference images.</p></div>
-                            <button type="button" className="tdm-upload-btn" onClick={() => fileInputRef.current?.click()} disabled={uploading || attachments.length >= 5}>
-                                {uploading ? <LoaderCircle size={17} className="tdm-spin" /> : <Upload size={17} />}
-                                {uploading ? 'Uploading...' : 'Upload Images'}
-                            </button>
-                            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={handleUpload} />
-                        </div>
-=======
                             <div>
                                 <h3><ImageIcon size={18} /> Task Images</h3>
                                 <p>Upload and manage task reference images.</p>
@@ -263,7 +215,6 @@ const handleUpload = async () => {
                                 ))}
                             </div>
                         )}
->>>>>>> 2795ce4d0935b2d29bfb7bb14839f1e2600dc8af
                         {error && <div className="tdm-error"><AlertCircle size={16} />{error}</div>}
                         {loadingImages ? (
                             <div className="tdm-empty"><LoaderCircle size={22} className="tdm-spin" />Loading images...</div>
@@ -280,9 +231,6 @@ const handleUpload = async () => {
                                             <span title={item.originalName}>{item.originalName}</span>
                                             <small>{formatDate(item.createdAt)}</small>
                                         </div>
-<<<<<<< HEAD
-                                        <button type="button" className="tdm-delete-image" disabled={!!deletingId} onClick={() => handleDeleteImage(item._id)} aria-label="Delete image">
-=======
                                         <button
                                             type="button"
                                             className="tdm-delete-image"
@@ -290,7 +238,6 @@ const handleUpload = async () => {
                                             onClick={() => handleDeleteImage(item._id)}
                                             aria-label="Delete image"
                                         >
->>>>>>> 2795ce4d0935b2d29bfb7bb14839f1e2600dc8af
                                             {deletingId === item._id ? <LoaderCircle size={16} className="tdm-spin" /> : <Trash2 size={16} />}
                                         </button>
                                     </div>
@@ -304,7 +251,8 @@ const handleUpload = async () => {
                     <button type="button" onClick={onClose}>Close</button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 export default TaskDetailsModal;

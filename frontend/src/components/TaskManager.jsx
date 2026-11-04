@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 import api from '../api';
 import { errMsg } from '../sopUtils';
@@ -357,7 +358,7 @@ const TaskManager = () => {
                     );
                 })}
             </div>
-            {showModal && (
+            {showModal && createPortal(
                 <div className="tm-modal-overlay" onClick={closeModal}>
                     <div
                         className="tm-modal"
@@ -531,7 +532,8 @@ const TaskManager = () => {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
             {selectedTask && <TaskDetailsModal task={selectedTask} onClose={() => setSelectedTask(null)} />}
         </section>

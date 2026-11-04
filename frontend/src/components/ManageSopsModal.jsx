@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import api from '../api';
@@ -73,7 +74,7 @@ export default function ManageSopsModal({ user, companies, onClose }) {
 
   const typeName = typeLabel(form.type);
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-card wide" role="dialog" aria-modal="true" aria-labelledby="sops-title">
         <div className="modal-head">
@@ -181,6 +182,7 @@ export default function ManageSopsModal({ user, companies, onClose }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

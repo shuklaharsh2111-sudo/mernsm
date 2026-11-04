@@ -195,3 +195,111 @@ body:has(.app-shell) #root { background: none; }
   .top-user b, .top-chip + .top-chip { display: none; }
 }
 @media (max-width: 560px) { .top-meta .top-chip { display: none; } .top-title h1 { font-size: 17px; } }
+
+/* =========================================================
+   APP BACKGROUND (every section) · dark left, orange circle on the right,
+   faint grid, blurred glass (glassmorphism) panels.
+   Applies to every page inside the app shell.
+========================================================= */
+body:has(.app-shell) {
+  background-color: #050404;
+  background-image:
+    /* grid */
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    /* the orange circle on the right */
+    radial-gradient(circle at 84% 58%,
+      rgba(255, 150, 40, 0.95) 0%,
+      rgba(242, 107, 15, 0.9) 14%,
+      rgba(226, 70, 18, 0.7) 28%,
+      rgba(200, 35, 10, 0.38) 44%,
+      transparent 64%),
+    /* red wash along the right edge */
+    radial-gradient(ellipse 55% 95% at 100% 35%, rgba(217, 45, 10, 0.55), transparent 70%),
+    /* dark on the left */
+    linear-gradient(90deg, #030202 0%, #060303 38%, #0b0504 100%);
+  background-size: 64px 64px, 64px 64px, 100% 100%, 100% 100%, 100% 100%;
+  background-position: -1px -1px, -1px -1px, 0 0, 0 0, 0 0;
+  background-attachment: fixed;
+}
+.dash-hero::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--grad); }
+.dash-hero .page-label { font-size: 10.5px; letter-spacing: 1.6px; color: var(--orange-light); }
+.dash-hero h1 { margin-top: 8px; font-size: clamp(22px, 2.6vw, 30px); font-weight: 800; letter-spacing: -.6px; color: #fff; }
+.dash-hero p { margin-top: 6px; font-size: 13px; color: var(--ink-2); }
+.dash-hero-actions { display: flex; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
+.dash-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255, 255, 255, .05); color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; transition: background .15s, border-color .15s, transform .15s; }
+.dash-btn:hover { background: rgba(255, 255, 255, .09); border-color: #45454d; transform: translateY(-1px); }
+.dash-btn.primary { border-color: transparent; background: var(--grad); color: #fff; box-shadow: 0 8px 22px rgba(242, 107, 15, .32); }
+.dash-btn.primary:hover { filter: brightness(1.08); }
+
+/* top bar + shared surfaces become blurred glass */
+body:has(.app-shell) .app-topbar {
+  background: rgba(10, 8, 8, 0.35);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border-bottom-color: rgba(255, 255, 255, 0.10);
+}
+
+.app-content .glass-panel,
+.app-content .an-card,
+.app-content .stat-card,
+.app-content .welcome-card,
+.app-content .sme-task-card,
+.app-content .ch-summary-card,
+.app-content .ch-panel,
+.app-content .kpi-card,
+.app-content .quick-card,
+.app-content .dash-hero {
+  background: rgba(18, 14, 14, 0.42) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 12px 36px rgba(0, 0, 0, 0.35) !important;
+  backdrop-filter: blur(20px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
+}
+.app-content .quick-card:hover,
+.app-content .kpi-card:hover { background: rgba(30, 20, 18, 0.5) !important; }
+
+/* rows inside the glass panels stay light and translucent */
+.app-content .sme-sop,
+.app-content .meeting-item,
+.app-content .tm-task-item,
+.app-content .ch-search {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+.app-content .meeting-item.clickable:hover { background: rgba(255, 255, 255, 0.09); }
+
+/* =========================================================
+   POP-UPS · every modal opens centred on screen with the page
+   behind it blurred (same look everywhere).
+========================================================= */
+body .modal-overlay,
+body .tm-modal-overlay,
+body .tdm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(8, 5, 4, 0.50);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  overflow-y: auto;
+}
+body .mr-preview-overlay {
+  background: rgba(8, 5, 4, 0.50);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+}
+body .modal-card,
+body .tm-modal {
+  margin: auto;
+  background: rgba(24, 18, 16, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 30px 80px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+}
+body .tm-modal-header { background: rgba(24, 18, 16, 0.92); }
