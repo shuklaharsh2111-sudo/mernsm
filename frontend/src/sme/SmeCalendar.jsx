@@ -7,6 +7,7 @@ import CreativeViewModal from '../components/CreativeViewModal';
 import DayCreativesModal from '../components/DayCreativesModal';
 import CreativeStatusBadge from '../components/CreativeStatusBadge';
 import { PLATFORMS } from '../components/creativePlatforms';
+import { LinePlatformIcon } from '../components/SocialIcons';
 import { InstagramGrid, InstagramStories } from '../components/InstagramViews';
 import { errMsg, todayStr } from '../sopUtils';
 import '../style.css';
@@ -171,7 +172,7 @@ const SmeCalendar = () => {
       {/* 2 · Platform calendars of the selected brand, one line, fixed order */}
       {active && (
         <nav className="cx-platforms" role="tablist" aria-label={`${active.name} platform calendars`}>
-          {PLATFORMS.map(({ key, label, icon: Icon }) => (
+          {PLATFORMS.map(({ key, label }) => (
             <button
               key={key}
               type="button"
@@ -181,7 +182,7 @@ const SmeCalendar = () => {
               className={`cx-plat ${activePlatform === key ? 'active' : ''}`}
               onClick={() => openCalendar(activeId, key)}
             >
-              <span className="cx-plat-icon"><Icon size={24} /></span>
+              <span className="cx-plat-icon"><LinePlatformIcon platform={key} size={40} /></span>
               <span className="cx-plat-name">{label}</span>
               <span className="cx-plat-count">{countFor(key)}</span>
             </button>

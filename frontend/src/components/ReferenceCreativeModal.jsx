@@ -136,7 +136,7 @@ export default function ReferenceCreativeModal({ company, date, platforms, defau
 
   return createPortal(
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <form className={`modal-card creative-wide ${showPreview ? '' : 'compact'}`} role="dialog" aria-modal="true" aria-labelledby="creative-title" onSubmit={submit} noValidate>
+      <form className={`modal-card cx-modal creative-wide ${showPreview ? '' : 'compact'}`} role="dialog" aria-modal="true" aria-labelledby="creative-title" onSubmit={submit} noValidate>
         <div className="modal-head">
           <div>
             <h2 id="creative-title">{editing ? 'Edit Creative' : 'Reference Creative'}</h2>
