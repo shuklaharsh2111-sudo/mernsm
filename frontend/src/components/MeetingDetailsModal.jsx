@@ -7,7 +7,7 @@ import { errMsg, fmtDay, fmtClock } from '../sopUtils';
 import '../styles/mom.css';
 
 const initials = (name) => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('');
-const AVATAR_COLORS = ['#7c5cff', '#2bb3a3', '#e0709a', '#e69b3a', '#4f8cff', '#8f6bd6'];
+const AVATAR_COLORS = ['#f26b0f', '#d92d0a', '#ffb04d', '#c2410c', '#e0709a', '#a16207'];
 const avatarColor = (name) => AVATAR_COLORS[[...name].reduce((n, ch) => n + ch.charCodeAt(0), 0) % AVATAR_COLORS.length];
 const blank = () => ({ name: '', designation: '' });
 const norm = (a) => `${a.name.trim().toLowerCase()}|${a.designation.trim().toLowerCase()}`;

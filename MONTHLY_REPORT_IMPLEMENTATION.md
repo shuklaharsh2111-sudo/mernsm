@@ -39,7 +39,7 @@ For production, build the frontend with `npm run build` in `frontend/`; the exis
 
 ## Generate a PDF
 
-Open SME Workspace → Monthly Reports, choose a company (for the social-metrics input section) and month. The comprehensive report below the input section aggregates all assigned companies for that SME. Click **Print / Save PDF** and choose **Save as PDF** in the browser print dialog. The form and sidebar are hidden in print mode.
+Open SME Workspace → Monthly Reports, choose a company (for the social-metrics input section) and month. The comprehensive report below the input section aggregates all assigned companies for that SME. Click **Download Report** to save the report as a PDF. The form and sidebar are hidden in print mode.
 
 ## Date inclusion rules
 
