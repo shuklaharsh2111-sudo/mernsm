@@ -77,38 +77,144 @@ body:has(.nl-page)::after {
 }
 .nl-visual::before { display: none; }
 
-/* circles born at the centre that grow outward (plain width animation, works in every browser) */
-.nl-rings {
+/* three.js ribbon canvas (LoginRibbons.jsx) */
+.nl-three {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* (legacy CSS strips, no longer used) diagonal neon strips with a fine "grass" line texture and a hot glow, drifting slowly
+   (same look as the coming-soon page). Pure CSS: each layer slides by exactly one pattern
+   period, so the loop is seamless. */
+.nl-strips {
   position: absolute;
   inset: 0;
   z-index: 1;
   overflow: hidden;
   pointer-events: none;
+  opacity: 0.4;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0, 0, 0, 0.25) 0%, #000 100%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0, 0, 0, 0.25) 0%, #000 100%);
 }
+.nl-strips > span {
+  position: absolute;
+  inset: -40%;
+  will-change: transform;
+}
+/* the strips: dark gap, deep red body, hot red edge, thin yellow line */
+.nl-band {
+  background: repeating-linear-gradient(
+    120deg,
+    #030000 0,
+    #030000 26px,
+    #3a0000 40px,
+    #8a0500 54px,
+    #e01800 66px,
+    #ff3a14 70px,
+    #ff9a2a 71px,
+    #ffe04a 72px,
+    #ffe04a 73px,
+    #4a0000 75px,
+    #030000 90px
+  );
+  animation: nlDriftA 9s linear infinite;
+}
+/* thin parallel lines that light up only on the red body (the grass texture) */
+.nl-grass {
+  background: repeating-linear-gradient(
+    120deg,
+    transparent 0,
+    transparent 4px,
+    rgba(255, 190, 90, 0.95) 4px,
+    rgba(255, 190, 90, 0.95) 5px
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.75;
+  animation: nlDriftB 1.6s linear infinite, nlFlicker 3.2s ease-in-out infinite;
+}
+/* blurred copy of the strips = glow bleeding around them */
+.nl-bloom {
+  background: inherit;
+  background: repeating-linear-gradient(
+    120deg,
+    transparent 0,
+    transparent 44px,
+    rgba(255, 30, 0, 0.9) 62px,
+    rgba(255, 90, 20, 1) 70px,
+    transparent 76px,
+    transparent 90px
+  );
+  filter: blur(12px);
+  mix-blend-mode: screen;
+  opacity: 0.6;
+  animation: nlDriftA 9s linear infinite, nlPulse 4s ease-in-out infinite;
+}
+/* a soft light sweeping across the strips */
+.nl-sweep {
+  inset: 0 !important;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 140, 60, 0.28) 50%, transparent 65%);
+  mix-blend-mode: screen;
+  background-size: 260% 100%;
+  animation: nlSweep 6s ease-in-out infinite;
+}
+/* one pattern period (90px / 6px along 120deg) per loop = seamless */
+@keyframes nlDriftA { to { transform: translate(77.94px, 45px); } }
+@keyframes nlDriftB { to { transform: translate(5.196px, 3px); } }
+@keyframes nlPulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.85; } }
+@keyframes nlFlicker { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.9; } }
+@keyframes nlSweep { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+
+/* ---------- RING OF SLANTED GLASS PLANES: circle -> outward ---------- */
 .nl-ring {
   position: absolute;
   left: 50%;
   top: 50%;
   width: 0;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  border: 3px solid #ffd23a;
-  background: radial-gradient(circle, transparent 62%, rgba(255, 42, 0, 0.55) 80%, rgba(168, 8, 0, 0.35) 100%);
-  box-shadow:
-    0 0 22px 4px rgba(255, 50, 0, 0.75),
-    inset 0 0 22px 4px rgba(255, 90, 0, 0.7),
-    0 0 0 9px rgba(190, 20, 0, 0.55),
-    0 0 0 12px rgba(255, 210, 90, 0.5);
-  opacity: 0;
-  animation: nlRingOut 7s linear infinite;
-  animation-delay: calc(var(--i) * -1s);   /* 7 rings, evenly spread over the 7s loop */
+  height: 0;
+  z-index: 5; /* in front of the astronaut, like glass */
+  pointer-events: none;
 }
-@keyframes nlRingOut {
-  0%   { width: 0;     opacity: 0; }
-  8%   { opacity: 1; }
-  80%  { opacity: 0.9; }
-  100% { width: 190%;  opacity: 0; }
+.nl-plane {
+  position: absolute;
+  width: var(--w, 90px);
+  height: 440px;
+  left: calc(var(--w, 90px) / -2);
+  top: -440px;
+  transform-origin: 50% 100%; /* bottom-centre sits on the ring centre */
+  opacity: 0;
+  transform: rotate(var(--a)) translateY(-4px) skewX(-42deg) scale(0.35, 0.2);
+  /* glossy red body, hot edges, fine bright lines running along the plane */
+  background:
+    repeating-linear-gradient(90deg, transparent 0, transparent 5px, rgba(255, 230, 110, 1) 5px, rgba(255, 230, 110, 1) 6px),
+    linear-gradient(90deg, #3a0000 0%, #d01000 16%, #ff3a14 46%, #e01800 74%, #3a0000 100%);
+  background-blend-mode: overlay, normal;
+  border-left: 1px solid rgba(255, 235, 170, 0.9);
+  border-right: 1px solid rgba(255, 90, 40, 0.7);
+  box-shadow:
+    inset 0 0 26px rgba(255, 255, 255, 0.18),
+    0 0 30px rgba(255, 40, 5, 0.55);
+  /* fades in from the dark centre, bright toward the outer end */
+  -webkit-mask-image: linear-gradient(0deg, transparent 0%, transparent 14%, #000 40%);
+  mask-image: linear-gradient(0deg, transparent 0%, transparent 14%, #000 40%);
+  will-change: transform, opacity;
+  animation: nlPlaneOut 8s cubic-bezier(0.4, 0, 0.8, 1) infinite;
+}
+/* glass specular sheen */
+.nl-plane::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 12%, rgba(255, 255, 255, 0.4) 30%, transparent 46%);
+  mix-blend-mode: screen;
+}
+@keyframes nlPlaneOut {
+  0%   { opacity: 0; transform: rotate(var(--a)) translateY(-4px) skewX(-42deg) scale(0.35, 0.2); }
+  20%  { opacity: 0; }
+  38%  { opacity: 0.92; }
+  80%  { opacity: 0.88; }
+  100% { opacity: 0; transform: rotate(calc(var(--a) + 40deg)) translateY(-340px) skewX(-42deg) scale(1.5, 1.35); }
 }
 
 /* darken toward the centre so the astronaut reads, keep the ribbons bright at the edges */
@@ -160,7 +266,8 @@ body:has(.nl-page)::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nl-ring, .nl-glow { animation: none; }
+  .nl-band, .nl-grass, .nl-bloom, .nl-sweep, .nl-glow { animation: none; }
+  .nl-plane { animation: none; opacity: 0; }
 }
 
 /* ---------- RIGHT: FORM ---------- */
@@ -269,7 +376,7 @@ body:has(.nl-page)::after {
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  background: linear-gradient(180deg, #2b2b2f, #09090b);
+  background: linear-gradient(180deg, #2b2b2f, #070504);
   box-shadow: 0 12px 26px rgba(242, 107, 15, 0.35);
   transition: all 0.3s ease;
 }

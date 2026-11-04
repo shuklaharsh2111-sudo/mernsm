@@ -1,17 +1,19 @@
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   BrowserRouter,
   Routes,
   Route,
   Navigate,
-  Outlet
+  Outlet,
+  useLocation
 } from 'react-router-dom';
 
 import { AuthProvider, useAuth } from './AuthContext';
 
 import Login from './Login';
 import Sidebar from './Sidebar';
+import Topbar from './Topbar';
 
 import AdminDashboard from './admin/AdminDashboard';
 import AdminUsers from './admin/AdminUsers';
@@ -72,13 +74,31 @@ const DashboardLayout = () => {
       return !v;
     });
 
-  return (
-    <div className={`dashboard-layout ${collapsed ? 'collapsed' : ''}`}>
-      <Sidebar collapsed={collapsed} onToggle={toggleSidebar} />
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { pathname } = useLocation();
 
-      <main className="main-content">
-        <Outlet />
-      </main>
+  // close the mobile drawer whenever the page changes
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMobileOpen(false);
+  }, [pathname]);
+
+  return (
+    <div className={`app-shell ${collapsed ? 'collapsed' : ''}`}>
+      <Sidebar
+        collapsed={collapsed}
+        onToggle={toggleSidebar}
+        mobileOpen={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+      />
+      {mobileOpen && <div className="app-scrim" onClick={() => setMobileOpen(false)} />}
+
+      <div className="app-main">
+        <Topbar onMenu={() => setMobileOpen(true)} />
+        <main className="app-content">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 };

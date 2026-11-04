@@ -14,16 +14,16 @@
     padding: 24px;
     border: 1px solid rgba(255, 255, 255, .08);
     border-radius: 20px;
-    background: linear-gradient(145deg, #17152b, #11101f);
+    background: linear-gradient(145deg, #15100e, #100c0a);
     box-shadow: 0 8px 28px rgba(0, 0, 0, .15);
-    color: #f1efff;
+    color: #f9f7f5;
 }
 
 .st-card h2 {
     margin: 0;
     font-size: 18px;
     font-weight: 700;
-    color: #f5f2ff;
+    color: #faf8f7;
 }
 
 .st-avatar-row {
@@ -38,8 +38,8 @@
     flex-shrink: 0;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid rgba(139, 101, 255, .5);
-    background: #1d1a32;
+    border: 2px solid rgba(255, 119, 41, .5);
+    background: #191310;
 }
 
 .st-avatar-actions {
@@ -52,7 +52,7 @@
 .st-avatar-actions small {
     flex-basis: 100%;
     font-size: 11px;
-    color: #89839e;
+    color: #f2772f;
 }
 
 .st-field {
@@ -64,7 +64,7 @@
 .st-field label {
     font-size: 12px;
     font-weight: 600;
-    color: #c9c2df;
+    color: #decfc3;
 }
 
 .st-field input {
@@ -73,15 +73,15 @@
     padding: 11px 12px;
     border: 1px solid rgba(255, 255, 255, .1);
     border-radius: 9px;
-    background: #1d1a32;
-    color: #f0edff;
+    background: #191310;
+    color: #f9f6f3;
     font-size: 13px;
     outline: none;
 }
 
 .st-field input:focus {
-    border-color: #8467ff;
-    box-shadow: 0 0 0 3px rgba(132, 103, 255, .1);
+    border-color: #ff7729;
+    box-shadow: 0 0 0 3px rgba(255, 119, 41, .1);
 }
 
 .st-field input:disabled {
@@ -104,18 +104,18 @@
 }
 
 .st-btn.primary {
-    background: linear-gradient(135deg, #8765ff, #6242d6);
+    background: linear-gradient(135deg, #ff7729, #f17127);
     color: #fff;
 }
 
 .st-btn.ghost {
     border-color: rgba(255, 255, 255, .12);
-    background: rgba(139, 101, 255, .14);
-    color: #c4b4ff;
+    background: rgba(255, 119, 41, .14);
+    color: #e4d8cf;
 }
 
 .st-btn.ghost:hover:not(:disabled) {
-    background: #7957ef;
+    background: #f27b36;
     color: #fff;
 }
 
@@ -142,7 +142,7 @@
     padding: 0;
     border: 0;
     background: transparent;
-    color: #a18aff;
+    color: #d5c2b4;
     font-size: 12px;
     cursor: pointer;
 }

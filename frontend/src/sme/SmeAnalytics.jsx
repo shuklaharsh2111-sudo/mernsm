@@ -42,13 +42,13 @@ const SOP_STATE_OPTS = [
     { value: 'upcoming', label: 'Not started' }
 ];
 
-const FREQ_COLORS = { daily: '#5ea3fa', weekly: '#a78bfa', monthly: '#f472b6' };
-const TICK_COLOR = '#8b5cf6';
+const FREQ_COLORS = { daily: '#f26b0f', weekly: '#ffb04d', monthly: '#d92d0a' };
+const TICK_COLOR = '#f26b0f';
 
 const COLORS = {
     approved: '#3ad492',
     pending: '#ffbb4f',
-    revision: '#b074ff',
+    revision: '#ff7a45',
     rejected: '#ff5c7c'
 };
 

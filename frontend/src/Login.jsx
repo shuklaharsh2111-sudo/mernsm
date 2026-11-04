@@ -4,11 +4,13 @@ import { ArrowRight, Eye, EyeOff, KeyRound, MapPin } from 'lucide-react';
 
 import { useAuth } from './AuthContext';
 import astronaut from './assets/images/pre-final.png';
+import LoginRibbons from './LoginRibbons';
 import './styles/login.css';
 
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,13 +46,9 @@ const Login = () => {
     <div className="nl-page">
       <div className="nl-card">
 
-        {/* LEFT: 3D astronaut */}
+        {/* LEFT: three.js neon ribbons + astronaut */}
         <div className="nl-visual" aria-hidden="true">
-          <div className="nl-rings">
-            {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-              <span key={i} className="nl-ring" style={{ '--i': i }} />
-            ))}
-          </div>
+          <LoginRibbons />
           <div className="nl-shade" />
           <span className="nl-glow" />
           <img className="nl-astro" src={astronaut} alt="" draggable="false" />

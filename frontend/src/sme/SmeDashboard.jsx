@@ -1,4 +1,3 @@
-import { useAuth } from '../AuthContext';
 import { useEffect, useState } from 'react';
 import api from '../api';
 import AddMeetingModal from '../components/AddMeetingModal';
@@ -23,6 +22,7 @@ import {
   Video,
   Flag,
   Plus,
+
   FileText,
   CheckCircle2,
   XCircle,
@@ -38,7 +38,7 @@ const MOM_BTN = {
 };
 const MAX_AVATARS = 4;
 
-const AVATAR_COLORS = ['#7c5cff', '#2bb3a3', '#e0709a', '#e69b3a', '#4f8cff', '#8f6bd6'];
+const AVATAR_COLORS = ['#f26b0f', '#d92d0a', '#ffb04d', '#c2410c', '#e0709a', '#a16207'];
 const initials = (name) =>
   name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('');
 const avatarColor = (name) => AVATAR_COLORS[[...name].reduce((n, ch) => n + ch.charCodeAt(0), 0) % AVATAR_COLORS.length];
@@ -46,7 +46,6 @@ const avatarColor = (name) => AVATAR_COLORS[[...name].reduce((n, ch) => n + ch.c
 const SLOTS = 5; // a user can have at most 5 companies
 
 const SmeDashboard = () => {
-  const { user } = useAuth();
   const [companies, setCompanies] = useState([]);
   const [assigned, setAssigned] = useState(null);
   const [error, setError] = useState('');
@@ -124,29 +123,23 @@ const SmeDashboard = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
-  const hour = currentDate.getHours();
-  const greeting =
-    hour < 12
-      ? 'Good Morning'
-      : hour < 17
-        ? 'Good Afternoon'
-        : 'Good Evening';
-  const formattedDate = currentDate.toLocaleDateString('en-IN', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric'
-  });
-  const formattedTime = currentDate.toLocaleTimeString('en-IN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-  });
   const handleAddMeeting = () => setShowMeetingModal(true);
 
   // Meetings whose MOM is approved are saved under Records; the rest stay active here.
   const activeMeetings = (meetings || []).filter((m) => m.mom?.status !== 'approved');
+
+  const sopActive = (assigned || []).filter((a) => a.active);
+  const sopDone = sopActive.filter((a) => a.done).length;
+  const sopPct = sopActive.length ? Math.round((sopDone / sopActive.length) * 100) : 0;
+  const countFor = (t) => (assigned || []).filter((a) => t === 'all' || a.type === t).length;
+  // group the visible SOPs by company so each client's checklist reads together
+  const sopGroups = Object.values(
+    shownSops.reduce((acc, a) => {
+      const k = a.company.id || a.company.name;
+      (acc[k] = acc[k] || { name: a.company.name, items: [] }).items.push(a);
+      return acc;
+    }, {})
+  );
 
   const onMeetingSaved = (meeting) => {
     setMeetings((list) =>
@@ -191,36 +184,8 @@ const SmeDashboard = () => {
   };
   return (
     <div className="dashboard-content scrollable dash-glass">
-      {/* TOPBAR */}
-      <div className="dashboard-topbar">
-        <div className="dashboard-greeting">
-          <span className="page-label">
-            SME WORKSPACE
-          </span>
-          <h1>
-            {greeting}, {user?.name || 'User'}!
-          </h1>
-          <p>
-            Welcome back! Here's your workspace overview.
-          </p>
-        </div>
-        <div className="dashboard-live-clock">
-          <div className="live-date">
-            {formattedDate}
-          </div>
-          <div className="live-time-row">
-            <Clock3 size={17} />
-            <span className="live-time">
-              {formattedTime}
-            </span>
-            <span className="live-indicator">
-              <span className="live-dot"></span>
-              LIVE
-            </span>
-          </div>
-        </div>
-      </div>
       {/* MY COMPANIES */}
+      <div className="dash-section-title">My companies</div>
       <div className="company-row" aria-label="Your companies">
         {slots.map((c, i) =>
           c ? (
@@ -244,24 +209,32 @@ const SmeDashboard = () => {
           {error}
         </p>
       )}
+      <div className="dash-section-title">Today's work</div>
       <div className="sop-meeting-row">
         {/* SOP PANEL */}
         <div className="glass-panel sop-panel">
-          <h2>My assigned SOPs</h2>
+          <div className="sop-head">
+            <div>
+              <h2>My assigned SOPs</h2>
+              <p className="sop-sub">
+                {assigned ? `${sopDone} of ${sopActive.length} completed` : 'Loading…'}
+              </p>
+            </div>
+            <div className="sop-progress" aria-label={`${sopPct}% complete`}>
+              <strong>{sopPct}%</strong>
+              <div className="kpi-bar"><i style={{ width: `${sopPct}%` }} /></div>
+            </div>
+          </div>
           <div className="sop-tabs">
-            {[
-              { value: 'all', label: 'All' },
-              ...SOP_TYPES
-            ].map((t) => (
+            {[{ value: 'all', label: 'All' }, ...SOP_TYPES].map((t) => (
               <button
                 key={t.value}
                 type="button"
-                className={
-                  typeTab === t.value ? 'active' : ''
-                }
+                className={typeTab === t.value ? 'active' : ''}
                 onClick={() => setTypeTab(t.value)}
               >
                 {t.label}
+                <span className="sop-tab-count">{countFor(t.value)}</span>
               </button>
             ))}
           </div>
@@ -269,47 +242,46 @@ const SmeDashboard = () => {
             <p className="muted">Loading…</p>
           ) : shownSops.length === 0 ? (
             <p className="muted">
-              No SOPs assigned
-              {typeTab === 'all'
-                ? ''
-                : ` (${typeLabel(typeTab)})`}
-              yet.
+              No SOPs assigned{typeTab === 'all' ? '' : ` (${typeLabel(typeTab)})`} yet.
             </p>
           ) : (
             <div className="sop-list">
-              {shownSops.map((a) => (
-                <label
-                  key={a.id}
-                  className={`sme-sop tick ${a.done ? 'done' : ''
-                    } ${a.active ? '' : 'upcoming'}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={a.done}
-                    disabled={
-                      !a.active ||
-                      savingIds.includes(a.id)
-                    }
-                    onChange={() => toggleTick(a)}
-                  />
-                  <div className="sme-sop-body">
-                    <div className="sop-item-top">
-                      <span className={`sop-pill ${a.type}`}>
-                        {typeLabel(a.type)}
-                      </span>
-                      <b>{a.company.name}</b>
-                      <span className="muted">
-                        {a.active
-                          ? `Done ${PERIOD_WORD[a.type]}?`
-                          : `Starts ${fmtDay(a.date)}`}
-                      </span>
+              {sopGroups.map((g) => {
+                const gDone = g.items.filter((x) => x.done).length;
+                return (
+                  <div className="sop-group" key={g.name}>
+                    <div className="sop-group-head">
+                      <span className="sop-co">{g.name}</span>
+                      <span className="sop-count">{gDone}/{g.items.length}</span>
                     </div>
-                    <p className="sop-item-text">
-                      {a.text}
-                    </p>
+                    {g.items.map((a) => (
+                      <label
+                        key={a.id}
+                        className={`sme-sop tick ${a.done ? 'done' : ''} ${a.active ? '' : 'upcoming'}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={a.done}
+                          disabled={!a.active || savingIds.includes(a.id)}
+                          onChange={() => toggleTick(a)}
+                        />
+                        <div className="sme-sop-body">
+                          <div className="sop-item-top">
+                            <span className={`sop-pill ${a.type}`}>{typeLabel(a.type)}</span>
+                            <span className="muted">
+                              {a.active ? `Done ${PERIOD_WORD[a.type]}?` : `Starts ${fmtDay(a.date)}`}
+                            </span>
+                            <span className={`sop-status ${a.done ? 'done' : a.active ? 'todo' : 'later'}`}>
+                              {a.done ? 'Done' : a.active ? 'To do' : 'Upcoming'}
+                            </span>
+                          </div>
+                          <p className="sop-item-text">{a.text}</p>
+                        </div>
+                      </label>
+                    ))}
                   </div>
-                </label>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

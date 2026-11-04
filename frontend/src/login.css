@@ -303,7 +303,7 @@ body:has(.nl-page)::after {
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  background: linear-gradient(180deg, #2b2b2f, #09090b);
+  background: linear-gradient(180deg, #2b2b2f, #070504);
   box-shadow: 0 12px 26px rgba(242, 107, 15, 0.35);
   transition: all 0.3s ease;
 }
