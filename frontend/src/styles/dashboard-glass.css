@@ -141,6 +141,8 @@
 .sop-status.todo { color: var(--orange-light); background: rgba(242, 107, 15, .16); }
 .sop-status.later { color: var(--ink-3); background: rgba(255, 255, 255, .07); }
 
+<<<<<<< HEAD
+=======
 /* =========================================================
    DASHBOARD BACKGROUND · dark left, orange circle on the right,
    faint grid, blurred glass (glassmorphism) panels.
@@ -213,6 +215,7 @@ body:has(.app-shell .dash-glass) .app-topbar {
   border-color: rgba(255, 255, 255, 0.10);
 }
 .dash-glass .meeting-item.clickable:hover { background: rgba(255, 255, 255, 0.09); }
+>>>>>>> 2b1cc5bdb69937f5af4362052527fdd57b28001b
 /* ---------- KPI cards ---------- */
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 22px; }
 .kpi-card { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 18px 18px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; transition: border-color .15s, transform .15s; }
