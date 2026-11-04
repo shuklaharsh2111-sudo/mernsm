@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
 import { errMsg, fmtDay, todayStr } from '../sopUtils';
+import MonthlyCharts from './MonthlyCharts';
 
 /*
   Performance part of the monthly report (creatives, companies, platforms, SOPs, meetings).
@@ -20,7 +21,7 @@ const Health = ({ value }) => (
     <span className={`mr-health mr-health-${value}`}>{HEALTH_LABEL[value] || value}</span>
 );
 
-const MonthlyPerformance = ({ month }) => {
+const MonthlyPerformance = ({ month, social }) => {
     const [r, setR] = useState(null);
     const [error, setError] = useState('');
 
@@ -203,6 +204,8 @@ const MonthlyPerformance = ({ month }) => {
                     </table>
                 </section>
             )}
+
+            {social && <MonthlyCharts r={r} social={social} />}
         </>
     );
 };
