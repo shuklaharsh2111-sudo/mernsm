@@ -1,0 +1,260 @@
+/* =========================================================
+   CALENDAR SECTION · layout v2
+   toolbar (brands + health)  ->  platform strip  ->  calendar board
+   + tidy pop-ups (fixed header / scrolling body / fixed footer).
+   Loaded after calendar.css so it wins over the older rules.
+========================================================= */
+
+/* ---------- platform accents (Facebook, Instagram, Threads, LinkedIn, YouTube, X, Pinterest) ---------- */
+[data-platform="facebook"]  { --plat: #1877f2; }
+[data-platform="instagram"] { --plat: #e1306c; }
+[data-platform="threads"]   { --plat: #9b9ba3; }
+[data-platform="linkedin"]  { --plat: #0a84d6; }
+[data-platform="youtube"]   { --plat: #ff2d2d; }
+[data-platform="x"]         { --plat: #cfcfd6; }
+[data-platform="pinterest"] { --plat: #e60023; }
+
+/* ---------- shared glass card look ---------- */
+.cx-toolbar,
+.cx-platforms,
+.cx-board {
+  background: rgba(18, 14, 14, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 12px 36px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+.cx { display: flex; flex-direction: column; gap: 16px; }
+
+/* ---------- 1 · toolbar ---------- */
+.cx-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 16px 20px;
+}
+.cx-brands { display: flex; flex-wrap: wrap; gap: 18px; margin: 0; align-items: flex-start; }
+.cx-brands .cal-brand { opacity: 0.55; transition: opacity .15s, transform .15s; }
+.cx-brands .cal-brand:hover { opacity: 0.9; transform: translateY(-2px); }
+.cx-brands .cal-brand.active { opacity: 1; }
+.cx-health { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-left: auto; }
+.cx-health small { font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink-3, #8f8883); }
+.cx-health-opts { display: inline-flex; padding: 3px; gap: 2px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 999px; background: rgba(0, 0, 0, 0.3); }
+.cx-health-opt { padding: 6px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: var(--ink-3, #8f8883); }
+.cx-health-opt.on { color: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); }
+.cx-health-opt.on.healthy { background: #2fa56e; }
+.cx-health-opt.on.risk { background: #d98d2b; }
+.cx-health-opt.on.critical { background: #e63c52; }
+
+/* ---------- 2 · platform strip: big icons, one line ---------- */
+.cx-platforms {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #3a3a42 transparent;
+}
+.cx-plat {
+  flex: 1 1 0;
+  min-width: 104px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 10px 12px;
+  color: var(--ink-2, #cfc8c3);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .15s, color .15s;
+}
+.cx-plat:hover { background: rgba(255, 255, 255, 0.08); transform: translateY(-2px); color: #fff; }
+.cx-plat-icon {
+  width: 50px; height: 50px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  color: var(--plat);
+  background: color-mix(in srgb, var(--plat) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--plat) 45%, transparent);
+  transition: background .15s, color .15s, box-shadow .15s;
+}
+.cx-plat-name { font-size: 13px; font-weight: 700; letter-spacing: .1px; }
+.cx-plat-count {
+  min-width: 22px; padding: 1px 8px;
+  font-size: 11px; font-weight: 700; text-align: center;
+  color: var(--ink-2, #cfc8c3);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+.cx-plat.active {
+  color: #fff;
+  background: color-mix(in srgb, var(--plat) 18%, rgba(18, 14, 14, 0.6));
+  border-color: var(--plat);
+  box-shadow: 0 0 0 1px var(--plat), 0 10px 26px color-mix(in srgb, var(--plat) 30%, transparent);
+}
+.cx-plat.active .cx-plat-icon { color: #fff; background: var(--plat); border-color: transparent; box-shadow: 0 6px 16px color-mix(in srgb, var(--plat) 45%, transparent); }
+.cx-plat.active[data-platform="x"] .cx-plat-icon,
+.cx-plat.active[data-platform="threads"] .cx-plat-icon { color: #111; }
+.cx-plat.active .cx-plat-count { background: rgba(255, 255, 255, 0.18); color: #fff; }
+
+/* ---------- 3 · calendar board ---------- */
+.cx-board { overflow: hidden; }
+.cx-board-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 20px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 3px solid var(--plat);
+}
+.cx-board-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.cx-board-icon { width: 42px; height: 42px; display: grid; place-items: center; flex-shrink: 0; border-radius: 12px; color: var(--plat); background: color-mix(in srgb, var(--plat) 16%, transparent); border: 1px solid color-mix(in srgb, var(--plat) 45%, transparent); }
+.cx-board-title h2 { margin: 0; font-family: inherit; font-size: 18px; font-weight: 800; letter-spacing: -.3px; color: #fff; }
+.cx-board-title p { margin: 2px 0 0; font-size: 12.5px; color: var(--ink-3, #8f8883); }
+.cx-stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.cx-stat { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; font-size: 12px; font-weight: 600; color: var(--ink-2, #cfc8c3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; background: rgba(255, 255, 255, 0.04); }
+.cx-stat b { font-size: 13px; color: #fff; }
+.cx-stat::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.cx-stat.pending { color: #f5a623; }
+.cx-stat.approved { color: #34d399; }
+.cx-stat.rejected { color: #f43f5e; }
+.cx-stat span, .cx-stat { --_t: var(--ink-2, #cfc8c3); }
+.cx-stat b { color: #fff; }
+.cx-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-left: auto; }
+.cx-controls .cal-views { margin: 0; }
+.cx-board-body { padding: 16px 20px 20px; }
+
+/* month grid: separate rounded day cards instead of one boxed table */
+.cx .cal-grid {
+  gap: 8px;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+}
+.cx .cal-grid .cal-dow {
+  padding: 4px 0 2px;
+  background: transparent;
+  border: 0;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  color: var(--ink-3, #8f8883);
+}
+.cx .cal-grid .cal-cell {
+  min-height: 118px;
+  padding: 8px;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  transition: background .15s, border-color .15s, transform .15s;
+}
+.cx .cal-grid .cal-cell:nth-child(7n) { border-right: 1px solid rgba(255, 255, 255, 0.08); }
+.cx .cal-grid .cal-cell.clickable:hover { background: rgba(255, 255, 255, 0.08); border-color: color-mix(in srgb, var(--plat) 60%, transparent); transform: translateY(-1px); }
+.cx .cal-grid .cal-cell.other { opacity: .35; }
+.cx .cal-grid .cal-cell.today { border-color: var(--plat); background: color-mix(in srgb, var(--plat) 10%, rgba(255, 255, 255, 0.03)); }
+.cx .cal-grid .cal-cell.today .cal-day { color: #fff; background: var(--plat); }
+.cx .cal-grid .cal-day { color: var(--ink-2, #cfc8c3); }
+.cx .cal-grid .cal-add { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.14); opacity: 0; }
+.cx .cal-grid .cal-cell:hover .cal-add,
+.cx .cal-grid .cal-add:focus-visible { opacity: 1; }
+.cx .cal-grid .cal-add:hover { background: var(--plat); }
+.cx .cal-grid .cal-creative { background: color-mix(in srgb, var(--plat) 18%, rgba(20, 15, 15, 0.6)); border-color: color-mix(in srgb, var(--plat) 45%, transparent); }
+.cx .cal-grid .cal-creative.pending { border-color: rgba(245, 158, 11, 0.75); }
+.cx .cal-grid .cal-creative.approved { border-color: rgba(34, 197, 94, 0.75); }
+.cx .cal-grid .cal-creative.rejected { border-color: rgba(244, 63, 94, 0.8); }
+.cx .cal-more { font-size: 11px; font-weight: 600; color: var(--ink-3, #8f8883); }
+
+.cx .cal-nav { display: inline-flex; align-items: center; gap: 6px; padding: 3px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; background: rgba(0, 0, 0, 0.25); }
+.cx .cal-nav button { padding: 7px 10px; border: 0; border-radius: 9px; background: transparent; color: #fff; }
+.cx .cal-nav button:hover { background: rgba(255, 255, 255, 0.1); }
+.cx .cal-nav .cx-today { font-weight: 600; font-size: 12.5px; background: rgba(255, 255, 255, 0.08); }
+.cx .cal-month { min-width: 128px; font-size: 13.5px; font-weight: 700; color: #fff; }
+
+@media (max-width: 900px) {
+  .cx-toolbar, .cx-board-head, .cx-board-body { padding-left: 14px; padding-right: 14px; }
+  .cx-health { align-items: flex-start; margin-left: 0; }
+  .cx-controls { margin-left: 0; }
+  .cx .cal-grid { gap: 4px; }
+  .cx .cal-grid .cal-cell { min-height: 78px; padding: 5px; border-radius: 9px; }
+  .cx .cal-grid .cal-creative-text, .cx .cal-grid .cal-creative-thumb { display: none; }
+  .cx .cal-grid .cal-creative { min-height: 8px; padding: 2px; }
+}
+
+/* =========================================================
+   POP-UPS of the calendar (day list, creative form, creative preview)
+   header and footer stay put, only the middle scrolls
+========================================================= */
+body .modal-card.cx-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 680px);
+  max-width: 680px;
+  max-height: calc(100dvh - 40px);
+  padding: 0;
+  overflow: hidden;
+  border-radius: 20px;
+}
+body .modal-card.cx-modal.creative-wide { max-width: 1120px; width: min(100%, 1120px); }
+body .modal-card.cx-modal.creative-wide.compact { max-width: 720px; }
+body .modal-card.cx-modal > .modal-head {
+  flex: 0 0 auto;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+body .modal-card.cx-modal > .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 20px 24px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #3a3a42 transparent;
+}
+body .modal-card.cx-modal > .modal-foot {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 14px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 8, 8, 0.35);
+}
+.modal-card.cx-modal .modal-head h2 { font-size: 22px; }
+
+/* the form's two columns: preview + content, preview stays visible while the form scrolls */
+.modal-card.cx-modal .creative-layout { gap: 22px; align-items: start; }
+.modal-card.cx-modal .creative-preview { top: 0; border-color: rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.04); }
+@media (max-width: 860px) {
+  .modal-card.cx-modal .creative-layout,
+  .modal-card.cx-modal .creative-layout:not(.no-preview) { grid-template-columns: minmax(0, 1fr); }
+  .modal-card.cx-modal .creative-preview { position: static; order: 2; }
+  body .modal-card.cx-modal > .modal-head,
+  body .modal-card.cx-modal > .modal-body,
+  body .modal-card.cx-modal > .modal-foot { padding-left: 16px; padding-right: 16px; }
+}
+
+/* platform ticks: 7 platforms in a tidy grid, brand coloured when ticked */
+.modal-card.cx-modal .creative-platforms { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
+.modal-card.cx-modal .creative-check { justify-content: flex-start; padding: 9px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.12); }
+.modal-card.cx-modal .creative-check.on { background: color-mix(in srgb, var(--plat, #f27b36) 30%, rgba(20, 15, 15, 0.7)); border-color: var(--plat, #f27b36); color: #fff; }
+.modal-card.cx-modal .creative-check:nth-child(1) { --plat: #1877f2; }
+.modal-card.cx-modal .creative-check:nth-child(2) { --plat: #e1306c; }
+.modal-card.cx-modal .creative-check:nth-child(3) { --plat: #9b9ba3; }
+.modal-card.cx-modal .creative-check:nth-child(4) { --plat: #0a84d6; }
+.modal-card.cx-modal .creative-check:nth-child(5) { --plat: #ff2d2d; }
+.modal-card.cx-modal .creative-check:nth-child(6) { --plat: #cfcfd6; }
+.modal-card.cx-modal .creative-check:nth-child(7) { --plat: #e60023; }
+.creative-foot-note { flex: 1 1 220px; margin-right: auto; text-align: left; }
