@@ -268,3 +268,38 @@ body:has(.app-shell) .app-topbar {
   border-color: rgba(255, 255, 255, 0.10);
 }
 .app-content .meeting-item.clickable:hover { background: rgba(255, 255, 255, 0.09); }
+
+/* =========================================================
+   POP-UPS · every modal opens centred on screen with the page
+   behind it blurred (same look everywhere).
+========================================================= */
+body .modal-overlay,
+body .tm-modal-overlay,
+body .tdm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(8, 5, 4, 0.50);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  overflow-y: auto;
+}
+body .mr-preview-overlay {
+  background: rgba(8, 5, 4, 0.50);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+}
+body .modal-card,
+body .tm-modal {
+  margin: auto;
+  background: rgba(24, 18, 16, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 30px 80px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+}
+body .tm-modal-header { background: rgba(24, 18, 16, 0.92); }

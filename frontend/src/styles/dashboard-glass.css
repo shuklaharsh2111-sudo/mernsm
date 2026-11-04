@@ -475,6 +475,34 @@
 }
 
 /* ---------- SOP panel ---------- */
+.sop-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.dash-glass .sop-head h2 { margin: 0; }
+.sop-sub { margin: 3px 0 0; font-size: 12px; color: var(--ink-3); }
+.sop-progress { min-width: 120px; text-align: right; }
+.sop-progress strong { display: block; font-size: 22px; font-weight: 800; letter-spacing: -.5px; color: #fff; line-height: 1; }
+.sop-progress .kpi-bar { margin-top: 8px; }
+.sop-meeting-row .sop-tabs { margin: 0 0 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.sop-tab-count { margin-left: 8px; padding: 1px 7px; border-radius: 999px; background: rgba(255, 255, 255, .1); font-size: 11px; font-weight: 700; }
+.sop-tabs button.active .sop-tab-count { background: rgba(0, 0, 0, .25); }
+.sop-list { gap: 18px; }
+.sop-group { display: flex; flex-direction: column; gap: 8px; }
+.sop-group-head { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
+.sop-co { font-size: 11.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--orange-light); }
+.sop-count { font-size: 11.5px; font-weight: 700; color: var(--ink-3); }
+.dash-glass .sme-sop { padding: 12px 14px; transition: border-color .15s, background .15s; }
+.dash-glass .sme-sop:not(.upcoming):hover { border-color: rgba(242, 107, 15, .5); }
+.dash-glass .sme-sop.tick input { accent-color: var(--orange); }
+.dash-glass .sme-sop.done input { accent-color: var(--ok); }
+.dash-glass .sme-sop .sop-item-top { gap: 8px; }
+.dash-glass .sme-sop .sop-item-text { margin-top: 6px; }
+.dash-glass .sme-sop.done .sop-item-text { color: var(--ink-3); text-decoration: line-through; text-decoration-color: rgba(255, 255, 255, .25); }
+.sop-pill.daily { color: #7ee7b9; background: rgba(52, 211, 153, .14); }
+.sop-pill.weekly { color: var(--orange-light); background: rgba(255, 176, 77, .14); }
+.sop-pill.monthly { color: #ff8a73; background: rgba(217, 45, 10, .18); }
+.sop-status { margin-left: auto; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.sop-status.done { color: #7ee7b9; background: rgba(52, 211, 153, .14); }
+.sop-status.todo { color: var(--orange-light); background: rgba(242, 107, 15, .16); }
+.sop-status.later { color: var(--ink-3); background: rgba(255, 255, 255, .07); }
 .sop-head {
   display: flex;
   align-items: flex-start;
@@ -634,7 +662,6 @@
    DASHBOARD BACKGROUND · dark left, orange circle on the right,
    faint grid, blurred glass (glassmorphism) panels.
    Scoped to pages that contain .dash-glass (admin + SME dashboard).
-========================================================= */
 body:has(.app-shell .dash-glass) {
   background-color: #050404;
   background-image:

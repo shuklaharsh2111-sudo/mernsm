@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import api from '../api';
@@ -49,7 +50,7 @@ export default function AssignCompaniesModal({ user, companies, max, onSaved, on
     }
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="assign-title">
         <div className="modal-head">
@@ -123,6 +124,7 @@ export default function AssignCompaniesModal({ user, companies, max, onSaved, on
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

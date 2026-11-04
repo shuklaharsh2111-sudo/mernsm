@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 import { X, CalendarDays, Building2, Clock3, Play, Square, Upload, Image as ImageIcon, Trash2, LoaderCircle, AlertCircle, Repeat, UserRound, FileText, Flag, Target, FolderOpen } from 'lucide-react';
 import api from '../api';
@@ -123,7 +124,7 @@ const handleUpload = async () => {
         { label: 'Completed Date', value: task.status === 'completed' ? formatDate(task.endedAt) : 'Not completed', icon: Square },
         { label: 'Actual TAT', value: formatDuration(task.startedAt, task.endedAt), icon: Clock3 }
     ];
-    return (
+    return createPortal(
         <div className="tdm-overlay" onClick={onClose}>
             <div className="tdm-modal" role="dialog" aria-modal="true" aria-labelledby="tdm-title" onClick={event => event.stopPropagation()}>
                 <div className="tdm-header">
@@ -250,7 +251,8 @@ const handleUpload = async () => {
                     <button type="button" onClick={onClose}>Close</button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 export default TaskDetailsModal;
