@@ -1,9 +1,7 @@
 import mongoose from 'mongoose';
-
 export const CREATIVE_PLATFORMS = ['instagram', 'facebook', 'linkedin', 'x', 'youtube'];
 // pending = waiting for admin; only approved creatives show on the calendar.
 export const CREATIVE_STATUSES = ['pending', 'approved', 'rejected'];
-
 // SME -> a reference creative planned on a calendar day for one brand.
 const creativeSchema = new mongoose.Schema(
   {
@@ -37,6 +35,5 @@ const creativeSchema = new mongoose.Schema(
   },
   { timestamps: true, collection: 'creatives' }
 );
-
 const Creative = mongoose.models.Creative || mongoose.model('Creative', creativeSchema);
 export default Creative;
