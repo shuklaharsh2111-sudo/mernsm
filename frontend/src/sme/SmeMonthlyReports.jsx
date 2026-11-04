@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, Plus, Printer, Save, Trash2 } from 'lucide-r
 import api from '../api';
 import { errMsg, todayStr } from '../sopUtils';
 import AnSelect from '../components/AnSelect';
+import MonthlyPerformance from '../components/MonthlyPerformance';
 import '../styles/analytics.css';
 import '../styles/monthlyreport.css';
 
@@ -449,6 +450,8 @@ const SmeMonthlyReports = () => {
                             </div>
                         </section>
                     )}
+                    <MonthlyPerformance month={month} />
+
                     <footer className="mr-doc-foot">Generated on {todayStr()} · figures are entered by the SME from platform insights.</footer>
                 </article>
             )}

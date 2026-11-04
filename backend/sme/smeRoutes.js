@@ -13,6 +13,7 @@ import { periodKey, resolveToday } from '../sop/period.js';
 import Task from './Tasks.js';
 import Creative, { CREATIVE_PLATFORMS, CREATIVE_STATUSES } from './Creative.js';
 import SocialMetrics from './SocialMetrics.js';
+import Admin from '../admin/Admin.js';
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 5 },
@@ -695,6 +696,178 @@ router.put('/social-metrics', async (req, res) => {
     res.status(500).json({ message: 'Unable to save social metrics' });
   }
 });
+// =========================================
+// MONTHLY PERFORMANCE REPORT (read-only, calculated from the database)
+// =========================================
+// Same data the old PHP monthly report showed: creative stats with last-month comparison, company-wise and
+// platform-wise results, SOP schedule + ticks, meetings, every creative of the month and the health of each company.
+const monthAfter = (m) => {
+  const [y, mo] = m.split('-').map(Number);
+  const d = new Date(y, mo, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+const blankStats = () => ({ total: 0, approved: 0, pending: 0, redo: 0, rejected: 0, delays: 0, overdue: 0 });
+const isDelayed = (c) => !!c.createdAt && c.createdAt.toISOString().slice(0, 10) > c.date;
+// same counting rules as /company-health
+const addToStats = (m, c, today) => {
+  m.total += 1;
+  if (c.status === 'approved') m.approved += 1;
+  else if (c.status === 'pending') m.pending += 1;
+  else if (c.status === 'rejected') m.redo += 1;
+  m.rejected += Math.max(c.rejectionCount || 0, c.status === 'rejected' ? 1 : 0);
+  if (isDelayed(c)) m.delays += 1;
+  if (c.status !== 'approved' && c.date < today) m.overdue += 1;
+};
+const withHealth = (m) => ({ ...m, health: m.total ? healthOf(m) : 'nodata' });
+const pctOf = (a, b) => (b ? Math.round((a / b) * 1000) / 10 : 0);
+
+// GET /monthly-report?month=YYYY-MM&today=YYYY-MM-DD
+router.get('/monthly-report', async (req, res) => {
+  try {
+    const today = resolveToday(req.query.today);
+    const month = MONTH_RE.test(String(req.query.month || '')) ? req.query.month : today.slice(0, 7);
+    const prevMonth = prevMonthOf(month);
+    const start = `${month}-01`;
+    const end = `${monthAfter(month)}-01`;
+    const prevStart = `${prevMonth}-01`;
+
+    const me = await Sme.findById(req.user.id);
+    if (!me) return res.status(401).json({ message: 'User not found' });
+    const ids = (me.companies || []).map(String);
+    const found = await Company.find({ _id: { $in: ids } });
+    const byId = Object.fromEntries(found.map((c) => [String(c._id), c]));
+    const companyIds = ids.filter((id) => byId[id]);
+
+    // Reporting manager (the admin the SME reports to)
+    let manager = '';
+    if (me.reportingManagerId) {
+      const adm = await Admin.findById(me.reportingManagerId).select('name fullname email').lean();
+      manager = adm?.name || adm?.fullname || adm?.email || '';
+    }
+
+    // ---- creatives: this month + previous month
+    const [creatives, prevCreatives] = await Promise.all([
+      Creative.find({ user: req.user.id, company: { $in: companyIds }, date: { $gte: start, $lt: end } })
+        .sort({ date: 1, createdAt: 1 })
+        .lean(),
+      Creative.find({ user: req.user.id, company: { $in: companyIds }, date: { $gte: prevStart, $lt: start } })
+        .select('company date status createdAt rejectionCount')
+        .lean(),
+    ]);
+
+    const stats = blankStats();
+    const previousStats = blankStats();
+    const perCompany = Object.fromEntries(companyIds.map((id) => [id, blankStats()]));
+    const perPlatform = {};
+    for (const c of creatives) {
+      addToStats(stats, c, today);
+      const m = perCompany[String(c.company)];
+      if (m) addToStats(m, c, today);
+      // one creative can go to several platforms, so it counts once for each
+      for (const p of c.contentPillar?.platforms || []) {
+        perPlatform[p] = perPlatform[p] || blankStats();
+        addToStats(perPlatform[p], c, today);
+      }
+    }
+    for (const c of prevCreatives) addToStats(previousStats, c, today);
+
+    const companyReports = companyIds
+      .map((id) => ({ id, name: byId[id].name, ...withHealth(perCompany[id]), approvalRate: pctOf(perCompany[id].approved, perCompany[id].total) }))
+      .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+    const platformReports = Object.entries(perPlatform)
+      .map(([platform, m]) => ({ platform, ...m }))
+      .sort((a, b) => b.total - a.total || a.platform.localeCompare(b.platform));
+
+    const creativeList = creatives.slice(0, 300).map((c) => ({
+      id: c._id,
+      date: c.date,
+      title: c.contentPillar?.title || '',
+      company: byId[String(c.company)]?.name || 'Removed company',
+      platforms: c.contentPillar?.platforms || [],
+      status: c.status,
+      delayed: isDelayed(c),
+      overdue: c.status !== 'approved' && c.date < today,
+      remark: c.status === 'rejected' ? c.reviewNote || '' : '',
+    }));
+
+    // ---- SOPs: scheduled (start date inside the month) + ticks saved during the month
+    const sops = await SopAssignment.find({ user: req.user.id, company: { $in: companyIds } })
+      .select('type date completions')
+      .lean();
+    const monthStartAt = new Date(`${start}T00:00:00+05:30`);
+    const monthEndAt = new Date(`${end}T00:00:00+05:30`);
+    const sopStats = { total: 0, daily: 0, weekly: 0, monthly: 0, ticks: 0 };
+    for (const sp of sops) {
+      if (sp.date >= start && sp.date < end) {
+        sopStats.total += 1;
+        if (sopStats[sp.type] !== undefined) sopStats[sp.type] += 1;
+      }
+      sopStats.ticks += (sp.completions || []).filter((c) => c.at >= monthStartAt && c.at < monthEndAt).length;
+    }
+
+    // ---- meetings of the month (done = the SME joined it)
+    const meetings = await Meeting.find({ user: req.user.id, company: { $in: companyIds }, date: { $gte: start, $lt: end } })
+      .sort({ date: 1, time: 1 })
+      .limit(200)
+      .lean();
+    const meetingStats = { total: 0, done: 0, notDone: 0 };
+    const perMeetingCompany = Object.fromEntries(companyIds.map((id) => [id, { total: 0, done: 0, notDone: 0 }]));
+    for (const m of meetings) {
+      const done = !!m.joinedAt;
+      meetingStats.total += 1;
+      meetingStats[done ? 'done' : 'notDone'] += 1;
+      const pc = perMeetingCompany[String(m.company)];
+      if (pc) {
+        pc.total += 1;
+        pc[done ? 'done' : 'notDone'] += 1;
+      }
+    }
+    const meetingReports = companyIds
+      .map((id) => ({ name: byId[id].name, ...perMeetingCompany[id] }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const meetingList = meetings.map((m) => ({
+      id: m._id,
+      date: m.date,
+      time: m.time,
+      company: byId[String(m.company)]?.name || 'Removed company',
+      subject: m.subject,
+      done: !!m.joinedAt,
+      momStatus: m.mom?.status || 'not_sent',
+    }));
+
+    res.json({
+      month,
+      previousMonth: prevMonth,
+      periodFrom: start,
+      periodTo: new Date(new Date(`${end}T00:00:00Z`) - 86400000).toISOString().slice(0, 10),
+      sme: {
+        name: me.name || me.fullname || me.email || '',
+        email: me.email || '',
+        position: 'Social Media Executive (SME)',
+        department: 'Social Media',
+        manager,
+      },
+      companyCount: companyIds.length,
+      overallHealth: stats.total ? healthOf(stats) : 'nodata',
+      stats,
+      previousStats,
+      approvalRate: pctOf(stats.approved, stats.total),
+      previousApprovalRate: pctOf(previousStats.approved, previousStats.total),
+      creativeChange: previousStats.total ? Math.round(((stats.total - previousStats.total) / previousStats.total) * 1000) / 10 : null,
+      companyReports,
+      platformReports,
+      creatives: creativeList,
+      sopStats,
+      meetingStats,
+      meetingReports,
+      meetingList,
+    });
+  } catch (error) {
+    console.error('Monthly report error:', error);
+    res.status(500).json({ message: 'Unable to generate the monthly report' });
+  }
+});
+
 // =========================================
 // SETTINGS: PROFILE + PASSWORD
 // =========================================
