@@ -658,10 +658,7 @@
   background: rgba(255, 255, 255, .07);
 }
 
-/* =========================================================
-   DASHBOARD BACKGROUND · dark left, orange circle on the right,
-   faint grid, blurred glass (glassmorphism) panels.
-   Scoped to pages that contain .dash-glass (admin + SME dashboard).
+
 body:has(.app-shell .dash-glass) {
   background-color: #050404;
   background-image:
