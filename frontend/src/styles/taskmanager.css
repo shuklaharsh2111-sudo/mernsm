@@ -689,3 +689,61 @@
     color-scheme: dark;
     cursor: pointer;
 }
+
+
+/* ===== Task Manager · tidy layout =====
+   header row, 4 equal-height columns, each list scrolls inside its own card */
+.sme-task-manager { margin: 32px 0; }
+.sme-task-header {
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+.sme-task-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+    align-items: stretch;
+}
+.sme-task-card {
+    padding: 18px;
+    height: 100%;
+    max-height: 640px;
+}
+.sme-task-card-top { min-height: 45px; }
+.sme-task-info {
+    margin: 14px 0 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, .07);
+}
+.sme-task-info h3 { font-size: 30px; line-height: 1; }
+.sme-task-info h4 { margin: 8px 0 2px; }
+.sme-task-card-list {
+    flex: 1 1 auto;
+    min-height: 140px;
+    margin-top: 0;
+    padding-right: 4px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, .22) transparent;
+}
+.sme-task-card-list::-webkit-scrollbar { width: 6px; }
+.sme-task-card-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .22); border-radius: 6px; }
+.tm-task-item { padding: 13px; }
+.tm-task-item-heading h4 { line-height: 1.35; }
+.tm-company, .tm-due-date { margin: 8px 0; }
+.tm-brief {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.tm-empty { margin: auto 0; }
+
+@media (max-width: 1280px) {
+    .sme-task-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sme-task-card { max-height: 560px; }
+}
+@media (max-width: 640px) {
+    .sme-task-grid { grid-template-columns: 1fr; }
+    .sme-task-card { max-height: 520px; }
+}
