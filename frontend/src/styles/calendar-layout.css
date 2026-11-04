@@ -258,3 +258,112 @@ body .modal-card.cx-modal > .modal-foot {
 .modal-card.cx-modal .creative-check:nth-child(6) { --plat: #cfcfd6; }
 .modal-card.cx-modal .creative-check:nth-child(7) { --plat: #e60023; }
 .creative-foot-note { flex: 1 1 220px; margin-right: auto; text-align: left; }
+
+/* ---------- platform strip: plain colour logos, no boxes ---------- */
+.cx-platforms {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 0;
+  padding: 4px 4px 8px;
+  gap: 28px;
+  justify-content: flex-start;
+}
+.cx-plat,
+.cx-plat:hover,
+.cx-plat.active {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 6px 4px 10px;
+  gap: 8px;
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--ink-2, #cfc8c3);
+}
+.cx-plat { opacity: 0.6; }
+.cx-plat:hover { opacity: 1; transform: translateY(-2px); color: #fff; }
+.cx-plat.active { opacity: 1; color: #fff; border-bottom-color: var(--plat); }
+.cx-plat .cx-plat-icon,
+.cx-plat.active .cx-plat-icon {
+  width: 44px; height: 44px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: inherit;
+}
+.cx-plat-icon svg { display: block; width: 44px; height: 44px; }
+.cx-plat .cx-plat-count,
+.cx-plat.active .cx-plat-count { background: none; padding: 0; min-width: 0; color: inherit; font-size: 12px; }
+
+/* ---------- platform strip: black/white line icons ----------
+   --plat-line = colour of the line icons. The dark glass background needs a light
+   line; to get true black icons set it to #000 (and use a light page background). */
+.cx-platforms { --plat-line: #d9d2cc; --plat-line-active: #ffffff; }
+.cx-plat { color: var(--plat-line); }
+.cx-plat:hover, .cx-plat.active { color: var(--plat-line-active); }
+.cx-plat .cx-plat-icon, .cx-plat.active .cx-plat-icon { width: 40px; height: 40px; }
+.cx-plat-icon svg { width: 40px; height: 40px; }
+.cx-plat.active { border-bottom-color: var(--plat-line-active); }
+
+/* ---------- platform strip: match the app theme (orange accent, same as the sidebar logo) ---------- */
+.cx-platforms { --plat-line-active: var(--orange-light, #ffb04d); }
+.cx-plat { position: relative; border-bottom-color: transparent; }
+.cx-plat::after {
+  content: "";
+  position: absolute;
+  left: 4px; right: 4px; bottom: 0;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--grad, linear-gradient(135deg, #ff7729, #f26b0f));
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform .2s ease;
+}
+.cx-plat:hover::after { transform: scaleX(.5); }
+.cx-plat.active::after { transform: scaleX(1); }
+.cx-plat.active { border-bottom-color: transparent; }
+.cx-plat.active .cx-plat-icon svg { filter: drop-shadow(0 4px 12px rgba(242, 107, 15, .55)); }
+.cx-plat .cx-plat-count {
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: rgba(242, 107, 15, .12);
+  border: 1px solid rgba(242, 107, 15, .28);
+  color: var(--orange-light, #ffb04d);
+  font-weight: 700;
+}
+.cx-plat.active .cx-plat-count { background: var(--grad, #f26b0f); border-color: transparent; color: #fff; }
+
+/* ---------- Reference creative pop-up: no sideways scrolling ---------- */
+body .modal-card.cx-modal,
+body .modal-card.cx-modal > .modal-body { overflow-x: hidden; }
+.modal-card.cx-modal .creative-layout > *,
+.modal-card.cx-modal .creative-col > *,
+.modal-card.cx-modal .creative-pillar,
+.modal-card.cx-modal .x-field { min-width: 0; max-width: 100%; }
+.modal-card.cx-modal .x-field input,
+.modal-card.cx-modal .x-field textarea,
+.modal-card.cx-modal .x-field select,
+.modal-card.cx-modal .tag-input { box-sizing: border-box; max-width: 100%; }
+.modal-card.cx-modal .tag-input input { min-width: 80px; }
+.modal-card.cx-modal .creative-preview { container-type: inline-size; overflow: hidden; }
+.modal-card.cx-modal .creative-preview img,
+.modal-card.cx-modal .pps-stage { max-width: 100%; }
+.modal-card.cx-modal .creative-drop,
+.modal-card.cx-modal .creative-thumbs { max-width: 100%; }
+.modal-card.cx-modal .creative-link-row { grid-template-columns: minmax(0, 1fr) auto; }
+.modal-card.cx-modal .modal-head > div:first-child { min-width: 0; }
+.modal-card.cx-modal .creative-sub,
+.modal-card.cx-modal .creative-opt,
+.modal-card.cx-modal .field-error { overflow-wrap: anywhere; }
+/* the preview column is only half the pop-up, so put the platform switcher under the preview there */
+@container (max-width: 560px) {
+  .pps { grid-template-columns: minmax(0, 1fr); }
+  .pps-rail { flex-direction: row; flex-wrap: wrap; order: 2; }
+  .pps-tab { width: auto; flex: 1 1 120px; min-width: 0; }
+}
