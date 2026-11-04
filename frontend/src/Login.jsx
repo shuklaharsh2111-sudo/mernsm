@@ -4,6 +4,7 @@ import { ArrowRight, Eye, EyeOff, KeyRound, MapPin } from 'lucide-react';
 
 import { useAuth } from './AuthContext';
 import astronaut from './assets/images/astronaut-login.png';
+import astronaut from './assets/images/pre-final.png';
 import './styles/login.css';
 
 const Login = () => {
