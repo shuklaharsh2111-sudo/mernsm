@@ -44,3 +44,16 @@ export const YoutubeIcon = ({ size = 14 }) => (
     <path d="M10 9.5v5l4.5-2.5z" fill="currentColor" />
   </svg>
 );
+
+export const ThreadsIcon = ({ size = 14 }) => (
+  <svg {...base(size)}>
+    <path d="M17.6 9.2C16.8 6.5 14.8 5 12 5c-3.6 0-5.6 2.6-5.6 7s2 7 5.6 7c2.9 0 4.8-1.5 4.8-3.6 0-2.3-2-3.3-4.4-3.3-1.7 0-2.9.8-2.9 2 0 1.1 1 1.8 2.3 1.8 2 0 3.2-1.3 3.2-3.9v-.6" />
+  </svg>
+);
+
+export const PinterestIcon = ({ size = 14 }) => (
+  <svg {...base(size)}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M10.6 20l1.6-6.4M9.4 12.6c-.8-2.7 1-4.6 3.1-4.6 2 0 3.1 1.5 3.1 3.1 0 2.3-1.4 3.9-3.1 3.9-.9 0-1.6-.5-1.9-1.1" />
+  </svg>
+);

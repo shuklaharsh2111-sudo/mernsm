@@ -12,6 +12,7 @@ import { errMsg, todayStr } from '../sopUtils';
 import '../style.css';
 import '../styles/smedashboard.css';
 import '../styles/calendar.css';
+import '../styles/calendar-layout.css';
 
 
 const MAX_CHIPS = 2; // creatives shown inside one day box; the rest collapse into "+N more"
@@ -121,11 +122,16 @@ const SmeCalendar = () => {
     setCursor({ y: d.getFullYear(), m: d.getMonth() });
   };
 
+  const MetaIcon = activePlatformMeta.icon;
+  const monthPrefix = `${cursor.y}-${p2(cursor.m + 1)}`;
+  const monthCreatives = visibleCreatives.filter((c) => c.date.startsWith(monthPrefix));
+  const stat = (status) => monthCreatives.filter((c) => c.status === status).length;
+
   return (
-    <div className="dashboard-content scrollable">
-      {/* Brand selector (same circles as the dashboard), colored by health, with the selected company's health toggle in the top-right corner */}
-      <div className="cal-brand-bar">
-        <div className="company-row cal-company-row" aria-label="Brands">
+    <div className="dashboard-content scrollable cx">
+      {/* 1 · Brand selector (colored by health) + the selected brand's health, top-right */}
+      <header className="cx-toolbar">
+        <div className="cx-brands company-row cal-company-row" role="group" aria-label="Brands">
           {companies.map((c) => {
             const isActive = c.id === activeId;
             const health = healthById[c.id];
@@ -138,7 +144,7 @@ const SmeCalendar = () => {
                   aria-pressed={isActive}
                   title={`Show ${c.name}'s calendar`}
                 >
-                  <CompanyBadge company={c} size={72} showName />
+                  <CompanyBadge company={c} size={64} showName />
                 </button>
               </div>
             );
@@ -146,22 +152,25 @@ const SmeCalendar = () => {
         </div>
 
         {active && healthById[activeId] && (
-          <div className="cal-toggle cal-health-toggle" role="status" aria-label={`${active.name} health: ${HEALTH_LABELS[healthById[activeId]]}`}>
-            {['critical', 'risk', 'healthy'].map((h) => (
-              <span key={h} className={`cal-health-opt ${h} ${healthById[activeId] === h ? 'on' : ''}`}>
-                {HEALTH_LABELS[h]}
-              </span>
-            ))}
+          <div className="cx-health" role="status" aria-label={`${active.name} health: ${HEALTH_LABELS[healthById[activeId]]}`}>
+            <small>Brand health</small>
+            <div className="cx-health-opts">
+              {['critical', 'risk', 'healthy'].map((h) => (
+                <span key={h} className={`cx-health-opt ${h} ${healthById[activeId] === h ? 'on' : ''}`}>
+                  {HEALTH_LABELS[h]}
+                </span>
+              ))}
+            </div>
           </div>
         )}
-      </div>
+      </header>
 
       {error && <p className="error-message" role="alert">{error}</p>}
       {notice && <p className="success-message" role="status">{notice}</p>}
 
-      {/* Platform calendars of the selected brand */}
+      {/* 2 · Platform calendars of the selected brand, one line, fixed order */}
       {active && (
-        <div className="cal-plat-tabs" role="tablist" aria-label={`${active.name} platform calendars`}>
+        <nav className="cx-platforms" role="tablist" aria-label={`${active.name} platform calendars`}>
           {PLATFORMS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -169,105 +178,122 @@ const SmeCalendar = () => {
               role="tab"
               data-platform={key}
               aria-selected={activePlatform === key}
-              className={activePlatform === key ? 'active' : ''}
+              className={`cx-plat ${activePlatform === key ? 'active' : ''}`}
               onClick={() => openCalendar(activeId, key)}
             >
-              <Icon size={15} />
-              {label}
-              <span className="cal-plat-count">{countFor(key)}</span>
+              <span className="cx-plat-icon"><Icon size={24} /></span>
+              <span className="cx-plat-name">{label}</span>
+              <span className="cx-plat-count">{countFor(key)}</span>
             </button>
           ))}
-        </div>
+        </nav>
       )}
 
-      <div className="cal-header">
-        <h2>
-          Calendar{active ? ` · ${active.name}` : ''}
-          {` · ${activePlatformMeta.label}`}
-        </h2>
-        {isInstagram && (
-          <div className="cal-views" role="tablist" aria-label="Instagram views">
-            {[
-              { key: 'calendar', label: 'Calendar', icon: CalendarDays },
-              { key: 'grid', label: 'Grid view', icon: LayoutGrid },
-              { key: 'story', label: 'Story view', icon: Smartphone },
-            ].map(({ key, label, icon: Icon }) => (
-              <button key={key} type="button" role="tab" aria-selected={igView === key} className={igView === key ? 'active' : ''} onClick={() => setIgView(key)}>
-                <Icon size={15} />{label}
-              </button>
-            ))}
+      {/* 3 · The calendar itself */}
+      <section className="cx-board" data-platform={activePlatform} style={{ '--brand-hue': (brandIndex * 57 + 225) % 360 }}>
+        <div className="cx-board-head">
+          <div className="cx-board-title">
+            <span className="cx-board-icon"><MetaIcon size={22} /></span>
+            <div>
+              <h2>{activePlatformMeta.label} calendar</h2>
+              <p>{active ? active.name : 'No brand selected'}</p>
+            </div>
           </div>
-        )}
-        {view === 'calendar' && (
-        <div className="cal-nav">
-          <button type="button" onClick={() => shift(-1)} aria-label="Previous month"><ChevronLeft size={16} /></button>
-          <span className="cal-month">{monthLabel}</span>
-          <button type="button" onClick={() => shift(1)} aria-label="Next month"><ChevronRight size={16} /></button>
-          <button type="button" onClick={() => setCursor({ y: now.getFullYear(), m: now.getMonth() })}>Today</button>
-        </div>
-        )}
-      </div>
 
-      {companies.length === 0 && !error ? (
-        <p className="muted">No brands are assigned to you yet.</p>
-      ) : view === 'grid' ? (
-        <InstagramGrid creatives={visibleCreatives} company={active} onOpen={setViewing} />
-      ) : view === 'story' ? (
-        <InstagramStories creatives={visibleCreatives} company={active} onOpen={setViewing} />
-      ) : (
-        <div className="cal-grid" data-platform={activePlatform} style={{ '--brand-hue': (brandIndex * 57 + 225) % 360 }}>
-          {WEEKDAYS.map((d) => (
-            <div key={d} className="cal-dow">{d}</div>
-          ))}
-          {grid.map((d) => {
-            const key = ymd(d);
-            return (
-              <div
-                key={key}
-                className={`cal-cell clickable ${d.getMonth() !== cursor.m ? 'other' : ''} ${key === today ? 'today' : ''}`}
-                role="button"
-                tabIndex={0}
-                aria-label={`Open ${key}`}
-                onClick={() => setDayOpen(key)}
-                onKeyDown={(e) => e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setDayOpen(key))}
-              >
-                <div className="cal-cell-top">
-                  <span className="cal-day">{d.getDate()}</span>
-                  {active && (
-                    <button
-                      type="button"
-                      className="cal-add"
-                      title={`Add ${activePlatformMeta.label} creative`}
-                      aria-label={`Add reference creative on ${key}`}
-                      onClick={(e) => { e.stopPropagation(); setModalDate(key); }}
-                    >
-                      <Plus size={14} />
-                    </button>
-                  )}
-                </div>
-                {dayCreatives(key).slice(0, MAX_CHIPS).map((c) => (
-                  <div key={c.id} className={`cal-creative ${c.status}`} title={`${c.contentPillar.title} · ${c.status === 'rejected' ? 'Redo' : c.status}`}>
-                    <span className="cal-creative-open">
-                      <span className="cal-creative-thumb">
-                        {c.uploads[0] ? <img src={c.uploads[0].url} alt="" /> : <ImageIcon size={14} />}
-                      </span>
-                      <span className="cal-creative-text">
-                        <span className="cal-creative-title">{c.contentPillar.title}</span>
-                        <span className="cal-creative-meta">
-                          <CreativeStatusBadge status={c.status} compact />
-                        </span>
-                      </span>
-                    </span>
-                  </div>
+          <div className="cx-stats" aria-label={`${monthLabel} summary`}>
+            <span className="cx-stat pending"><b>{stat('pending')}</b> Pending</span>
+            <span className="cx-stat approved"><b>{stat('approved')}</b> Approved</span>
+            <span className="cx-stat rejected"><b>{stat('rejected')}</b> Redo</span>
+          </div>
+
+          <div className="cx-controls">
+            {isInstagram && (
+              <div className="cal-views" role="tablist" aria-label="Instagram views">
+                {[
+                  { key: 'calendar', label: 'Calendar', icon: CalendarDays },
+                  { key: 'grid', label: 'Grid', icon: LayoutGrid },
+                  { key: 'story', label: 'Stories', icon: Smartphone },
+                ].map(({ key, label, icon: Icon }) => (
+                  <button key={key} type="button" role="tab" aria-selected={igView === key} className={igView === key ? 'active' : ''} onClick={() => setIgView(key)}>
+                    <Icon size={15} />{label}
+                  </button>
                 ))}
-                {dayCreatives(key).length > MAX_CHIPS && (
-                  <span className="cal-more">+{dayCreatives(key).length - MAX_CHIPS} more</span>
-                )}
               </div>
-            );
-          })}
+            )}
+            {view === 'calendar' && (
+              <div className="cal-nav">
+                <button type="button" onClick={() => shift(-1)} aria-label="Previous month"><ChevronLeft size={16} /></button>
+                <span className="cal-month">{monthLabel}</span>
+                <button type="button" onClick={() => shift(1)} aria-label="Next month"><ChevronRight size={16} /></button>
+                <button type="button" className="cx-today" onClick={() => setCursor({ y: now.getFullYear(), m: now.getMonth() })}>Today</button>
+              </div>
+            )}
+          </div>
         </div>
-      )}
+
+        <div className="cx-board-body">
+          {companies.length === 0 && !error ? (
+            <p className="muted">No brands are assigned to you yet.</p>
+          ) : view === 'grid' ? (
+            <InstagramGrid creatives={visibleCreatives} company={active} onOpen={setViewing} />
+          ) : view === 'story' ? (
+            <InstagramStories creatives={visibleCreatives} company={active} onOpen={setViewing} />
+          ) : (
+            <div className="cal-grid" data-platform={activePlatform}>
+              {WEEKDAYS.map((d) => (
+                <div key={d} className="cal-dow">{d}</div>
+              ))}
+              {grid.map((d) => {
+                const key = ymd(d);
+                return (
+                  <div
+                    key={key}
+                    className={`cal-cell clickable ${d.getMonth() !== cursor.m ? 'other' : ''} ${key === today ? 'today' : ''}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Open ${key}`}
+                    onClick={() => setDayOpen(key)}
+                    onKeyDown={(e) => e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setDayOpen(key))}
+                  >
+                    <div className="cal-cell-top">
+                      <span className="cal-day">{d.getDate()}</span>
+                      {active && (
+                        <button
+                          type="button"
+                          className="cal-add"
+                          title={`Add ${activePlatformMeta.label} creative`}
+                          aria-label={`Add reference creative on ${key}`}
+                          onClick={(e) => { e.stopPropagation(); setModalDate(key); }}
+                        >
+                          <Plus size={14} />
+                        </button>
+                      )}
+                    </div>
+                    {dayCreatives(key).slice(0, MAX_CHIPS).map((c) => (
+                      <div key={c.id} className={`cal-creative ${c.status}`} title={`${c.contentPillar.title} · ${c.status === 'rejected' ? 'Redo' : c.status}`}>
+                        <span className="cal-creative-open">
+                          <span className="cal-creative-thumb">
+                            {c.uploads[0] ? <img src={c.uploads[0].url} alt="" /> : <ImageIcon size={14} />}
+                          </span>
+                          <span className="cal-creative-text">
+                            <span className="cal-creative-title">{c.contentPillar.title}</span>
+                            <span className="cal-creative-meta">
+                              <CreativeStatusBadge status={c.status} compact />
+                            </span>
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                    {dayCreatives(key).length > MAX_CHIPS && (
+                      <span className="cal-more">+{dayCreatives(key).length - MAX_CHIPS} more</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
 
       {dayOpen && active && (
         <DayCreativesModal
