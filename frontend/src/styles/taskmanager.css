@@ -1,7 +1,7 @@
  .sme-task-manager {
     width: 100%;
     margin: 28px 0;
-    color: #f1efff
+    color: #f9f7f5
 }
 .sme-task-header {
     display: flex;
@@ -21,7 +21,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 14px;
-    background: linear-gradient(135deg, #7857ff, #4932bd);
+    background: linear-gradient(135deg, #ff7729, #e15b0e);
     color: #fff
 }
 .sme-task-heading h2 {
@@ -31,7 +31,7 @@
 }
 .sme-task-heading p {
     font-size: 13px;
-    color: #9993b8;
+    color: #f27b36;
     margin: 5px 0 0
 }
 .sme-task-grid {
@@ -47,14 +47,14 @@
     padding: 22px;
     border: 1px solid rgba(255, 255, 255, .08);
     border-radius: 20px;
-    background: linear-gradient(145deg, #17152b, #11101f);
+    background: linear-gradient(145deg, #15100e, #100c0a);
     box-shadow: 0 8px 28px rgba(0, 0, 0, .15)
 }
 .sme-task-card.purple {
-    border-top: 2px solid #8b65ff
+    border-top: 2px solid #ff7729
 }
 .sme-task-card.blue {
-    border-top: 2px solid #4b9dff
+    border-top: 2px solid #ff7729
 }
 .sme-task-card.orange {
     border-top: 2px solid #e7a34b
@@ -76,12 +76,12 @@
     border-radius: 13px
 }
 .sme-task-icon.purple {
-    background: rgba(139, 101, 255, .16);
-    color: #a88bff
+    background: rgba(255, 119, 41, .16);
+    color: #d5c3b5
 }
 .sme-task-icon.blue {
-    background: rgba(75, 157, 255, .15);
-    color: #7dbaff
+    background: rgba(255, 119, 41, .15);
+    color: #d0bcac
 }
 .sme-task-icon.orange {
     background: rgba(231, 163, 75, .15);
@@ -99,13 +99,13 @@
     justify-content: center;
     border: 1px solid rgba(255, 255, 255, .12);
     border-radius: 12px;
-    background: rgba(139, 101, 255, .14);
-    color: #b7a2ff;
+    background: rgba(255, 119, 41, .14);
+    color: #decfc3;
     cursor: pointer;
     transition: .2s
 }
 .sme-add-task-btn:hover {
-    background: #7957ef;
+    background: #f27b36;
     color: #fff;
     transform: translateY(-2px)
 }
@@ -116,16 +116,16 @@
     font-size: 32px;
     font-weight: 750;
     margin: 0;
-    color: #f5f2ff
+    color: #faf8f7
 }
 .sme-task-info h4 {
     font-size: 16px;
     margin: 5px 0;
-    color: #e3dcff
+    color: #f2ede9
 }
 .sme-task-info p {
     font-size: 12px;
-    color: #918ba9;
+    color: #f27b36;
     margin: 6px 0 0
 }
 .sme-task-card-list {
@@ -136,7 +136,7 @@
 }
 .tm-empty {
     font-size: 13px;
-    color: #89839e;
+    color: #f2772f;
     text-align: center;
     padding: 18px 8px;
     margin: 0
@@ -156,7 +156,7 @@
 .tm-task-item-heading h4 {
     font-size: 14px;
     font-weight: 650;
-    color: #f0edff;
+    color: #f9f6f3;
     margin: 0;
     overflow-wrap: anywhere
 }
@@ -164,7 +164,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    color: #9e98b7;
+    color: #f27b36;
     font-size: 12px;
     margin: 10px 0
 }
@@ -176,9 +176,9 @@
 }
 .tm-task-meta span {
     font-size: 11px;
-    color: #b9b0d6;
+    color: #d4c1b2;
     padding: 5px 8px;
-    background: rgba(139, 101, 255, .09);
+    background: rgba(255, 119, 41, .09);
     border-radius: 6px
 }
 .task-priority {
@@ -203,7 +203,7 @@
 .tm-objective,
 .tm-brief {
     font-size: 12px;
-    color: #a9a2c0;
+    color: #f27b36;
     line-height: 1.6;
     margin: 8px 0;
     overflow-wrap: anywhere
@@ -226,11 +226,11 @@
     cursor: not-allowed
 }
 .tm-action-btn.start {
-    background: rgba(139, 101, 255, .17);
-    color: #b9a5ff
+    background: rgba(255, 119, 41, .17);
+    color: #dfd0c5
 }
 .tm-action-btn.start:hover {
-    background: #7957ef;
+    background: #f27b36;
     color: #fff
 }
 .tm-action-btn.end {
@@ -253,7 +253,7 @@
     align-items: center;
     gap: 6px;
     font-size: 11px;
-    color: #a8a0c0
+    color: #f27b36
 }
 .tm-completed-info {
     display: flex;
@@ -281,7 +281,7 @@
     align-items: center;
     justify-content: center;
     padding: 20px;
-    background: rgba(5, 4, 15, .78);
+    background: rgba(6, 5, 4, .78);
     backdrop-filter: blur(8px)
 }
 .tm-modal {
@@ -291,7 +291,7 @@
     overflow-y: auto;
     border: 1px solid rgba(255, 255, 255, .1);
     border-radius: 22px;
-    background: #151326;
+    background: #130e0c;
     box-shadow: 0 25px 80px rgba(0, 0, 0, .5)
 }
 .tm-modal-header {
@@ -303,23 +303,23 @@
     justify-content: space-between;
     gap: 15px;
     padding: 24px;
-    background: #151326;
+    background: #130e0c;
     border-bottom: 1px solid rgba(255, 255, 255, .07)
 }
 .tm-modal-eyebrow {
     font-size: 10px;
     font-weight: 750;
     letter-spacing: 1.6px;
-    color: #a18aff
+    color: #d5c2b4
 }
 .tm-modal-header h2 {
     font-size: 23px;
     margin: 7px 0;
-    color: #f3efff
+    color: #f9f7f5
 }
 .tm-modal-header p {
     font-size: 12px;
-    color: #9992b3;
+    color: #f27b36;
     margin: 0
 }
 .tm-modal-close {
@@ -331,7 +331,7 @@
     border: 1px solid rgba(255, 255, 255, .1);
     border-radius: 10px;
     background: rgba(255, 255, 255, .04);
-    color: #aaa2c3;
+    color: #f27b36;
     cursor: pointer
 }
 .tm-modal-close:hover {
@@ -353,7 +353,7 @@
 .tm-form-group label {
     font-size: 12px;
     font-weight: 600;
-    color: #c9c2df
+    color: #decfc3
 }
 .tm-form-group label span {
     color: #ff8c9a
@@ -367,19 +367,19 @@
     padding: 11px 12px;
     border: 1px solid rgba(255, 255, 255, .1);
     border-radius: 9px;
-    background: #1d1a32;
-    color: #f0edff;
+    background: #191310;
+    color: #f9f6f3;
     font-size: 13px;
     outline: none
 }
 .tm-form-group input:focus,
 .tm-form-group select:focus,
 .tm-form-group textarea:focus {
-    border-color: #8467ff;
-    box-shadow: 0 0 0 3px rgba(132, 103, 255, .1)
+    border-color: #ff7729;
+    box-shadow: 0 0 0 3px rgba(255, 119, 41, .1)
 }
 .tm-form-group select option {
-    background: #1d1a32;
+    background: #191310;
     color: #fff
 }
 .tm-form-group textarea {
@@ -392,7 +392,7 @@
 }
 .tm-input-suffix span {
     font-size: 12px;
-    color: #aaa2c3
+    color: #f27b36
 }
 .tm-form-actions {
     grid-column: 1/-1;
@@ -413,11 +413,11 @@
 .tm-cancel-btn {
     border: 1px solid rgba(255, 255, 255, .1);
     background: rgba(255, 255, 255, .04);
-    color: #b8b0d0
+    color: #d2beae
 }
 .tm-submit-btn {
     border: 0;
-    background: linear-gradient(135deg, #8765ff, #6242d6);
+    background: linear-gradient(135deg, #ff7729, #f17127);
     color: #fff
 }
 .tm-submit-btn:disabled,
@@ -521,7 +521,7 @@
   gap: 7px;
   font-size: 11px;
   line-height: 1.6;
-  color: #b8b0d0;
+  color: #d2beae;
   overflow-wrap: anywhere;
 }
 .tm-completed-info {
@@ -592,7 +592,7 @@
     gap: 6px;
     font-size: 11px;
     line-height: 1.5;
-    color: #cbd5e1;
+    color: #e1d4cb;
     overflow-wrap: anywhere;
 }
 
@@ -666,21 +666,21 @@
     gap: 6px;
     margin: 10px 0;
     font-size: 12px;
-    color: #c4b5fd;
+    color: #e4d8ce;
 }
 
 .tm-due-date svg {
-    color: #a78bfa;
+    color: #d3c0b2;
     flex-shrink: 0;
 }
 
 .tm-due-date strong {
-    color: #e2e8f0;
+    color: #efe8e3;
     font-weight: 600;
 }
 
 .tm-due-date span {
-    color: #c4b5fd;
+    color: #e4d8ce;
     font-weight: 500;
 }
 

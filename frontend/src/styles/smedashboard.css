@@ -58,16 +58,16 @@
   color: #ffffff;
   font-size: 13px;
   font-weight: 650;
-  background: #3156c8;
-  border: 1px solid #3156c8;
+  background: #ea5f0f;
+  border: 1px solid #ea5f0f;
   border-radius: 9px;
   cursor: pointer;
   transition: 0.2s ease;
-  box-shadow: 0 4px 12px rgba(49, 86, 200, 0.16);
+  box-shadow: 0 4px 12px rgba(234, 95, 15, 0.16);
 }
 
 .add-meeting-btn:hover {
-  background: #2445ad;
+  background: #dd5a0e;
 }
 
 /* =========================================
@@ -77,13 +77,13 @@
 .meeting-list { display: flex; flex-direction: column; gap: 12px; }
 .meeting-item {
   padding: 14px 16px;
-  background: rgba(24, 35, 103, 0.35);
-  border: 1px solid rgba(226, 218, 255, 0.2);
+  background: rgba(43, 32, 27, 0.35);
+  border: 1px solid rgba(242, 236, 231, 0.2);
   border-radius: 12px;
 }
 .meeting-item-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .meeting-item-main { min-width: 0; }
-.meeting-company { font-size: 12px; font-weight: 600; color: #c4b5fd; letter-spacing: 0.3px; }
+.meeting-company { font-size: 12px; font-weight: 600; color: #e4d8ce; letter-spacing: 0.3px; }
 .meeting-title { margin: 4px 0 0; font-size: 16px; font-weight: 700; color: #fff; overflow-wrap: anywhere; }
 .meeting-item-when {
   flex-shrink: 0;
@@ -95,12 +95,12 @@
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px;
   font-size: 13px; font-weight: 700; color: #fff; text-decoration: none;
-  background: linear-gradient(135deg, #7c5cff, #5b8cff);
+  background: linear-gradient(135deg, #ff7729, #ff7729);
   border: none; border-radius: 10px;
   cursor: pointer;
   transition: all 0.25s ease;
 }
-.join-now-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(124, 92, 255, 0.4); }
+.join-now-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(255, 119, 41, 0.4); }
 .join-now-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .avatar-stack { display: flex; align-items: center; }
 .avatar {
@@ -108,7 +108,7 @@
   display: flex; align-items: center; justify-content: center;
   margin-left: -8px;
   font-size: 11px; font-weight: 700; color: #fff;
-  border: 2px solid #1c2569; border-radius: 50%;
+  border: 2px solid #2d211d; border-radius: 50%;
 }
 .avatar:first-child { margin-left: 0; }
 .avatar-more { background: rgba(255, 255, 255, 0.18); }
@@ -123,28 +123,28 @@
   width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;
   color: #fff;
-  background: rgba(129, 95, 225, 0.45);
-  border: 1px solid rgba(205, 190, 255, 0.32);
+  background: rgba(242, 123, 54, 0.45);
+  border: 1px solid rgba(232, 221, 213, 0.32);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.25s ease;
 }
-.attendee-add:hover { background: rgba(145, 112, 245, 0.75); box-shadow: 0 0 15px rgba(139, 92, 246, 0.3); }
+.attendee-add:hover { background: rgba(242, 123, 54, 0.75); box-shadow: 0 0 15px rgba(244, 122, 52, 0.3); }
 .attendee-row { display: grid; grid-template-columns: 1fr 1fr 32px; gap: 10px; align-items: center; }
 .attendee-row input {
   width: 100%; min-width: 0;
   padding: 12px 14px;
   font-size: 14px; color: #fff;
-  background: rgba(24, 35, 103, 0.42);
-  border: 1px solid rgba(226, 218, 255, 0.2);
+  background: rgba(43, 32, 27, 0.42);
+  border: 1px solid rgba(242, 236, 231, 0.2);
   border-radius: 11px;
   outline: none;
 }
 .attendee-row input:focus {
   border-color: var(--lavender-light);
-  box-shadow: 0 0 0 3px rgba(183, 164, 255, 0.12);
+  box-shadow: 0 0 0 3px rgba(222, 208, 197, 0.12);
 }
-.attendee-row input::placeholder { color: rgba(230, 224, 255, 0.5); }
+.attendee-row input::placeholder { color: rgba(244, 239, 235, 0.5); }
 .attendee-remove {
   width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;
@@ -202,16 +202,16 @@
 
 /* clickable meeting card + details modal */
 .meeting-item.clickable { cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease; }
-.meeting-item.clickable:hover { border-color: rgba(196, 181, 253, 0.6); background: rgba(40, 52, 130, 0.5); transform: translateY(-1px); }
-.meeting-item.clickable:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 2px; }
+.meeting-item.clickable:hover { border-color: rgba(228, 216, 206, 0.6); background: rgba(57, 43, 36, 0.5); transform: translateY(-1px); }
+.meeting-item.clickable:focus-visible { outline: 2px solid #e4d8ce; outline-offset: 2px; }
 .md-summary { display: flex; flex-direction: column; gap: 4px; }
 .md-summary .meeting-title { margin-top: 2px; }
 .md-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 8px; font-size: 13px; color: var(--lavender-light); }
 .md-facts > span { display: inline-flex; align-items: center; gap: 6px; }
-.md-link { display: inline-flex; align-items: center; gap: 6px; color: #c4b5fd; text-decoration: none; font-weight: 600; }
+.md-link { display: inline-flex; align-items: center; gap: 6px; color: #e4d8ce; text-decoration: none; font-weight: 600; }
 .md-link:hover { text-decoration: underline; }
 .md-attendees { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-height: 220px; overflow-y: auto; padding-right: 4px; }
-.md-attendee { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: rgba(24, 35, 103, 0.35); border: 1px solid rgba(226, 218, 255, 0.18); border-radius: 12px; min-width: 0; }
+.md-attendee { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: rgba(43, 32, 27, 0.35); border: 1px solid rgba(242, 236, 231, 0.18); border-radius: 12px; min-width: 0; }
 @media (max-width: 600px) { .md-attendees { grid-template-columns: 1fr; } }
 
 
