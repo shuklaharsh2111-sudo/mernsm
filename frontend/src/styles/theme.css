@@ -303,3 +303,19 @@ body .tm-modal {
   -webkit-backdrop-filter: blur(24px) saturate(150%);
 }
 body .tm-modal-header { background: rgba(24, 18, 16, 0.92); }
+
+/* ---------- Logout confirmation ---------- */
+.logout-confirm-backdrop { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(12, 8, 6, .62); backdrop-filter: blur(4px); animation: lc-fade .15s ease-out; }
+.logout-confirm-card { width: min(380px, 100%); padding: 26px 24px 22px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 16px; background: #281e19; color: #fff; text-align: center; box-shadow: 0 24px 60px rgba(0, 0, 0, .5); animation: lc-pop .18s ease-out; }
+.logout-confirm-icon { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto 12px; border-radius: 50%; background: rgba(217, 45, 10, .16); color: #ff8a73; }
+.logout-confirm-card h3 { margin: 0 0 6px; font-size: 18px; font-weight: 600; }
+.logout-confirm-card p { margin: 0 0 20px; font-size: 13px; line-height: 1.5; color: #cdb7a7; }
+.logout-confirm-actions { display: flex; gap: 10px; }
+.logout-confirm-actions button { flex: 1; padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s, opacity .15s; }
+.logout-confirm-actions button:disabled { opacity: .6; cursor: not-allowed; }
+.logout-confirm-cancel { border: 1px solid rgba(255, 255, 255, .18); background: transparent; color: #fff; }
+.logout-confirm-cancel:hover:not(:disabled) { background: rgba(255, 255, 255, .08); }
+.logout-confirm-yes { border: 1px solid transparent; background: #d92d0a; color: #fff; }
+.logout-confirm-yes:hover:not(:disabled) { background: #f03a15; }
+@keyframes lc-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lc-pop { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
