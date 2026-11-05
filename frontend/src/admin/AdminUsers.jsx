@@ -4,9 +4,7 @@ import api from '../api';
 import { errMsg } from '../sopUtils';
 import AssignCompaniesModal from '../components/AssignCompaniesModal';
 import ManageSopsModal from '../components/ManageSopsModal';
-
 const emptyForm = { name: '', email: '', password: '' };
-
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -15,15 +13,12 @@ const AdminUsers = () => {
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const reload = () => setReloadKey((k) => k + 1);
-
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState('');
-
   const [assignUser, setAssignUser] = useState(null); // user whose companies are being assigned
   const [sopUser, setSopUser] = useState(null); // user whose SOPs are being managed
-
   useEffect(() => {
     let cancelled = false;
     Promise.all([api.get('/admin/users'), api.get('/admin/companies')])
@@ -40,9 +35,7 @@ const AdminUsers = () => {
       cancelled = true;
     };
   }, [reloadKey]);
-
   const byId = Object.fromEntries(companies.map((c) => [c.id, c]));
-
   const addUser = async (e) => {
     e.preventDefault();
     setBusy(true);
@@ -59,7 +52,6 @@ const AdminUsers = () => {
       setBusy(false);
     }
   };
-
   const removeUser = async (u) => {
     if (!window.confirm(`Delete ${u.name}? Their assigned SOPs will be deleted too.`)) return;
     setError('');
@@ -71,7 +63,6 @@ const AdminUsers = () => {
       setError(errMsg(err));
     }
   };
-
   return (
     <div className="dashboard-content scrollable">
       <div className="page-header">
@@ -84,10 +75,8 @@ const AdminUsers = () => {
           <UserPlus size={16} /> {adding ? 'Close' : 'Add User'}
         </button>
       </div>
-
       {error && <p className="error-message" role="alert">{error}</p>}
       {created && <p className="success-message" role="status">{created}</p>}
-
       {adding && (
         <form className="glass-panel add-form" onSubmit={addUser}>
           <label className="x-field">
@@ -107,7 +96,6 @@ const AdminUsers = () => {
           </div>
         </form>
       )}
-
       {loading ? (
         <p className="muted">Loading…</p>
       ) : users.length === 0 ? (
@@ -145,7 +133,6 @@ const AdminUsers = () => {
           })}
         </div>
       )}
-
       {assignUser && (
         <AssignCompaniesModal
           user={assignUser}
@@ -155,10 +142,8 @@ const AdminUsers = () => {
           onClose={() => setAssignUser(null)}
         />
       )}
-
       {sopUser && <ManageSopsModal user={sopUser} companies={companies} onClose={() => setSopUser(null)} />}
     </div>
   );
 };
-
 export default AdminUsers;
