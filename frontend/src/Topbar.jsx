@@ -33,10 +33,6 @@ const Topbar = ({ onMenu }) => {
       <div className="top-meta">
         <span className="top-chip"><CalendarDays size={15} /> {date}</span>
         <span className="top-chip"><Clock3 size={15} /> {time}</span>
-        <span className="top-user">
-          <i>{(user?.name || 'U').trim()[0]?.toUpperCase()}</i>
-          <b>{user?.name}</b>
-        </span>
       </div>
     </header>
   );

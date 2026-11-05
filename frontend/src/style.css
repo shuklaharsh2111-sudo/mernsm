@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 :root {
   --royal: #dd5a0e;
   --royal-dark: #362822;
@@ -19,7 +18,7 @@
   --text-muted: #cdb7a7;
   --shadow: 0 15px 45px rgba(24, 18, 16, 0.3);
   --glow: 0 0 30px rgba(210, 190, 175, 0.24);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color: var(--text-primary);
   background: var(--royal-deep);
   font-synthesis: none;
@@ -1439,3 +1438,7 @@ body {
 .dashboard-layout.collapsed .menu-link,
 .dashboard-layout.collapsed .logout-button { justify-content: center; padding: 13px 0; gap: 0; }
 .dashboard-layout.collapsed .menu-link:hover { transform: none; }
+
+/* Poppins everywhere (including form controls, which don't inherit by default) */
+html, body, #root { font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+button, input, select, textarea, optgroup { font-family: inherit; }

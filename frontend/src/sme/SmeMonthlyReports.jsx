@@ -132,19 +132,52 @@ const buildSummary = (company, f, d, month) => {
 
 /* ---------- small form pieces ---------- */
 
-const NumInput = ({ label, value, onChange, hint, suffix }) => (
-    <label className="mr-field">
-        <span>{label}</span>
-        <div className="mr-input-wrap">
-            <input
-                type="text" inputMode="numeric" value={value} placeholder="0"
-                onChange={e => onChange(e.target.value.replace(/[^\d.,]/g, ''))}
-            />
-            {suffix && <em>{suffix}</em>}
-        </div>
-        {hint && <small>{hint}</small>}
-    </label>
-);
+// Number box. Pass `max` (e.g. max={100} for percentages) to stop bigger numbers while typing.
+const NumInput = ({ label, value, onChange, hint, suffix, max, maxMessage }) => {
+    const [warn, setWarn] = useState(false);
+    const isLimited = max !== undefined;
+    const message = maxMessage || `Percentage cannot be above ${max}`;
+
+    // hide the warning by itself after a few seconds
+    useEffect(() => {
+        if (!warn) return undefined;
+        const t = setTimeout(() => setWarn(false), 3500);
+        return () => clearTimeout(t);
+    }, [warn]);
+
+    const handleChange = (e) => {
+        let next = e.target.value.replace(/[^\d.,]/g, '');
+        if (isLimited) {
+            // limited fields hold a plain decimal number: "," counts as ".", one dot, 2 decimals
+            next = next.replace(/,/g, '.');
+            const dot = next.indexOf('.');
+            if (dot !== -1) next = next.slice(0, dot + 1) + next.slice(dot + 1).replace(/\./g, '').slice(0, 2);
+            if (next !== '' && next !== '.' && Number(next) > max) {
+                setWarn(true); // too big: keep the old value and tell the user
+                return;
+            }
+        }
+        setWarn(false);
+        onChange(next);
+    };
+
+    return (
+        <label className={`mr-field${warn ? ' has-error' : ''}`}>
+            <span>{label}</span>
+            <div className="mr-input-wrap">
+                <input
+                    type="text" inputMode={isLimited ? 'decimal' : 'numeric'} value={value} placeholder="0"
+                    aria-invalid={warn || undefined}
+                    onChange={handleChange}
+                    onBlur={() => setWarn(false)}
+                />
+                {suffix && <em>{suffix}</em>}
+            </div>
+            {warn && <small className="mr-error" role="alert">{message}</small>}
+            {hint && <small>{hint}</small>}
+        </label>
+    );
+};
 
 const LineList = ({ label, items, onChange, placeholder }) => (
     <div className="mr-field wide">
@@ -408,7 +441,7 @@ const AllStepBody = ({ stepKey, b, month, companyName, setF }) => {
             {stepKey === 'insights' && (
                 <div className="mrx-insights">
                     <div className="mrx-grid c3">
-                        <NumInput label="Interactions from non-followers" suffix="%" value={f.nonFollowerInteractionPct} onChange={setF('nonFollowerInteractionPct')} />
+                        <NumInput label="Interactions from non-followers" suffix="%" max={100} value={f.nonFollowerInteractionPct} onChange={setF('nonFollowerInteractionPct')} />
                     </div>
                     <div className="mrx-two">
                         <LineList label="Key insights" items={f.keyInsights} onChange={setF('keyInsights')} placeholder="e.g. 98.7% of interactions came from non-followers" />
@@ -1015,7 +1048,7 @@ const SmeMonthlyReports = () => {
                                 {STEPS[step].key === 'insights' && (
                                     <div className="mrx-insights">
                                         <div className="mrx-grid c3">
-                                            <NumInput label="Interactions from non-followers" suffix="%" value={form.nonFollowerInteractionPct} onChange={set('nonFollowerInteractionPct')} />
+                                            <NumInput label="Interactions from non-followers" suffix="%" max={100} value={form.nonFollowerInteractionPct} onChange={set('nonFollowerInteractionPct')} />
                                         </div>
                                         <div className="mrx-two">
                                             <LineList label="Key insights" items={form.keyInsights} onChange={set('keyInsights')} placeholder="e.g. 98.7% of interactions came from non-followers" />
