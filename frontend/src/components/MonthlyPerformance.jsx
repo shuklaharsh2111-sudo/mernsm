@@ -12,7 +12,7 @@ import { StatusChart, CompareChart, CompanyChart, PlatformChart, MeetingsChart }
 const HEALTH_LABEL = { healthy: 'Healthy', risk: 'At Risk', critical: 'Critical', nodata: 'No data' };
 const STATUS_LABEL = { approved: 'Approved', pending: 'Pending', rejected: 'Redo' };
 const MOM_LABEL = { not_sent: 'Not sent', pending: 'Pending', approved: 'Approved', sent_back: 'Sent back', rejected: 'Rejected' };
-const PLATFORM_LABEL = { instagram: 'Instagram', facebook: 'Facebook', linkedin: 'LinkedIn', x: 'X', youtube: 'YouTube' };
+const PLATFORM_LABEL = { instagram: 'Instagram', facebook: 'Facebook', threads: 'Threads', linkedin: 'LinkedIn', x: 'X', youtube: 'YouTube', pinterest: 'Pinterest' };
 const platformName = (p) => PLATFORM_LABEL[p] || p;
 
 const num = (v) => Number(v || 0).toLocaleString('en-IN');
@@ -22,7 +22,7 @@ const Health = ({ value }) => (
     <span className={`mr-health mr-health-${value}`}>{HEALTH_LABEL[value] || value}</span>
 );
 
-const MonthlyPerformance = ({ month, header, socialSection, footer, preparedBy }) => {
+const MonthlyPerformance = ({ month, platform = '', header, socialSection, footer, preparedBy }) => {
     const signDate = fmtDay(todayStr());
     const [r, setR] = useState(null);
     const [error, setError] = useState('');
@@ -31,11 +31,11 @@ const MonthlyPerformance = ({ month, header, socialSection, footer, preparedBy }
         let cancelled = false;
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setR(null); setError('');
-        api.get('/sme/monthly-report', { params: { month, today: todayStr() } })
+        api.get('/sme/monthly-report', { params: { month, today: todayStr(), platform: platform || undefined } })
             .then(({ data }) => { if (!cancelled) setR(data); })
             .catch(err => { if (!cancelled) setError(errMsg(err)); });
         return () => { cancelled = true; };
-    }, [month]);
+    }, [month, platform]);
 
     if (error || !r || !r.companyCount) {
         return (
@@ -78,6 +78,7 @@ const MonthlyPerformance = ({ month, header, socialSection, footer, preparedBy }
                         <tr><th>Department</th><td>{r.sme.department}</td><th>Email</th><td>{r.sme.email || '-'}</td></tr>
                         <tr><th>Reporting manager</th><td>{r.sme.manager || '-'}</td><th>Assigned companies</th><td>{r.companyCount}</td></tr>
                         <tr><th>Reporting period</th><td>{fmtDay(r.periodFrom)} – {fmtDay(r.periodTo)}</td><th>Compared with</th><td>{r.previousMonth}</td></tr>
+                        {platform && <tr><th>Platform</th><td>{platformName(platform)}</td><th>Scope</th><td>Creatives planned for {platformName(platform)}</td></tr>}
                     </tbody>
                 </table>
             </section>
@@ -144,7 +145,7 @@ const MonthlyPerformance = ({ month, header, socialSection, footer, preparedBy }
                 <CompanyChart r={r} />
             </section>
 
-            {r.platformReports.length > 0 && (
+            {!platform && r.platformReports.length > 0 && (
                 <section>
                     <h2>Platform Performance</h2>
                     <table className="mr-table">
