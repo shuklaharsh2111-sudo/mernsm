@@ -78,10 +78,10 @@ const AdminUsers = () => {
         <div>
           <span className="page-label">ADMINISTRATION</span>
           <h1>Users</h1>
-          <p>Add SMEs, assign companies (max {max} each) and manage their SOPs.</p>
+          <p>Add Users, assign companies (max {max} each) and manage their SOPs.</p>
         </div>
         <button type="button" className="btn-primary" onClick={() => { setAdding((a) => !a); setCreated(''); }}>
-          <UserPlus size={16} /> {adding ? 'Close' : 'Add SME'}
+          <UserPlus size={16} /> {adding ? 'Close' : 'Add User'}
         </button>
       </div>
 
@@ -103,7 +103,7 @@ const AdminUsers = () => {
             <input type="text" value={form.password} required minLength={8} autoComplete="off" onChange={(e) => setForm({ ...form, password: e.target.value })} />
           </label>
           <div className="btn-row">
-            <button className="btn-primary" disabled={busy}>{busy ? 'Adding…' : 'Add SME'}</button>
+            <button className="btn-primary" disabled={busy}>{busy ? 'Adding…' : 'Add User'}</button>
           </div>
         </form>
       )}
@@ -111,7 +111,7 @@ const AdminUsers = () => {
       {loading ? (
         <p className="muted">Loading…</p>
       ) : users.length === 0 ? (
-        <div className="glass-panel"><p className="muted">No SMEs yet. Press “Add SME” to create the first one.</p></div>
+        <div className="glass-panel"><p className="muted">No Users yet. Press “Add Users“ to create the first one.</p></div>
       ) : (
         <div className="user-list">
           {users.map((u) => {
