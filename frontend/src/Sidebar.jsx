@@ -24,10 +24,10 @@ const Sidebar = ({ collapsed = false, onToggle, mobileOpen = false, onClose }) =
     <aside className={`app-sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'open' : ''}`} aria-label="Main navigation">
       {/* 1. Brand */}
       <div className="side-brand">
-        <div className="side-logo">US</div>
+        <div className="side-logo">N</div>
         <div className="side-brand-text">
-          <strong>Unstoppable Solutions</strong>
-          <span>Social Media Manager</span>
+          <strong>Neuro</strong>
+          <span>Complete Social Media Management</span>
         </div>
         <button type="button" className="side-close" onClick={onClose} aria-label="Close menu"><X size={18} /></button>
       </div>
