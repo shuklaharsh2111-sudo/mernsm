@@ -1033,3 +1033,19 @@
     max-height: 0;
     overflow: hidden;
 }
+
+/* ---------- All platforms view ---------- */
+.mrx-all .mrx-panel-head p { margin-left: 0; }
+.mrx-all-scroll { overflow-x: auto; }
+.mrx-all-table { width: 100%; border-collapse: collapse; font-size: 12.5px; color: var(--ink-2, #cfc8c3); }
+.mrx-all-table th,
+.mrx-all-table td { padding: 10px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line, #2b2b32); }
+.mrx-all-table th:first-child,
+.mrx-all-table td:first-child { text-align: left; }
+.mrx-all-table th { font-size: 11px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--ink-3, #8f8883); }
+.mrx-all-table tfoot td { border-bottom: 0; border-top: 2px solid var(--line, #2b2b32); font-weight: 800; color: var(--ink, #f6f2ef); }
+.mrx-all-plat { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--ink, #f6f2ef); }
+.mrx-all-note { margin: 12px 0 0; font-size: 12px; line-height: 1.5; color: var(--ink-3, #8f8883); }
+.mrx-plat-card { margin-bottom: 18px; padding: 16px; border: 1px solid var(--line, #2b2b32); border-radius: 14px; background: var(--surface-2, #1a1a1f); }
+.mrx-plat-card:last-child { margin-bottom: 0; }
+.mrx-plat-title { display: flex; align-items: center; gap: 8px; margin: 0 0 14px !important; font-size: 14px; font-weight: 800; color: var(--orange-light, #ffb04d); }
