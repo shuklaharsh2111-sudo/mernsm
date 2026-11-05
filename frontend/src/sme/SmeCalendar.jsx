@@ -182,7 +182,7 @@ const SmeCalendar = () => {
               className={`cx-plat ${activePlatform === key ? 'active' : ''}`}
               onClick={() => openCalendar(activeId, key)}
             >
-              <span className="cx-plat-icon"><LinePlatformIcon platform={key} size={40} /></span>
+              <span className="cx-plat-icon"><LinePlatformIcon platform={key} size={18} /></span>
               <span className="cx-plat-name">{label}</span>
               <span className="cx-plat-count">{countFor(key)}</span>
             </button>
@@ -194,7 +194,7 @@ const SmeCalendar = () => {
       <section className="cx-board" data-platform={activePlatform} style={{ '--brand-hue': (brandIndex * 57 + 225) % 360 }}>
         <div className="cx-board-head">
           <div className="cx-board-title">
-            <span className="cx-board-icon"><MetaIcon size={22} /></span>
+            <span className="cx-board-icon"><MetaIcon size={16} /></span>
             <div>
               <h2>{activePlatformMeta.label} calendar</h2>
               <p>{active ? active.name : 'No brand selected'}</p>
