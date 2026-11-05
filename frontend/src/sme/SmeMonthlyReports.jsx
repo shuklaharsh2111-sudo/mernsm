@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle2, Download, Eye, Plus, Save, Trash2, X } from 'lucide-react';
+import { Activity, AlertCircle, ArrowDownRight, ArrowUpRight, CheckCircle2, ChevronLeft, ChevronRight, Download, Eye, FileText, Layers, Lightbulb, Plus, Save, Trash2, TrendingUp, Trophy, Users, X } from 'lucide-react';
 import api from '../api';
 import { errMsg, todayStr } from '../sopUtils';
 import AnSelect from '../components/AnSelect';
+import { LinePlatformIcon } from '../components/SocialIcons';
 import MonthlyPerformance from '../components/MonthlyPerformance';
 import { GrowthChart, OverviewCharts } from '../components/MonthlyCharts';
 import '../styles/analytics.css';
@@ -43,7 +44,19 @@ const fromDoc = (d) => {
     };
 };
 
-const PLATFORM_LABEL = { instagram: 'Instagram', facebook: 'Facebook', linkedin: 'LinkedIn', x: 'X', youtube: 'YouTube' };
+const PLATFORM_CHOICES = ['Instagram', 'Facebook', 'Threads', 'LinkedIn', 'YouTube', 'X', 'Pinterest'];
+
+const STEPS = [
+    { key: 'summary', label: 'Summary', icon: FileText, title: 'Summary', hint: 'Write your own summary, or leave it empty and it is written from the numbers.' },
+    { key: 'audience', label: 'Audience', icon: Users, title: 'Audience growth', hint: 'Followers at the start of the month and how they changed.' },
+    { key: 'reach', label: 'Reach', icon: Activity, title: 'Reach & engagement', hint: 'Copy these from the platform Insights. Leave a box empty if it is not available.' },
+    { key: 'content', label: 'Content', icon: Layers, title: 'Content output', hint: 'Filled automatically from the approved creatives planned for this platform. Nothing to type.' },
+    { key: 'overview', label: '3-Month', icon: TrendingUp, title: '3-month social media overview', hint: 'Type the figures for the two earlier months. An empty box uses what was saved for that month.' },
+    { key: 'best', label: 'Best content', icon: Trophy, title: 'Best performing content', hint: 'Up to five posts that performed best this month.' },
+    { key: 'insights', label: 'Insights', icon: Lightbulb, title: 'Key insights & improvements', hint: 'What worked, and what should change next month.' },
+];
+
+const PLATFORM_LABEL = { instagram: 'Instagram', facebook: 'Facebook', threads: 'Threads', linkedin: 'LinkedIn', x: 'X', youtube: 'YouTube', pinterest: 'Pinterest' };
 
 const n = (v) => (v === '' || v === null || v === undefined || Number.isNaN(Number(v)) ? null : Number(v));
 const fmt = (v) => (n(v) === null ? '-' : Number(v).toLocaleString('en-IN'));
@@ -161,6 +174,7 @@ const SmeMonthlyReports = () => {
     const [month, setMonth] = useState(months[0].value);
     const [companies, setCompanies] = useState([]);
     const [companyId, setCompanyId] = useState('');
+    const [platform, setPlatform] = useState(PLATFORM_CHOICES[0]); // the one platform this report is about
     const [form, setForm] = useState(emptyForm());
     const [prev, setPrev] = useState(null);
     const [earlier, setEarlier] = useState(null);
@@ -187,22 +201,22 @@ const SmeMonthlyReports = () => {
         let cancelled = false;
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoading(true); setError(''); setSaved('');
-        api.get('/sme/social-metrics', { params: { company: companyId, month } })
+        api.get('/sme/social-metrics', { params: { company: companyId, month, platform } })
             .then(({ data }) => {
                 if (cancelled) return;
                 const f = fromDoc(data.current);
+                f.platform = platform;
                 // first time for this month: carry over what is already known from last month
                 if (!data.current && data.previous) {
                     const pd = derive(fromDoc(data.previous));
                     if (pd.end !== null) f.followersStart = pd.end;
-                    f.platform = data.previous.platform || f.platform;
                 }
                 setForm(f); setPrev(data.previous); setEarlier(data.earlier); setOutput(data.output || null);
             })
             .catch(err => { if (!cancelled) setError(errMsg(err)); })
             .finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
-    }, [companyId, month]);
+    }, [companyId, month, platform]);
 
     useEffect(() => {
         if (!preview) return undefined;
@@ -214,21 +228,22 @@ const SmeMonthlyReports = () => {
 
     const set = (k) => (v) => { setSaved(''); setForm(f => ({ ...f, [k]: v })); };
     const companyName = companies.find(c => c.id === companyId)?.name || '';
+    const platKey = platform.toLowerCase(); // key used by creatives and the report, e.g. 'linkedin'
     const d = derive(form);
     const pForm = prev ? fromDoc(prev) : null;
     const pd = pForm ? derive(pForm) : null;
     const eForm = earlier ? fromDoc(earlier) : null;
     const ed = eForm ? derive(eForm) : null;
-    const autoSummary = buildSummary(companyName, form, d, month);
+    const autoSummary = buildSummary(companyName, { ...form, platform }, d, month);
     const prevLabelKey = shiftMonth(month, -1);
     const chartMonth = (key) => {
         const [y, m] = key.split('-').map(Number);
         return `${new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'short' })} ${String(y).slice(2)}`;
     };
     // content output comes from the approved creatives (not typed in)
-    const outNow = output?.[month] || { total: 0, platforms: {} };
-    const outPrev = output?.[shiftMonth(month, -1)] || { total: 0, platforms: {} };
-    const outPlatforms = [...new Set([...Object.keys(outNow.platforms), ...Object.keys(outPrev.platforms)])];
+    const onlyThisPlatform = (o) => ({ total: o?.platforms?.[platKey] || 0 });
+    const outNow = onlyThisPlatform(output?.[month]);
+    const outPrev = onlyThisPlatform(output?.[shiftMonth(month, -1)]);
     // 3-month overview: typed value first, otherwise what was saved for that month
     const ovPrev = {
         followers: n(form.ovPrevFollowers) ?? pd?.end ?? null,
@@ -253,7 +268,7 @@ const SmeMonthlyReports = () => {
         setSaving(true); setError(''); setSaved('');
         try {
             const body = {
-                ...form, company: companyId, month,
+                ...form, platform, company: companyId, month,
                 followersEnd: n(form.followersEnd) ?? d.end ?? '',
                 bestContent: form.bestContent.filter(b => b.title.trim())
             };
@@ -273,7 +288,7 @@ const SmeMonthlyReports = () => {
         setDownloading(true); setError('');
         try {
             const { default: html2pdf } = await import('html2pdf.js');
-            const safe = `${companyName || 'Company'}-${month}`.replace(/[^\w-]+/g, '_');
+            const safe = `${companyName || 'Company'}-${platform}-${month}`.replace(/[^\w-]+/g, '_');
             await html2pdf().set({
                 margin: [10, 8, 10, 8],
                 filename: `Monthly-Report-${safe}.pdf`,
@@ -304,150 +319,274 @@ const SmeMonthlyReports = () => {
     const prevLabel = shiftMonth(month, -1);
     const bestList = form.bestContent.filter(b => b.title.trim());
 
+    /* ---------- editor steps + live review ---------- */
+    const [step, setStep] = useState(0);
+    const platformOptions = PLATFORM_CHOICES.map(v => ({ value: v, label: v }));
+    const filledCount = (vals) => vals.filter(v => v !== null && v !== undefined).length;
+    const stepFields = {
+        audience: [n(form.followersStart), n(form.newFollowers), n(form.unfollowers)],
+        reach: [n(form.accountsReached), n(form.accountsEngaged), n(form.views), n(form.profileVisits), n(form.websiteVisits)],
+        overview: [ovPrev.followers, ovPrev.reach, ovPrev.engagement, ovEarlier.followers, ovEarlier.reach, ovEarlier.engagement],
+        best: [bestList.length ? 1 : null],
+        insights: [n(form.nonFollowerInteractionPct), form.keyInsights.some(t => t.trim()) ? 1 : null, form.improvements.some(t => t.trim()) ? 1 : null],
+    };
+    const stepDone = { summary: !!(form.summaryNote.trim() || autoSummary), content: true };
+    let fieldsTotal = 0, fieldsFilled = 0;
+    Object.entries(stepFields).forEach(([k, vals]) => {
+        const f = filledCount(vals);
+        fieldsTotal += vals.length; fieldsFilled += f;
+        stepDone[k] = f === vals.length;
+    });
+    const completePct = fieldsTotal ? Math.round((fieldsFilled / fieldsTotal) * 100) : 0;
+    const firstOpen = STEPS.findIndex(st => !stepDone[st.key]);
+    const change = (cur, prv) => (cur === null || prv === null || prv === 0 ? null : ((cur - prv) / prv) * 100);
+    const kpis = [
+        { label: 'Closing followers', value: fmt(d.end), note: d.net !== null ? `${signed(d.net)} net` : null, tone: d.net === null ? '' : d.net >= 0 ? 'up' : 'down' },
+        { label: 'Reach', value: fmt(form.accountsReached), pct: change(n(form.accountsReached), n(pForm?.accountsReached)) },
+        { label: 'Engagement', value: fmt(form.accountsEngaged), pct: change(n(form.accountsEngaged), n(pForm?.accountsEngaged)) },
+        { label: 'Views', value: fmt(form.views), pct: change(n(form.views), n(pForm?.views)) },
+        { label: 'Profile visits', value: fmt(form.profileVisits), pct: change(n(form.profileVisits), n(pForm?.profileVisits)) },
+        { label: 'Content approved', value: fmt(outNow.total), pct: change(outNow.total, outPrev.total) },
+    ];
+    const setBest = (i, patch) => set('bestContent')(form.bestContent.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+
     if (!loading && !companies.length && !error) {
         return <div className="dashboard-content scrollable"><p className="an-empty">No company is assigned to you yet. Ask the admin to assign one.</p></div>;
     }
 
     return (
         <div className="dashboard-content scrollable mr-page">
-            <div className="mr-noprint">
-                <div className="page-header">
-                    <div>
+            <div className="mr-noprint mrx">
+                <div className="mrx-top">
+                    <div className="mrx-title">
                         <span className="page-label">SME WORKSPACE</span>
                         <h1>Monthly Reports</h1>
-                        <p>Type in the social-media numbers that are not in the system, then download the monthly report.</p>
+                        <p>Pick one platform, enter its numbers from the platform insights, and review that platform’s report as you go.</p>
                     </div>
-                </div>
-
-                <div className="an-filters">
-                    <AnSelect label="Company" value={companyId} options={companies.map(c => ({ value: c.id, label: c.name }))} onChange={setCompanyId} />
-                    <AnSelect label="Month" value={month} options={months} onChange={setMonth} />
+                    <div className="mrx-filters">
+                        <AnSelect label="Company" value={companyId} options={companies.map(c => ({ value: c.id, label: c.name }))} onChange={setCompanyId} />
+                        <AnSelect label="Month" value={month} options={months} onChange={setMonth} />
+                        <AnSelect label="Platform" value={platform} options={platformOptions} onChange={setPlatform} />
+                    </div>
                 </div>
 
                 {error && <div className="an-error"><AlertCircle size={16} /> {error}</div>}
                 {loading && <p className="an-loading">Loading…</p>}
 
                 {!loading && companyId && (
-                    <div className="an-card mr-form">
-                        <div className="an-card-head">
-                            <h2>Social media numbers <small>{companyName} · {monthName(month)}</small></h2>
-                        </div>
-                        <p className="an-note" style={{ marginTop: 0 }}>
-                            Copy these from {form.platform || 'the platform'} Insights. Leave a box empty if the number is not available. “Followers (started with)” is pre-filled from last month’s closing count.
-                        </p>
+                    <div className="mrx-layout">
+                        <section className="mrx-editor mr-form">
+                            <nav className="mrx-steps" role="tablist" aria-label="Report sections">
+                                {STEPS.map((st, i) => {
+                                    const Icon = st.icon;
+                                    return (
+                                        <button
+                                            key={st.key} type="button" role="tab" aria-selected={i === step}
+                                            className={`mrx-step ${i === step ? 'active' : ''} ${stepDone[st.key] ? 'done' : ''}`}
+                                            onClick={() => setStep(i)}
+                                        >
+                                            <span className="mrx-step-ico"><Icon size={14} /></span>
+                                            <span className="mrx-step-name">{st.label}</span>
+                                            <i className="mrx-step-dot" aria-hidden="true" />
+                                        </button>
+                                    );
+                                })}
+                            </nav>
 
-                        <h3>1. Summary</h3>
-                        <div className="mr-grid">
-                            <label className="mr-field"><span>Platform</span>
-                                <div className="mr-input-wrap"><input type="text" value={form.platform} maxLength={30} onChange={e => set('platform')(e.target.value)} /></div>
-                            </label>
-                        </div>
-                        <div className="mr-grid one" style={{ marginTop: 14 }}>
-                            <label className="mr-field wide"><span>Summary (optional)</span>
-                                <textarea rows={4} maxLength={1000} value={form.summaryNote} onChange={e => set('summaryNote')(e.target.value)}
-                                    placeholder="Leave empty to auto-write the summary from the numbers below" />
-                                {!form.summaryNote && autoSummary && <small>Auto summary: {autoSummary}</small>}
-                            </label>
-                        </div>
+                            <div className="mrx-panel">
+                                <div className="mrx-panel-head">
+                                    <h2><b>{step + 1}</b>{STEPS[step].title}</h2>
+                                    <p>{STEPS[step].hint}</p>
+                                </div>
 
-                        <h3>2. Audience growth</h3>
-                        <div className="mr-grid">
-                            <NumInput label="Followers (started with)" value={form.followersStart} onChange={set('followersStart')} />
-                            <NumInput label="New followers" value={form.newFollowers} onChange={set('newFollowers')} />
-                            <NumInput label="Unfollowers" value={form.unfollowers} onChange={set('unfollowers')} />
-                            <NumInput label="Followers (total at end)" value={form.followersEnd} onChange={set('followersEnd')}
-                                hint={d.end !== null && n(form.followersEnd) === null ? `Will save as ${fmt(d.end)} (start + net)` : 'Leave empty to calculate it'} />
-                        </div>
-                        <div className="mr-calc">
-                            <span>Net followers = new − unfollowers: <strong>{signed(d.net)}</strong></span>
-                            <span>Closing followers = start + net: <strong>{d.end !== null ? fmt(d.end) : '-'}</strong></span>
-                        </div>
-                        <h4 className="mr-subh">Reach &amp; engagement</h4>
-                        <div className="mr-grid">
-                            <NumInput label="Accounts reached (viewers)" value={form.accountsReached} onChange={set('accountsReached')} />
-                            <NumInput label="Accounts engaged (interactions)" value={form.accountsEngaged} onChange={set('accountsEngaged')} />
-                            <NumInput label="Impressions / views" value={form.views} onChange={set('views')} />
-                            <NumInput label="Profile visits" value={form.profileVisits} onChange={set('profileVisits')} />
-                            <NumInput label="Website visits (bio link taps)" value={form.websiteVisits} onChange={set('websiteVisits')} />
-                        </div>
+                                {STEPS[step].key === 'summary' && (
+                                    <label className="mr-field wide">
+                                        <span>Summary (optional)</span>
+                                        <textarea rows={6} maxLength={1000} value={form.summaryNote} onChange={e => set('summaryNote')(e.target.value)}
+                                            placeholder="Leave empty to auto-write the summary from the numbers" />
+                                        {!form.summaryNote && autoSummary && <small className="mrx-auto"><strong>Auto summary:</strong> {autoSummary}</small>}
+                                    </label>
+                                )}
 
-                        <h3>3. Content output</h3>
-                        <p className="an-note" style={{ marginTop: 0 }}>
-                            No input needed. It is filled automatically from your approved creatives: {outNow.total} approved in {monthName(month)}
-                            {outPlatforms.length > 0 && ` (${outPlatforms.map(p => `${PLATFORM_LABEL[p] || p} ${outNow.platforms[p] || 0}`).join(' · ')})`}.
-                        </p>
+                                {STEPS[step].key === 'audience' && (
+                                    <>
+                                        <div className="mrx-grid c2">
+                                            <NumInput label="Followers (started with)" value={form.followersStart} onChange={set('followersStart')} />
+                                            <NumInput label="New followers" value={form.newFollowers} onChange={set('newFollowers')} />
+                                            <NumInput label="Unfollowers" value={form.unfollowers} onChange={set('unfollowers')} />
+                                            <NumInput label="Followers (total at end)" value={form.followersEnd} onChange={set('followersEnd')}
+                                                hint={d.end !== null && n(form.followersEnd) === null ? `Saves as ${fmt(d.end)}` : 'Empty = calculated'} />
+                                        </div>
+                                        <div className="mr-calc">
+                                            <span>Net followers = new − unfollowers: <strong>{signed(d.net)}</strong></span>
+                                            <span>Closing followers = start + net: <strong>{d.end !== null ? fmt(d.end) : '-'}</strong></span>
+                                        </div>
+                                        <p className="an-note">“Followers (started with)” is pre-filled from last month’s closing count.</p>
+                                    </>
+                                )}
 
-                        <h3>4. 3-month social media overview</h3>
-                        <p className="an-note" style={{ marginTop: 0 }}>
-                            {monthName(month)} uses the audience numbers above (followers {d.end !== null ? fmt(d.end) : '-'}, reach {fmt(form.accountsReached)}, engagement {fmt(form.accountsEngaged)}).
-                            Type the figures for the two earlier months; an empty box uses what was saved for that month.
-                        </p>
-                        <h4 className="mr-subh">{monthName(prevLabel)}</h4>
-                        <div className="mr-grid">
-                            <NumInput label="Followers" value={form.ovPrevFollowers} onChange={set('ovPrevFollowers')} hint={ovPrev.followers !== null ? `Saved: ${fmt(ovPrev.followers)}` : undefined} />
-                            <NumInput label="Reach" value={form.ovPrevReach} onChange={set('ovPrevReach')} hint={n(pForm?.accountsReached) !== null ? `Saved: ${fmt(pForm.accountsReached)}` : undefined} />
-                            <NumInput label="Engagement" value={form.ovPrevEngagement} onChange={set('ovPrevEngagement')} hint={n(pForm?.accountsEngaged) !== null ? `Saved: ${fmt(pForm.accountsEngaged)}` : undefined} />
-                        </div>
-                        <h4 className="mr-subh">{monthName(shiftMonth(month, -2))}</h4>
-                        <div className="mr-grid">
-                            <NumInput label="Followers" value={form.ovEarlierFollowers} onChange={set('ovEarlierFollowers')} hint={ed?.end != null ? `Saved: ${fmt(ed.end)}` : undefined} />
-                            <NumInput label="Reach" value={form.ovEarlierReach} onChange={set('ovEarlierReach')} hint={n(eForm?.accountsReached) !== null ? `Saved: ${fmt(eForm.accountsReached)}` : undefined} />
-                            <NumInput label="Engagement" value={form.ovEarlierEngagement} onChange={set('ovEarlierEngagement')} hint={n(eForm?.accountsEngaged) !== null ? `Saved: ${fmt(eForm.accountsEngaged)}` : undefined} />
-                        </div>
-                        <h4 className="mr-subh">Paid promotion note</h4>
-                        <div className="mr-grid">
-                            <label className="mr-check">
-                                <input type="checkbox" checked={form.paidPromotion} onChange={e => set('paidPromotion')(e.target.checked)} />
-                                <span>Some posts were boosted this month</span>
-                            </label>
-                            {form.paidPromotion && (
-                                <label className="mr-field wide"><span>Note (optional)</span>
-                                    <div className="mr-input-wrap"><input type="text" maxLength={400} value={form.paidNote} onChange={e => set('paidNote')(e.target.value)}
-                                        placeholder="Leave empty to use the standard note" /></div>
-                                </label>
-                            )}
-                        </div>
+                                {STEPS[step].key === 'reach' && (
+                                    <div className="mrx-grid c3">
+                                        <NumInput label="Accounts reached (viewers)" value={form.accountsReached} onChange={set('accountsReached')} />
+                                        <NumInput label="Accounts engaged (interactions)" value={form.accountsEngaged} onChange={set('accountsEngaged')} />
+                                        <NumInput label="Impressions / views" value={form.views} onChange={set('views')} />
+                                        <NumInput label="Profile visits" value={form.profileVisits} onChange={set('profileVisits')} />
+                                        <NumInput label="Website visits (bio link taps)" value={form.websiteVisits} onChange={set('websiteVisits')} />
+                                    </div>
+                                )}
 
+                                {STEPS[step].key === 'content' && (
+                                    <div className="mrx-content">
+                                        <div className="mrx-bignum">
+                                            <strong>{outNow.total}</strong>
+                                            <span>approved {platform} creatives in {monthName(month)}</span>
+                                            <small>{monthName(prevLabel)}: {outPrev.total}</small>
+                                        </div>
+                                        <div className="mrx-chips">
+                                            <span className="mrx-chip">
+                                                <LinePlatformIcon platform={platKey} size={14} />
+                                                {platform} <b>{outNow.total}</b>
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
 
-                        <h3>5. Best performing content</h3>
-                        {form.bestContent.map((b, i) => (
-                            <div className="mr-best" key={i}>
-                                <input type="text" placeholder="Title, e.g. Diwali Promotional Reel" maxLength={150} value={b.title}
-                                    onChange={e => set('bestContent')(form.bestContent.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} />
-                                <input type="text" inputMode="numeric" placeholder="Views" value={b.views}
-                                    onChange={e => set('bestContent')(form.bestContent.map((x, j) => j === i ? { ...x, views: e.target.value.replace(/[^\d,]/g, '') } : x))} />
-                                <input className="grow" type="text" placeholder="Why it worked" maxLength={400} value={b.note}
-                                    onChange={e => set('bestContent')(form.bestContent.map((x, j) => j === i ? { ...x, note: e.target.value } : x))} />
-                                <label className="mr-check small">
-                                    <input type="checkbox" checked={b.boosted}
-                                        onChange={e => set('bestContent')(form.bestContent.map((x, j) => j === i ? { ...x, boosted: e.target.checked } : x))} />
-                                    <span>Boosted</span>
-                                </label>
-                                {form.bestContent.length > 1 && (
-                                    <button type="button" className="mr-icon" aria-label="Remove" onClick={() => set('bestContent')(form.bestContent.filter((_, j) => j !== i))}><Trash2 size={14} /></button>
+                                {STEPS[step].key === 'overview' && (
+                                    <>
+                                        <div className="mrx-now">
+                                            <span>{monthName(month)} (this month)</span>
+                                            <em>Followers <b>{d.end !== null ? fmt(d.end) : '-'}</b></em>
+                                            <em>Reach <b>{fmt(form.accountsReached)}</b></em>
+                                            <em>Engagement <b>{fmt(form.accountsEngaged)}</b></em>
+                                        </div>
+                                        <div className="mrx-row">
+                                            <h4>{monthName(prevLabel)}</h4>
+                                            <div className="mrx-grid c3">
+                                                <NumInput label="Followers" value={form.ovPrevFollowers} onChange={set('ovPrevFollowers')} hint={ovPrev.followers !== null ? `Saved: ${fmt(ovPrev.followers)}` : undefined} />
+                                                <NumInput label="Reach" value={form.ovPrevReach} onChange={set('ovPrevReach')} hint={n(pForm?.accountsReached) !== null ? `Saved: ${fmt(pForm.accountsReached)}` : undefined} />
+                                                <NumInput label="Engagement" value={form.ovPrevEngagement} onChange={set('ovPrevEngagement')} hint={n(pForm?.accountsEngaged) !== null ? `Saved: ${fmt(pForm.accountsEngaged)}` : undefined} />
+                                            </div>
+                                        </div>
+                                        <div className="mrx-row">
+                                            <h4>{monthName(shiftMonth(month, -2))}</h4>
+                                            <div className="mrx-grid c3">
+                                                <NumInput label="Followers" value={form.ovEarlierFollowers} onChange={set('ovEarlierFollowers')} hint={ed?.end != null ? `Saved: ${fmt(ed.end)}` : undefined} />
+                                                <NumInput label="Reach" value={form.ovEarlierReach} onChange={set('ovEarlierReach')} hint={n(eForm?.accountsReached) !== null ? `Saved: ${fmt(eForm.accountsReached)}` : undefined} />
+                                                <NumInput label="Engagement" value={form.ovEarlierEngagement} onChange={set('ovEarlierEngagement')} hint={n(eForm?.accountsEngaged) !== null ? `Saved: ${fmt(eForm.accountsEngaged)}` : undefined} />
+                                            </div>
+                                        </div>
+                                        <div className="mrx-row">
+                                            <h4>Paid promotion</h4>
+                                            <label className="mr-check">
+                                                <input type="checkbox" checked={form.paidPromotion} onChange={e => set('paidPromotion')(e.target.checked)} />
+                                                <span>Some posts were boosted this month</span>
+                                            </label>
+                                            {form.paidPromotion && (
+                                                <label className="mr-field wide" style={{ marginTop: 10 }}><span>Note (optional)</span>
+                                                    <div className="mr-input-wrap"><input type="text" maxLength={400} value={form.paidNote} onChange={e => set('paidNote')(e.target.value)}
+                                                        placeholder="Leave empty to use the standard note" /></div>
+                                                </label>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+
+                                {STEPS[step].key === 'best' && (
+                                    <>
+                                        {form.bestContent.map((b, i) => (
+                                            <div className="mr-best" key={i}>
+                                                <input type="text" placeholder="Title, e.g. Diwali Promotional Reel" maxLength={150} value={b.title}
+                                                    onChange={e => setBest(i, { title: e.target.value })} />
+                                                <input type="text" inputMode="numeric" placeholder="Views" value={b.views}
+                                                    onChange={e => setBest(i, { views: e.target.value.replace(/[^\d,]/g, '') })} />
+                                                <input className="grow" type="text" placeholder="Why it worked" maxLength={400} value={b.note}
+                                                    onChange={e => setBest(i, { note: e.target.value })} />
+                                                <label className="mr-check small">
+                                                    <input type="checkbox" checked={b.boosted} onChange={e => setBest(i, { boosted: e.target.checked })} />
+                                                    <span>Boosted</span>
+                                                </label>
+                                                {form.bestContent.length > 1 && (
+                                                    <button type="button" className="mr-icon" aria-label="Remove" onClick={() => set('bestContent')(form.bestContent.filter((_, j) => j !== i))}><Trash2 size={14} /></button>
+                                                )}
+                                            </div>
+                                        ))}
+                                        {form.bestContent.length < 5 && (
+                                            <button type="button" className="mr-add" onClick={() => set('bestContent')([...form.bestContent, { title: '', note: '', views: '', boosted: false }])}><Plus size={13} /> Add content</button>
+                                        )}
+                                    </>
+                                )}
+
+                                {STEPS[step].key === 'insights' && (
+                                    <div className="mrx-insights">
+                                        <div className="mrx-grid c3">
+                                            <NumInput label="Interactions from non-followers" suffix="%" value={form.nonFollowerInteractionPct} onChange={set('nonFollowerInteractionPct')} />
+                                        </div>
+                                        <div className="mrx-two">
+                                            <LineList label="Key insights" items={form.keyInsights} onChange={set('keyInsights')} placeholder="e.g. 98.7% of interactions came from non-followers" />
+                                            <LineList label="What needs improvement" items={form.improvements} onChange={set('improvements')} placeholder="e.g. Keep a balanced mix of Reels and carousels" />
+                                        </div>
+                                    </div>
                                 )}
                             </div>
-                        ))}
-                        {form.bestContent.length < 5 && (
-                            <button type="button" className="mr-add" onClick={() => set('bestContent')([...form.bestContent, { title: '', note: '', views: '', boosted: false }])}><Plus size={13} /> Add content</button>
-                        )}
 
-
-                        <h3>6. Key insights &amp; improvements</h3>
-                        <div className="mr-grid one">
-                            <div className="mr-grid">
-                                <NumInput label="Interactions from non-followers" suffix="%" value={form.nonFollowerInteractionPct} onChange={set('nonFollowerInteractionPct')} />
+                            <div className="mrx-nav">
+                                <button type="button" className="mr-btn" onClick={() => setStep(i => Math.max(0, i - 1))} disabled={step === 0}><ChevronLeft size={15} /> Back</button>
+                                <span>Step {step + 1} of {STEPS.length}</span>
+                                {step < STEPS.length - 1
+                                    ? <button type="button" className="mr-btn primary" onClick={() => setStep(i => Math.min(STEPS.length - 1, i + 1))}>Next <ChevronRight size={15} /></button>
+                                    : <button type="button" className="mr-btn primary" onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save numbers'}</button>}
                             </div>
-                            <LineList label="Key insights" items={form.keyInsights} onChange={set('keyInsights')} placeholder="What worked, e.g. 98.7% of interactions came from non-followers" />
-                            <LineList label="What needs improvement" items={form.improvements} onChange={set('improvements')} placeholder="e.g. Keep a balanced mix of Reels, carousels and property highlights" />
-                        </div>
+                        </section>
 
-                        <div className="mr-actions">
-                            <button type="button" className="mr-btn primary" onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save numbers'}</button>
-                            <button type="button" className="mr-btn" onClick={() => setPreview(true)}><Eye size={15} /> Preview Report</button>
-                            <button type="button" className="mr-btn" onClick={downloadReport} disabled={downloading}><Download size={15} /> {downloading ? 'Preparing…' : 'Download Report'}</button>
-                            {saved && <span className="mr-saved"><CheckCircle2 size={14} /> {saved}</span>}
-                        </div>
+                        <aside className="mrx-review" aria-label="Report review">
+                            <div className="mrx-review-head">
+                                <span className="mrx-plat"><LinePlatformIcon platform={platKey} size={18} /></span>
+                                <div>
+                                    <strong>{companyName}</strong>
+                                    <small>{monthName(month)} · {platform}</small>
+                                </div>
+                            </div>
+
+                            <div className="mrx-progress">
+                                <div className="mrx-progress-top"><span>Report completeness</span><strong>{completePct}%</strong></div>
+                                <div className="mrx-bar"><i style={{ width: `${completePct}%` }} /></div>
+                                <small>
+                                    {fieldsTotal - fieldsFilled > 0 ? `${fieldsTotal - fieldsFilled} field${fieldsTotal - fieldsFilled === 1 ? '' : 's'} left` : 'All numbers entered'}
+                                    {firstOpen >= 0 && firstOpen !== step && (
+                                        <> · <button type="button" className="mrx-link" onClick={() => setStep(firstOpen)}>Go to {STEPS[firstOpen].label}</button></>
+                                    )}
+                                </small>
+                            </div>
+
+                            <div className="mrx-kpis">
+                                {kpis.map(k => (
+                                    <div className="mrx-kpi" key={k.label}>
+                                        <span>{k.label}</span>
+                                        <strong>{k.value}</strong>
+                                        {k.pct !== undefined && k.pct !== null && (
+                                            <em className={k.pct >= 0 ? 'up' : 'down'} title="Change vs last month">
+                                                {k.pct >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}{Math.abs(k.pct).toFixed(0)}%
+                                            </em>
+                                        )}
+                                        {k.note && <em className={k.tone}>{k.note}</em>}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="mrx-sum">
+                                <h4>Summary</h4>
+                                <p>{form.summaryNote || autoSummary || 'Enter the numbers to see the summary.'}</p>
+                            </div>
+
+                            <div className="mrx-actions">
+                                <button type="button" className="mr-btn primary" onClick={save} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save numbers'}</button>
+                                <div className="mrx-actions-row">
+                                    <button type="button" className="mr-btn" onClick={() => setPreview(true)}><Eye size={15} /> Preview</button>
+                                    <button type="button" className="mr-btn" onClick={downloadReport} disabled={downloading}><Download size={15} /> {downloading ? 'Preparing…' : 'Download'}</button>
+                                </div>
+                                {saved && <span className="mr-saved"><CheckCircle2 size={14} /> {saved}</span>}
+                            </div>
+                        </aside>
                     </div>
                 )}
             </div>
@@ -457,7 +596,7 @@ const SmeMonthlyReports = () => {
                 <div className={preview ? 'mr-preview-overlay' : 'mr-offscreen'} onClick={e => { if (preview && e.target === e.currentTarget) setPreview(false); }}>
                     {preview && (
                         <div className="mr-preview-bar">
-                            <strong>Report preview <small>{companyName} · {monthName(month)}</small></strong>
+                            <strong>Report preview <small>{companyName} · {platform} · {monthName(month)}</small></strong>
                             <div>
                                 <button type="button" className="mr-btn primary" onClick={downloadReport} disabled={downloading}><Download size={15} /> {downloading ? 'Preparing…' : 'Download Report'}</button>
                                 <button type="button" className="mr-btn" onClick={() => setPreview(false)}><X size={15} /> Close</button>
@@ -467,12 +606,13 @@ const SmeMonthlyReports = () => {
                 <article className="mr-doc" id="social-report">
                     <MonthlyPerformance
                         month={month}
+                        platform={platKey}
                         header={(
                             <>
                     <header className="mr-doc-head">
                         <img src="/assets/images/logo.png" alt="Unstoppable" onError={e => { e.currentTarget.style.display = 'none'; }} />
                         <h1>Social Media Report</h1>
-                        <p>{companyName} · {monthName(month)}</p>
+                        <p>{companyName} · {platform} · {monthName(month)}</p>
                     </header>
                             </>
                         )}
@@ -497,10 +637,7 @@ const SmeMonthlyReports = () => {
                         <table className="mr-table">
                             <thead><tr><th>Approved creatives</th><th>{shortMonth(prevLabel)}</th><th>{shortMonth(month)}</th></tr></thead>
                             <tbody>
-                                {outPlatforms.map(pf => (
-                                    <tr key={pf}><td>{PLATFORM_LABEL[pf] || pf}</td><td>{fmt(outPrev.platforms[pf] || 0)}</td><td>{fmt(outNow.platforms[pf] || 0)}</td></tr>
-                                ))}
-                                <tr><td><strong>Total approved creatives</strong></td><td><strong>{fmt(outPrev.total)}</strong></td><td><strong>{fmt(outNow.total)}</strong></td></tr>
+                                <tr><td><strong>Approved {platform} creatives</strong></td><td><strong>{fmt(outPrev.total)}</strong></td><td><strong>{fmt(outNow.total)}</strong></td></tr>
                             </tbody>
                         </table>
                     </section>

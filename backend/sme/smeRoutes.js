@@ -597,6 +597,19 @@ const NUM_FIELDS = [
   'ovPrevFollowers', 'ovPrevReach', 'ovPrevEngagement', 'ovEarlierFollowers', 'ovEarlierReach', 'ovEarlierEngagement',
 ];
 const MONTH_RE = /^\d{4}-\d{2}$/;
+// Platforms the SME can report on. The saved value is the label, e.g. "LinkedIn".
+const PLATFORM_CHOICES = ['Instagram', 'Facebook', 'Threads', 'LinkedIn', 'YouTube', 'X', 'Pinterest'];
+const canonPlatform = (v) => {
+  const t = String(v || '').trim().toLowerCase();
+  return PLATFORM_CHOICES.find((p) => p.toLowerCase() === t) || 'Instagram';
+};
+// Match one platform's record (case-insensitive). Old records with a free-typed platform count as Instagram.
+const platformFilter = (platform) => {
+  const exact = new RegExp(`^${platform}$`, 'i');
+  if (platform !== 'Instagram') return { platform: exact };
+  const known = PLATFORM_CHOICES.map((p) => new RegExp(`^${p}$`, 'i'));
+  return { $or: [{ platform: exact }, { platform: { $nin: known } }] };
+};
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const prevMonthOf = (m) => {
   const [y, mo] = m.split('-').map(Number);
@@ -632,7 +645,7 @@ const cleanNum = (v) => {
 };
 const cleanLines = (arr) =>
   (Array.isArray(arr) ? arr : []).map((t) => String(t || '').trim()).filter(Boolean).slice(0, 10);
-// GET /social-metrics?company=<id>&month=YYYY-MM  ->  { current, previous, earlier }
+// GET /social-metrics?company=<id>&month=YYYY-MM&platform=Instagram  ->  { current, previous, earlier }
 // "previous" is the month before, "earlier" the one before that (for the 3-month overview).
 router.get('/social-metrics', async (req, res) => {
   try {
@@ -645,7 +658,8 @@ router.get('/social-metrics', async (req, res) => {
     }
     const m1 = prevMonthOf(month);
     const m2 = prevMonthOf(m1);
-    const docs = await SocialMetrics.find({ user: req.user.id, company, month: { $in: [month, m1, m2] } });
+    const platform = canonPlatform(req.query.platform);
+    const docs = await SocialMetrics.find({ user: req.user.id, company, month: { $in: [month, m1, m2] }, ...platformFilter(platform) });
     const by = Object.fromEntries(docs.map((d) => [d.month, d]));
     // Content output = the creatives the admin approved for this company, counted per month and platform.
     const approved = await Creative.find({
@@ -674,7 +688,7 @@ router.get('/social-metrics', async (req, res) => {
     res.status(500).json({ message: 'Unable to load social metrics' });
   }
 });
-// PUT /social-metrics  { company, month, ...fields }  -> creates or updates that month
+// PUT /social-metrics  { company, month, platform, ...fields }  -> creates or updates that month for that platform
 router.put('/social-metrics', async (req, res) => {
   try {
     const b = req.body || {};
@@ -684,8 +698,9 @@ router.put('/social-metrics', async (req, res) => {
     if (!me || !(me.companies || []).map(String).includes(String(b.company))) {
       return res.status(403).json({ message: 'This company is not assigned to you' });
     }
+    const platform = canonPlatform(b.platform);
     const set = {
-      platform: String(b.platform || 'Instagram').trim().slice(0, 30) || 'Instagram',
+      platform,
       periodFrom: DAY_RE.test(b.periodFrom || '') ? b.periodFrom : '',
       periodTo: DAY_RE.test(b.periodTo || '') ? b.periodTo : '',
       paidPromotion: !!b.paidPromotion,
@@ -711,7 +726,7 @@ router.put('/social-metrics', async (req, res) => {
       .filter((x) => x.title)
       .slice(0, 5);
     const doc = await SocialMetrics.findOneAndUpdate(
-      { user: req.user.id, company: b.company, month: b.month },
+      { user: req.user.id, company: b.company, month: b.month, ...platformFilter(platform) },
       { $set: set },
       { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true }
     );
@@ -755,6 +770,10 @@ router.get('/monthly-report', async (req, res) => {
     const start = `${month}-01`;
     const end = `${monthAfter(month)}-01`;
     const prevStart = `${prevMonth}-01`;
+    // optional: report on one platform only (?platform=instagram). Without it the report covers every platform.
+    const wanted = String(req.query.platform || '').toLowerCase();
+    const reportPlatform = PLATFORM_CHOICES.some((p) => p.toLowerCase() === wanted) ? wanted : '';
+    const platformMatch = reportPlatform ? { 'contentPillar.platforms': reportPlatform } : {};
     const me = await Sme.findById(req.user.id);
     if (!me) return res.status(401).json({ message: 'User not found' });
     const ids = (me.companies || []).map(String);
@@ -769,10 +788,10 @@ router.get('/monthly-report', async (req, res) => {
     }
     // ---- creatives: this month + previous month
     const [creatives, prevCreatives] = await Promise.all([
-      Creative.find({ user: req.user.id, company: { $in: companyIds }, date: { $gte: start, $lt: end } })
+      Creative.find({ user: req.user.id, company: { $in: companyIds }, date: { $gte: start, $lt: end }, ...platformMatch })
         .sort({ date: 1, createdAt: 1 })
         .lean(),
-      Creative.find({ user: req.user.id, company: { $in: companyIds }, date: { $gte: prevStart, $lt: start } })
+      Creative.find({ user: req.user.id, company: { $in: companyIds }, date: { $gte: prevStart, $lt: start }, ...platformMatch })
         .select('company date status createdAt rejectionCount')
         .lean(),
     ]);
@@ -786,6 +805,7 @@ router.get('/monthly-report', async (req, res) => {
       if (m) addToStats(m, c, today);
       // one creative can go to several platforms, so it counts once for each
       for (const p of c.contentPillar?.platforms || []) {
+        if (reportPlatform && p !== reportPlatform) continue;
         perPlatform[p] = perPlatform[p] || blankStats();
         addToStats(perPlatform[p], c, today);
       }
@@ -853,6 +873,7 @@ router.get('/monthly-report', async (req, res) => {
     }));
     res.json({
       month,
+      platform: reportPlatform,
       previousMonth: prevMonth,
       periodFrom: start,
       periodTo: new Date(new Date(`${end}T00:00:00Z`) - 86400000).toISOString().slice(0, 10),
