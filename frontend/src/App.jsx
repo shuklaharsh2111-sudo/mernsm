@@ -21,11 +21,13 @@ import SmeSettings from './sme/SmeSettings';
 import SmeAnalytics from './sme/SmeAnalytics';
 import SmeMonthlyReports from './sme/SmeMonthlyReports';
 import DesDashboard from './des/desdashboard';
+import SmiDashboard from './smi/SmiDashboard';
 
 const getDashboardPath = (role) => {
   if (role === 'admin') return '/admin';
   if (role === 'sme') return '/sme';
   if (role === 'des') return '/des';
+  if (role === 'smi') return '/smi';
   return '/login';
 };
 
@@ -115,6 +117,12 @@ const AppRoutes = () => {
       <Route element={<ProtectedRoute role="des" />}>
         <Route element={<DashboardLayout />}>
           <Route path="/des" element={<DesDashboard />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute role="smi" />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/smi" element={<SmiDashboard />} />
         </Route>
       </Route>
 

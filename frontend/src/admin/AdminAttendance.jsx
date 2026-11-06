@@ -137,6 +137,8 @@ const AdminAttendance = () => {
           <select value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="">Everyone</option>
             <option value="sme">SME</option>
+            <option value="smi">SMI</option>
+            <option value="des">DES</option>
             <option value="admin">Admin</option>
           </select>
         </label>
