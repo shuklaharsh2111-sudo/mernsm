@@ -6,6 +6,7 @@ import { protect } from '../auth.js';
 import Task from '../sme/Tasks.js';
 import TaskAttachment from '../sme/TaskAttachment.js';
 import SmiSopAssignment from '../sop/SmiSopAssignment.js';
+import Company from '../company/Company.js';
 import { periodKey, resolveToday } from '../sop/period.js';
 
 const allowedTypes = [
@@ -45,6 +46,29 @@ const populateTask = (query) => query
   .populate('company', 'name')
   .populate('user', 'name email')
   .populate('assignedSmi', 'name email');
+
+// Companies I work on: every company that has an SOP or a task assigned to me,
+// in the order they were first assigned.
+router.get('/companies', async (req, res) => {
+  try {
+    const [sops, tasks] = await Promise.all([
+      SmiSopAssignment.find({ smi: req.user.id }).select('company createdAt').lean(),
+      Task.find({ assignedSmi: req.user.id }).select('company createdAt').lean(),
+    ]);
+    const first = new Map(); // companyId -> earliest assignment time
+    for (const { company, createdAt } of [...sops, ...tasks]) {
+      const id = String(company);
+      if (!first.has(id) || createdAt < first.get(id)) first.set(id, createdAt);
+    }
+    const ids = [...first.keys()].sort((a, b) => first.get(a) - first.get(b));
+    const found = await Company.find({ _id: { $in: ids } }).lean();
+    const byId = Object.fromEntries(found.map((c) => [String(c._id), c]));
+    res.json({ companies: ids.filter((id) => byId[id]).map((id) => ({ id, name: byId[id].name })) });
+  } catch (error) {
+    console.error('SMI fetch companies error:', error);
+    res.status(500).json({ message: 'Unable to fetch companies' });
+  }
+});
 
 // ---------------- SOPs an SME assigned to me ----------------
 const sopView = (a, today) => {
