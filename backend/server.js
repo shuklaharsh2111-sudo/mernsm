@@ -8,6 +8,7 @@ import connectDB from './config/db.js';
 import authRoutes, { protect } from './auth.js';
 import adminRoutes from './admin/adminRoutes.js';
 import smeRoutes from './sme/smeRoutes.js';
+import smiRoutes from './smi/smiRoutes.js';
 import invoiceRoutes from './invoices/invoiceRoutes.js';
 dotenv.config();
 const app = express();
@@ -27,6 +28,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/sme', smeRoutes);
+app.use('/api/smi', smiRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.get('/api/admin/dashboard', protect(['admin']), (req, res) => {
     res.json({ message: 'Admin access granted' });

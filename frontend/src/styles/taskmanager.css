@@ -1017,3 +1017,29 @@
 .sme-task-manager .sme-task-grid.single .tm-empty { grid-column: 1 / -1; }
 
 .sme-task-manager .sme-task-grid.single .sme-task-count { display: none; }
+
+/* ---------- tasks assigned to an SMI (shown in the SME view) ---------- */
+.tm-task-item.tm-smi-task {
+    position: relative;
+    background: linear-gradient(135deg, rgba(34, 197, 214, .12), rgba(34, 197, 214, .04));
+    border: 1px solid rgba(34, 197, 214, .35);
+    box-shadow: inset 4px 0 0 #22c5d6;
+}
+.tm-smi-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 100%;
+    margin-bottom: 8px;
+    padding: 3px 10px;
+    border: 1px solid rgba(34, 197, 214, .4);
+    border-radius: 999px;
+    background: rgba(34, 197, 214, .15);
+    color: #7de3ee;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

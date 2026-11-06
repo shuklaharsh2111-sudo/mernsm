@@ -22,7 +22,7 @@ const formatDuration = (start, end) => {
     return `${minutes}m`;
 };
 
-const TaskDetailsModal = ({ task, onClose }) => {
+const TaskDetailsModal = ({ task, onClose, basePath = '/sme', readOnly = false }) => {
     const [attachments, setAttachments] = useState([]);
     const [loadingImages, setLoadingImages] = useState(true);
     const [uploading, setUploading] = useState(false);
@@ -38,7 +38,7 @@ const TaskDetailsModal = ({ task, onClose }) => {
             try {
                 setLoadingImages(true);
                 setError('');
-                const response = await api.get(`/sme/tasks/${task._id}/attachments`);
+                const response = await api.get(`${basePath}/tasks/${task._id}/attachments`);
                 if (active) setAttachments(Array.isArray(response.data.attachments) ? response.data.attachments : []);
             } catch (err) {
                 if (active) {
@@ -88,12 +88,12 @@ const TaskDetailsModal = ({ task, onClose }) => {
             setError('');
 
             await api.post(
-                `/sme/tasks/${task._id}/attachments`,
+                `${basePath}/tasks/${task._id}/attachments`,
                 formData,
                 { headers: { 'Content-Type': undefined } }
             );
 
-            const refreshed = await api.get(`/sme/tasks/${task._id}/attachments`);
+            const refreshed = await api.get(`${basePath}/tasks/${task._id}/attachments`);
             const savedAttachments = refreshed.data?.attachments;
 
             if (!Array.isArray(savedAttachments)) {
@@ -123,7 +123,7 @@ const TaskDetailsModal = ({ task, onClose }) => {
             setDeletingId(attachmentId);
             setError('');
 
-            await api.delete(`/sme/tasks/${task._id}/attachments/${attachmentId}`);
+            await api.delete(`${basePath}/tasks/${task._id}/attachments/${attachmentId}`);
 
             setAttachments(prev => prev.filter(item => item._id !== attachmentId));
         } catch (err) {
@@ -140,7 +140,7 @@ const TaskDetailsModal = ({ task, onClose }) => {
 
     const stats = [
         { label: 'Due Date', value: task.dueDate ? formatDate(task.dueDate) : 'No due date', icon: CalendarDays },
-        { label: 'Assigned To', value: task.assignedTo || 'Not assigned', icon: UserRound },
+        { label: 'Assigned To', value: task.assignedSmi?.name ? `${task.assignedSmi.name} (SMI)` : task.assignedTo || 'Not assigned', icon: UserRound },
         { label: 'Started', value: task.startedAt ? formatDate(task.startedAt) : 'Not started', icon: Play },
         { label: 'Actual TAT', value: formatDuration(task.startedAt, task.endedAt), icon: Hourglass }
     ];
@@ -210,11 +210,12 @@ const TaskDetailsModal = ({ task, onClose }) => {
                                 <div className="tdm-attachments-heading">
                                     <div>
                                         <h3><FolderOpen size={18} /> Task Attachments</h3>
-                                        <p>Upload and manage images, videos, PDFs and documents. Maximum 5 files.</p>
+                                        <p>{readOnly ? 'Files shared with you for this task.' : 'Upload and manage images, videos, PDFs and documents. Maximum 5 files.'}</p>
                                     </div>
                                     <span className="tdm-count">{attachments.length}/5</span>
                                 </div>
 
+                                {!readOnly && (
                                 <div className="tdm-upload-controls">
                                     <input
                                         ref={fileInputRef}
@@ -245,8 +246,9 @@ const TaskDetailsModal = ({ task, onClose }) => {
                                         {uploading ? 'Uploading...' : selectedFiles.length ? `Upload ${selectedFiles.length} File${selectedFiles.length > 1 ? 's' : ''}` : 'Upload'}
                                     </button>
                                 </div>
+                                )}
 
-                                {selectedFiles.length > 0 && (
+                                {!readOnly && selectedFiles.length > 0 && (
                                     <div className="tdm-selected-images">
                                         <strong>Selected Files ({selectedFiles.length})</strong>
 
@@ -346,15 +348,17 @@ const TaskDetailsModal = ({ task, onClose }) => {
                                                             </a>
                                                         )}
 
-                                                        <button
-                                                            type="button"
-                                                            className="tdm-delete-image"
-                                                            disabled={!!deletingId || !item._id}
-                                                            onClick={() => handleDeleteImage(item._id)}
-                                                            aria-label="Delete attachment"
-                                                        >
-                                                            {deletingId === item._id ? <LoaderCircle size={16} className="tdm-spin" /> : <Trash2 size={16} />}
-                                                        </button>
+                                                        {!readOnly && item.canDelete !== false && (
+                                                            <button
+                                                                type="button"
+                                                                className="tdm-delete-image"
+                                                                disabled={!!deletingId || !item._id}
+                                                                onClick={() => handleDeleteImage(item._id)}
+                                                                aria-label="Delete attachment"
+                                                            >
+                                                                {deletingId === item._id ? <LoaderCircle size={16} className="tdm-spin" /> : <Trash2 size={16} />}
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             );
