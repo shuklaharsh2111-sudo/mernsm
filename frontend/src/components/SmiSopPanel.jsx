@@ -4,7 +4,7 @@ import { PERIOD_WORD, SOP_TYPES, errMsg, fmtDay, todayStr, typeLabel } from '../
 import '../styles/smisops.css';
 
 // SMI: the SOPs an SME assigned to me. Tick one and it is saved (see the Saved page).
-export default function SmiSopPanel() {
+export default function SmiSopPanel({ onChange }) {
   const [assigned, setAssigned] = useState(null);
   const [error, setError] = useState('');
   const [typeTab, setTypeTab] = useState('all');
@@ -33,6 +33,7 @@ export default function SmiSopPanel() {
         changes: [{ id: a.id, done: want }],
       });
       setAssigned(res.data.assignments);
+      onChange?.();
     } catch (err) {
       setAssigned((list) => list.map((x) => (x.id === a.id ? { ...x, done: !want } : x)));
       setError(errMsg(err));
