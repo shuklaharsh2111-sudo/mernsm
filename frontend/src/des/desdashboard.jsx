@@ -5,6 +5,8 @@ import {
   XCircle, AlertCircle, LoaderCircle
 } from 'lucide-react';
 import api from '../api';
+import '../style.css';
+import '../styles/dashboard-glass.css';
 import '../styles/desdashboard.css';
 const PLATFORM_ICONS = {
   instagram: ExternalLink,
@@ -101,13 +103,10 @@ const DesDashboard = () => {
     );
   }
   return (
-    <div className="des-page">
-      <div className="des-header">
+    <div className="des-page dashboard-content scrollable dash-glass">
+      <div className="page-header des-header">
         <div>
-          <div className="des-eyebrow">
-            <Palette size={15} />
-            DESIGN WORKSPACE
-          </div>
+          <span className="page-label">DESIGN WORKSPACE</span>
           <h1>My Creatives</h1>
           <p>Manage and review creatives assigned to you.</p>
         </div>
