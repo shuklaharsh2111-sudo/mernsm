@@ -10,6 +10,7 @@ import adminRoutes from './admin/adminRoutes.js';
 import smeRoutes from './sme/smeRoutes.js';
 import smiRoutes from './smi/smiRoutes.js';
 import invoiceRoutes from './invoices/invoiceRoutes.js';
+import desRoutes from './des/desRoutes.js';
 dotenv.config();
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -18,6 +19,7 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use('/api/des', desRoutes);
 await connectDB();
 app.get('/api/health', (req, res) => {
     res.json({

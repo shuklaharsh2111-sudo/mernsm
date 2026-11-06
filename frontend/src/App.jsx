@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
@@ -22,7 +21,6 @@ import SmeAnalytics from './sme/SmeAnalytics';
 import SmeMonthlyReports from './sme/SmeMonthlyReports';
 import DesDashboard from './des/desdashboard';
 import SmiDashboard from './smi/SmiDashboard';
-
 const getDashboardPath = (role) => {
   if (role === 'admin') return '/admin';
   if (role === 'sme') return '/sme';
@@ -30,17 +28,13 @@ const getDashboardPath = (role) => {
   if (role === 'smi') return '/smi';
   return '/login';
 };
-
 const ProtectedRoute = ({ role }) => {
   const { user, loading } = useAuth();
-
   if (loading) return <div className="loading-screen">Loading...</div>;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== role) return <Navigate to={getDashboardPath(user.role)} replace />;
-
   return <Outlet />;
 };
-
 const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -49,21 +43,17 @@ const DashboardLayout = () => {
       return false;
     }
   });
-
   const toggleSidebar = () => setCollapsed((v) => {
     try {
       localStorage.setItem('sidebarCollapsed', v ? '0' : '1');
-    } catch {}
+    } catch { }
     return !v;
   });
-
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pathname } = useLocation();
-
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
-
   return (
     <div className={`app-shell ${collapsed ? 'collapsed' : ''}`}>
       <Sidebar collapsed={collapsed} onToggle={toggleSidebar} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
@@ -77,18 +67,13 @@ const DashboardLayout = () => {
     </div>
   );
 };
-
 const AppRoutes = () => {
   const { user, loading } = useAuth();
-
   if (loading) return <div className="loading-screen">Loading...</div>;
-
   const dashboardPath = getDashboardPath(user?.role);
-
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to={dashboardPath} replace /> : <Login />} />
-
       <Route element={<ProtectedRoute role="admin" />}>
         <Route element={<DashboardLayout />}>
           <Route path="/admin" element={<AdminDashboard />} />
@@ -100,7 +85,6 @@ const AppRoutes = () => {
           <Route path="/admin/attendance" element={<AdminAttendance />} />
         </Route>
       </Route>
-
       <Route element={<ProtectedRoute role="sme" />}>
         <Route element={<DashboardLayout />}>
           <Route path="/sme" element={<SmeDashboard />} />
@@ -113,25 +97,23 @@ const AppRoutes = () => {
           <Route path="/sme/monthly-reports" element={<SmeMonthlyReports />} />
         </Route>
       </Route>
-
       <Route element={<ProtectedRoute role="des" />}>
         <Route element={<DashboardLayout />}>
           <Route path="/des" element={<DesDashboard />} />
+          <Route path="/des/creatives" element={<DesDashboard />} />
+          <Route path="/des/monthly-reports" element={<DesDashboard />} />
         </Route>
       </Route>
-
       <Route element={<ProtectedRoute role="smi" />}>
         <Route element={<DashboardLayout />}>
           <Route path="/smi" element={<SmiDashboard />} />
         </Route>
       </Route>
-
       <Route path="/" element={<Navigate to={dashboardPath} replace />} />
       <Route path="*" element={<Navigate to={dashboardPath} replace />} />
     </Routes>
   );
 };
-
 const App = () => (
   <BrowserRouter>
     <AuthProvider>
@@ -139,5 +121,4 @@ const App = () => (
     </AuthProvider>
   </BrowserRouter>
 );
-
 export default App;
