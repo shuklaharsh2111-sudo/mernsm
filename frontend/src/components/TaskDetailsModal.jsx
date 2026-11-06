@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
-import { X, CalendarDays, Building2, Play, Upload, Image as ImageIcon, Trash2, LoaderCircle, AlertCircle, Repeat, UserRound, FileText, Flag, Target, FolderOpen, Video, File, Download, Eye, Hourglass, Layers } from 'lucide-react';
+import { X, CalendarDays, Building2, Play, Upload, Image as ImageIcon, Trash2, LoaderCircle, AlertCircle, Repeat, UserRound, FileText, Flag, Target, FolderOpen, Video, File, Download, Eye, Hourglass, Layers, Check, History } from 'lucide-react';
 import api from '../api';
 import '../styles/taskdetailsmodal.css';
 
@@ -153,6 +153,22 @@ const TaskDetailsModal = ({ task, onClose }) => {
         { label: 'Priority', value: task.priority || '--', icon: Flag }
     ];
 
+    const timelineSource = [
+        { label: 'Created', date: task.createdAt, pendingText: '--' },
+        { label: 'Started', date: task.startedAt, pendingText: 'Not started yet' },
+        {
+            label: 'Completed',
+            date: task.endedAt,
+            pendingText: 'Not completed yet',
+            note: task.startedAt && task.endedAt ? `Actual TAT: ${formatDuration(task.startedAt, task.endedAt)}` : ''
+        }
+    ];
+    const activeIndex = timelineSource.findIndex(step => !step.date);
+    const timeline = timelineSource.map((step, index) => ({
+        ...step,
+        state: step.date ? 'done' : index === activeIndex ? 'active' : 'pending'
+    }));
+
     return createPortal(
         <div className="tdm-overlay" onClick={onClose}>
             <div className="tdm-modal" role="dialog" aria-modal="true" aria-labelledby="tdm-title" onClick={event => event.stopPropagation()}>
@@ -190,30 +206,7 @@ const TaskDetailsModal = ({ task, onClose }) => {
                                 <div className="tdm-brief">{task.brief?.trim() || 'No task brief has been added.'}</div>
                             </section>
 
-                            {isRecurring && (
-                                <section className="tdm-section">
-                                    <h3><Repeat size={18} /> Recurring Information</h3>
-                                    <div className="tdm-recurring-info">
-                                        <span>Frequency <strong>Every {task.frequencyDays} days</strong></span>
-                                        <span>Turnaround Time <strong>{task.tatDays} days</strong></span>
-                                    </div>
-                                </section>
-                            )}
-
-                            <section className="tdm-section">
-                                <h3><Layers size={18} /> Task Information</h3>
-                                <div className="tdm-details">
-                                    {details.map(({ label, value, icon: Icon }) => (
-                                        <div className="tdm-detail" key={label}>
-                                            <Icon size={16} />
-                                            <span>{label}</span>
-                                            <strong>{value}</strong>
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
-
-                            <section className="tdm-section">
+                            <section className="tdm-card">
                                 <div className="tdm-attachments-heading">
                                     <div>
                                         <h3><FolderOpen size={18} /> Task Attachments</h3>
@@ -234,7 +227,7 @@ const TaskDetailsModal = ({ task, onClose }) => {
 
                                     <button
                                         type="button"
-                                        className="tdm-upload-btn"
+                                        className="tdm-upload-btn secondary"
                                         onClick={() => fileInputRef.current?.click()}
                                         disabled={uploading || attachments.length >= 5}
                                     >
@@ -249,7 +242,7 @@ const TaskDetailsModal = ({ task, onClose }) => {
                                         disabled={uploading || selectedFiles.length === 0 || attachments.length >= 5}
                                     >
                                         {uploading ? <LoaderCircle size={17} className="tdm-spin" /> : <Upload size={17} />}
-                                        {uploading ? 'Uploading...' : `Upload ${selectedFiles.length || ''} Files`}
+                                        {uploading ? 'Uploading...' : selectedFiles.length ? `Upload ${selectedFiles.length} File${selectedFiles.length > 1 ? 's' : ''}` : 'Upload'}
                                     </button>
                                 </div>
 
@@ -370,6 +363,52 @@ const TaskDetailsModal = ({ task, onClose }) => {
                                 )}
                             </section>
                         </div>
+
+                        <aside className="tdm-side">
+                            <section className="tdm-card">
+                                <h3><Layers size={17} /> Task Information</h3>
+                                <dl className="tdm-info-list">
+                                    {details.map(({ label, value, icon: Icon }) => (
+                                        <div className="tdm-info-row" key={label}>
+                                            <dt><Icon size={15} />{label}</dt>
+                                            <dd>{value}</dd>
+                                        </div>
+                                    ))}
+                                </dl>
+                            </section>
+
+                            <section className="tdm-card">
+                                <h3><History size={17} /> Timeline</h3>
+                                <ol className="tdm-timeline">
+                                    {timeline.map(step => (
+                                        <li key={step.label} className={step.state}>
+                                            <span className="tdm-dot">{step.state === 'done' && <Check size={12} strokeWidth={3} />}</span>
+                                            <div>
+                                                <strong>{step.label}</strong>
+                                                <small>{step.date ? formatDate(step.date) : step.pendingText}</small>
+                                                {step.note && <em>{step.note}</em>}
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ol>
+                            </section>
+
+                            {isRecurring && (
+                                <section className="tdm-card">
+                                    <h3><Repeat size={17} /> Recurring Information</h3>
+                                    <div className="tdm-recurring-info">
+                                        <div>
+                                            <span>Frequency</span>
+                                            <strong>Every {task.frequencyDays} days</strong>
+                                        </div>
+                                        <div>
+                                            <span>Turnaround Time</span>
+                                            <strong>{task.tatDays} days</strong>
+                                        </div>
+                                    </div>
+                                </section>
+                            )}
+                        </aside>
                     </div>
                 </div>
 
