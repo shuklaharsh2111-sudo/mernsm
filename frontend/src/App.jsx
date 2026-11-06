@@ -22,6 +22,7 @@ import SmeAnalytics from './sme/SmeAnalytics';
 import SmeMonthlyReports from './sme/SmeMonthlyReports';
 import DesDashboard from './des/desdashboard';
 import SmiDashboard from './smi/SmiDashboard';
+import SmiSaved from './smi/SmiSaved';
 
 const getDashboardPath = (role) => {
   if (role === 'admin') return '/admin';
@@ -123,6 +124,7 @@ const AppRoutes = () => {
       <Route element={<ProtectedRoute role="smi" />}>
         <Route element={<DashboardLayout />}>
           <Route path="/smi" element={<SmiDashboard />} />
+          <Route path="/smi/saved" element={<SmiSaved />} />
         </Route>
       </Route>
 
