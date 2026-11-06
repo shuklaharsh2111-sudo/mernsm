@@ -1,0 +1,27 @@
+/* SOPs an SME assigns to an SMI */
+.smi-sop-wrap { margin-top: 8px; }
+.smi-sop-wrap .sop-list { max-height: 520px; overflow-y: auto; padding-right: 4px; }
+.sop-head-actions { display: flex; align-items: center; gap: 14px; }
+.sop-assign-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; font-size: 12px; font-weight: 700;
+  color: var(--orange-light, #ffb04d);
+  background: rgba(242, 107, 15, 0.12);
+  border: 1px solid rgba(242, 107, 15, 0.35);
+  border-radius: 999px; cursor: pointer;
+}
+.sop-assign-btn:hover { background: rgba(242, 107, 15, 0.22); }
+.sop-assigned-to {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  color: var(--ink-3, #b9aaa0); background: rgba(242, 236, 231, 0.08);
+}
+.sop-row-actions { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.smi-sop-item { padding: 12px 14px; }
+.smi-sop-item .smi-name { font-weight: 700; }
+.sop-preview {
+  padding: 12px 14px; margin-bottom: 4px;
+  border: 1px solid rgba(242, 236, 231, 0.16); border-radius: 12px;
+  background: rgba(43, 32, 27, 0.5);
+}
+.sop-preview .sop-item-text { margin: 8px 0 0; }

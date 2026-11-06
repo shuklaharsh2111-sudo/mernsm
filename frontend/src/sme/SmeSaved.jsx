@@ -4,7 +4,7 @@ import api from '../api';
 import { SOP_TYPES, errMsg, fmtDateTime, fmtDay, periodLabel, todayStr, typeLabel } from '../sopUtils';
 
 // Every SOP the SME has ticked (saved automatically from the dashboard), newest first.
-const SmeSaved = () => {
+const SmeSaved = ({ base = '/sme', workspace = 'SME WORKSPACE' }) => {
   const [assigned, setAssigned] = useState(null);
   const [error, setError] = useState('');
   const [tab, setTab] = useState('all');
@@ -13,13 +13,13 @@ const SmeSaved = () => {
   useEffect(() => {
     let cancelled = false;
     api
-      .get('/sme/sop-assignments', { params: { today: todayStr() } })
+      .get(`${base}/sop-assignments`, { params: { today: todayStr() } })
       .then((res) => !cancelled && setAssigned(res.data.assignments))
       .catch((err) => !cancelled && setError(errMsg(err)));
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [base]);
 
   const history = (assigned || [])
     .flatMap((a) => a.completions.map((c) => ({ ...c, sop: a })))
@@ -37,7 +37,7 @@ const SmeSaved = () => {
     <div className="dashboard-content scrollable">
       <div className="page-header">
         <div>
-          <span className="page-label">SME WORKSPACE</span>
+          <span className="page-label">{workspace}</span>
           <h1>Saved</h1>
           <p>Every SOP you have ticked is saved here automatically.</p>
         </div>
@@ -83,6 +83,7 @@ const SmeSaved = () => {
                 <div><dt>Done for</dt><dd>{periodLabel(h.sop.type, h.period)}</dd></div>
                 <div><dt>SOP date</dt><dd>{fmtDay(h.sop.date)}</dd></div>
                 <div><dt>Saved on</dt><dd>{fmtDateTime(h.at)}</dd></div>
+                {h.sop.assignedBy && <div><dt>Assigned by</dt><dd>{h.sop.assignedBy.name}</dd></div>}
               </dl>
             </div>
           ))}
