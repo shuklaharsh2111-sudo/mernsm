@@ -1,20 +1,10 @@
 
 import { useEffect, useState } from 'react';
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-  Outlet,
-  useLocation
-} from 'react-router-dom';
-
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
-
 import Login from './Login';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
-
 import AdminDashboard from './admin/AdminDashboard';
 import AdminUsers from './admin/AdminUsers';
 import AdminCompanies from './admin/AdminCompanies';
@@ -30,32 +20,26 @@ import SmePendingCreatives from './sme/SmePendingCreatives';
 import SmeSettings from './sme/SmeSettings';
 import SmeAnalytics from './sme/SmeAnalytics';
 import SmeMonthlyReports from './sme/SmeMonthlyReports';
+import DesDashboard from './des/desdashboard';
+
+const getDashboardPath = (role) => {
+  if (role === 'admin') return '/admin';
+  if (role === 'sme') return '/sme';
+  if (role === 'des') return '/des';
+  return '/login';
+};
 
 const ProtectedRoute = ({ role }) => {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return <div className="loading-screen">Loading...</div>;
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (user.role !== role) {
-    return (
-      <Navigate
-        to={user.role === 'admin' ? '/admin' : '/sme'}
-        replace
-      />
-    );
-  }
+  if (loading) return <div className="loading-screen">Loading...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== role) return <Navigate to={getDashboardPath(user.role)} replace />;
 
   return <Outlet />;
 };
 
 const DashboardLayout = () => {
-  // sidebar can be collapsed to an icon rail; the choice is remembered
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem('sidebarCollapsed') === '1';
@@ -64,35 +48,24 @@ const DashboardLayout = () => {
     }
   });
 
-  const toggleSidebar = () =>
-    setCollapsed((v) => {
-      try {
-        localStorage.setItem('sidebarCollapsed', v ? '0' : '1');
-      } catch {
-        /* storage unavailable: just don't remember */
-      }
-      return !v;
-    });
+  const toggleSidebar = () => setCollapsed((v) => {
+    try {
+      localStorage.setItem('sidebarCollapsed', v ? '0' : '1');
+    } catch {}
+    return !v;
+  });
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pathname } = useLocation();
 
-  // close the mobile drawer whenever the page changes
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMobileOpen(false);
   }, [pathname]);
 
   return (
     <div className={`app-shell ${collapsed ? 'collapsed' : ''}`}>
-      <Sidebar
-        collapsed={collapsed}
-        onToggle={toggleSidebar}
-        mobileOpen={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-      />
+      <Sidebar collapsed={collapsed} onToggle={toggleSidebar} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
       {mobileOpen && <div className="app-scrim" onClick={() => setMobileOpen(false)} />}
-
       <div className="app-main">
         <Topbar onMenu={() => setMobileOpen(true)} />
         <main className="app-content">
@@ -106,21 +79,13 @@ const DashboardLayout = () => {
 const AppRoutes = () => {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return <div className="loading-screen">Loading...</div>;
-  }
+  if (loading) return <div className="loading-screen">Loading...</div>;
+
+  const dashboardPath = getDashboardPath(user?.role);
 
   return (
     <Routes>
-
-      <Route
-        path="/login"
-        element={
-          user
-            ? <Navigate to={user.role === 'admin' ? '/admin' : '/sme'} replace />
-            : <Login />
-        }
-      />
+      <Route path="/login" element={user ? <Navigate to={dashboardPath} replace /> : <Login />} />
 
       <Route element={<ProtectedRoute role="admin" />}>
         <Route element={<DashboardLayout />}>
@@ -147,46 +112,24 @@ const AppRoutes = () => {
         </Route>
       </Route>
 
-      <Route
-        path="/"
-        element={
-          <Navigate
-            to={
-              user
-                ? user.role === 'admin' ? '/admin' : '/sme'
-                : '/login'
-            }
-            replace
-          />
-        }
-      />
+      <Route element={<ProtectedRoute role="des" />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/des" element={<DesDashboard />} />
+        </Route>
+      </Route>
 
-      <Route
-        path="*"
-        element={
-          <Navigate
-            to={
-              user
-                ? user.role === 'admin' ? '/admin' : '/sme'
-                : '/login'
-            }
-            replace
-          />
-        }
-      />
-
+      <Route path="/" element={<Navigate to={dashboardPath} replace />} />
+      <Route path="*" element={<Navigate to={dashboardPath} replace />} />
     </Routes>
   );
 };
 
-const App = () => {
-  return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
-  );
-};
+const App = () => (
+  <BrowserRouter>
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  </BrowserRouter>
+);
 
 export default App;

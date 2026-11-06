@@ -1,19 +1,14 @@
-
 import {
   createContext,
   useContext,
   useEffect,
   useState
 } from 'react';
-
 import api from './api';
-
 const AuthContext = createContext(null);
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const fetchUser = async () => {
     try {
       const response = await api.get('/auth/me');
@@ -24,11 +19,9 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchUser();
   }, []);
-
   // Ask the browser for the current position (used for the office-only login)
   const getPosition = () =>
     new Promise((resolve, reject) => {
@@ -36,7 +29,6 @@ export const AuthProvider = ({ children }) => {
         reject(new Error('This browser does not support location access.'));
         return;
       }
-
       navigator.geolocation.getCurrentPosition(
         (pos) =>
           resolve({
@@ -55,21 +47,17 @@ export const AuthProvider = ({ children }) => {
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     });
-
   const login = async (email, password) => {
     // If location is unavailable we still send the login; the server decides
     // whether this user's role actually needs it (admins are exempt by default).
     let position = {};
     let positionError = null;
-
     try {
       position = await getPosition();
     } catch (err) {
       positionError = err;
     }
-
     let response;
-
     try {
       response = await api.post('/auth/login', {
         email,
@@ -82,12 +70,9 @@ export const AuthProvider = ({ children }) => {
       }
       throw err;
     }
-
     setUser(response.data.user);
-
     return response.data.user;
   };
-
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -95,7 +80,6 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
     }
   };
-
   return (
     <AuthContext.Provider
       value={{
@@ -110,7 +94,6 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
 export const useAuth = () => {
   return useContext(AuthContext);
 };

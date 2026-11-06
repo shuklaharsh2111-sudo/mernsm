@@ -1,7 +1,3 @@
-// Office geofence helpers. Configure the office in backend/.env:
-//   OFFICE_LAT, OFFICE_LNG, OFFICE_RADIUS_METERS (default 200)
-//   ATTENDANCE_ENFORCE=true        -> SMEs can only log in from the office
-//   ATTENDANCE_ENFORCE_ADMIN=false -> set true to also lock admins to the office
 
 const EARTH_RADIUS_M = 6371000;
 const toRad = (deg) => (deg * Math.PI) / 180;

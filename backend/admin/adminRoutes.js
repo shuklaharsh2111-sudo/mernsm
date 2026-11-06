@@ -1,3 +1,5 @@
+import multer from 'multer';
+import cloudinary from '../config/cloudinary.js';
 import express from 'express';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
@@ -12,21 +14,39 @@ import { momView, generateMeetingLink } from '../meeting/momHelpers.js';
 import Creative from '../sme/Creative.js';
 import Attendance from '../attendance/Attendance.js';
 import { getOfficeConfig } from '../attendance/geo.js';
-
+import { ReportingManager, roleModels } from './UserModels.js';
 const router = express.Router();
+const imageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowed.includes(file.mimetype)) return cb(null, true);
+    cb(new Error('Only JPG, PNG and WEBP images are allowed'));
+  }
+});
+const uploadToCloudinary = (file, folder = 'creative-manager/profiles') => new Promise((resolve, reject) => {
+  cloudinary.uploader.upload_stream(
+    { folder, resource_type: 'image' },
+    (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    }
+  ).end(file.buffer);
+});
+const deleteFromCloudinary = async (publicId) => {
+  if (!publicId) return;
+  await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
+};
 router.use(protect(['admin']));
-
 const validId = (id) => mongoose.Types.ObjectId.isValid(id);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const userView = (u) => ({
-  id: u._id,
-  name: u.name || u.fullname || u.email,
-  email: u.email,
-  companies: (u.companies || []).map(String),
-  createdAt: u.createdAt,
+const companyView = (c) => ({
+  id: String(c._id),
+  name: c.name,
+  logo: c.logo || '',
+  logoPublicId: c.logoPublicId || ''
 });
-const companyView = (c) => ({ id: c._id, name: c.name });
 const sopView = (a) => ({
   id: a._id,
   company: String(a.company),
@@ -35,61 +55,133 @@ const sopView = (a) => ({
   date: a.date,
   doneCount: (a.completions || []).length,
 });
-
-// ---------------- Users (SMEs) ----------------
-router.get('/users', async (req, res) => {
-  const users = await Sme.find().sort({ createdAt: -1 });
-  res.json({ users: users.map(userView), maxAssigned: MAX_ASSIGNED });
+// ---------------- Users ----------------
+const userView = (u, collection) => ({
+  id: String(u._id),
+  name: u.name || u.fullname || u.email,
+  email: u.email,
+  role: String(u.role || collection).toUpperCase(),
+  collection,
+  contact: u.contact || '',
+  profileImage: u.profileImage || u.avatar || '',
+  companies: collection === 'smes' ? (u.companies || []).map(String) : [],
+  createdAt: u.createdAt
 });
-
-router.post('/users', async (req, res) => {
+const getRoleCollection = (role) => roleModels[role]?.collection?.collectionName || '';
+router.get('/users', async (req, res) => {
+  const collections = Object.entries(roleModels);
+  const results = await Promise.all(
+    collections.map(async ([role, Model]) => {
+      const collection = getRoleCollection(role);
+      const users = await Model.find().sort({ createdAt: -1 }).lean();
+      return users.map((u) => userView(u, collection));
+    })
+  );
+  const users = results.flat().sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  res.json({ users, maxAssigned: MAX_ASSIGNED });
+});
+router.get('/reporting-managers', async (req, res) => {
+  const managers = await ReportingManager.find()
+    .select('name fullname email profileImage')
+    .sort({ name: 1 })
+    .lean();
+  res.json({
+    reportingManagers: managers.map((m) => ({
+      id: String(m._id),
+      name: m.name || m.fullname || m.email,
+      email: m.email,
+      profileImage: m.profileImage || ''
+    }))
+  });
+});
+router.post('/users', imageUpload.single('image'), async (req, res) => {
   const name = String(req.body.name || '').trim();
+  const contact = String(req.body.contact || '').trim();
   const email = String(req.body.email || '').trim().toLowerCase();
   const password = String(req.body.password || '');
-  if (!name || !email || !password) return res.status(400).json({ message: 'Name, email and password are required' });
+  const role = String(req.body.role || '').trim().toLowerCase();
+  if (!name || !contact || !email || !password || !role) {
+    return res.status(400).json({ message: 'Name, contact, email, password and role are required' });
+  }
   if (!EMAIL_RE.test(email)) return res.status(400).json({ message: 'Enter a valid email address' });
   if (password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters' });
-  if ((await Sme.exists({ email })) || (await Admin.exists({ email }))) {
+  const UserModel = roleModels[role];
+  if (!UserModel) return res.status(400).json({ message: 'Invalid user role' });
+  const duplicateChecks = await Promise.all(
+    Object.values(roleModels).map((Model) => Model.exists({ email }))
+  );
+  if (duplicateChecks.some(Boolean)) {
     return res.status(409).json({ message: 'That email is already in use' });
   }
-  const user = await Sme.create({ name, email, password: await bcrypt.hash(password, 10), companies: [] });
-  res.status(201).json({ user: userView(user) });
+  let reportingManagerId = null;
+  if (req.body.reportingManagerId) {
+    if (!validId(req.body.reportingManagerId)) {
+      return res.status(400).json({ message: 'Invalid reporting manager' });
+    }
+    const managerExists = await ReportingManager.exists({ _id: req.body.reportingManagerId });
+    if (!managerExists) {
+      return res.status(400).json({ message: 'Selected reporting manager does not exist' });
+    }
+    reportingManagerId = req.body.reportingManagerId;
+  }
+  let imageUrl = '';
+  if (req.file) {
+    const uploadedImage = await uploadToCloudinary(req.file);
+    imageUrl = uploadedImage.secure_url;
+  }
+  const userData = {
+    name,
+    fullname: name,
+    contact,
+    email,
+    password: await bcrypt.hash(password, 10),
+    role,
+    profileImage: imageUrl,
+    avatar: imageUrl,
+    reportingManagerId
+  };
+  if (role === 'sme') userData.companies = [];
+  const user = await UserModel.create(userData);
+  res.status(201).json({
+    user: userView(user, getRoleCollection(role))
+  });
 });
-
 router.put('/users/:id/companies', async (req, res) => {
-  if (!validId(req.params.id)) return res.status(404).json({ message: 'User not found' });
+  if (!validId(req.params.id)) return res.status(404).json({ message: 'SME user not found' });
   const ids = Array.isArray(req.body.companies) ? [...new Set(req.body.companies.map(String))] : null;
   if (!ids || ids.some((id) => !validId(id))) return res.status(400).json({ message: 'Invalid companies' });
-  if (ids.length > MAX_ASSIGNED) {
-    return res.status(400).json({ message: `You can assign at most ${MAX_ASSIGNED} companies` });
-  }
+  if (ids.length > MAX_ASSIGNED) return res.status(400).json({ message: `You can assign at most ${MAX_ASSIGNED} companies` });
   if ((await Company.countDocuments({ _id: { $in: ids } })) !== ids.length) {
     return res.status(400).json({ message: 'One of the companies no longer exists' });
   }
-  const user = await Sme.findByIdAndUpdate(req.params.id, { companies: ids }, { new: true });
-  if (!user) return res.status(404).json({ message: 'User not found' });
-  res.json({ user: userView(user) });
+  const user = await Sme.findById(req.params.id);
+  if (!user || String(user.role || '').toLowerCase() !== 'sme') {
+    return res.status(403).json({ message: 'Companies can only be assigned to SME users.' });
+  }
+  user.companies = ids;
+  await user.save();
+  res.json({ user: userView(user, 'smes') });
 });
-
 router.delete('/users/:id', async (req, res) => {
   if (!validId(req.params.id)) return res.status(404).json({ message: 'User not found' });
-  const user = await Sme.findByIdAndDelete(req.params.id);
-  if (!user) return res.status(404).json({ message: 'User not found' });
-  await SopAssignment.deleteMany({ user: user._id });
+  const collection = String(req.query.collection || '').toLowerCase();
+  const entry = Object.entries(roleModels).find(([role]) => getRoleCollection(role).toLowerCase() === collection);
+  if (!entry) return res.status(400).json({ message: 'Valid user collection is required' });
+  const [, UserModel] = entry;
+  const user = await UserModel.findByIdAndDelete(req.params.id);
+  if (!user) return res.status(404).json({ message: 'User not found in selected collection' });
+  if (collection === 'smes') await SopAssignment.deleteMany({ user: user._id });
   res.json({ message: 'User deleted' });
 });
-
 // ---------------- Attendance (login / logout times) ----------------
 // GET /api/admin/attendance?from=YYYY-MM-DD&to=YYYY-MM-DD&userId=<id>&role=sme|admin
 router.get('/attendance', async (req, res) => {
   const filter = {};
-
   if (req.query.userId) {
     if (!validId(req.query.userId)) return res.status(400).json({ message: 'Invalid user' });
     filter.userId = req.query.userId;
   }
   if (['admin', 'sme'].includes(req.query.role)) filter.role = req.query.role;
-
   const range = {};
   if (req.query.from) {
     const d = new Date(`${req.query.from}T00:00:00`);
@@ -100,11 +192,9 @@ router.get('/attendance', async (req, res) => {
     if (!isNaN(d)) range.$lte = d;
   }
   if (Object.keys(range).length) filter.loginAt = range;
-
   const limit = Math.min(parseInt(req.query.limit, 10) || 500, 2000);
   const records = await Attendance.find(filter).sort({ loginAt: -1 }).limit(limit).lean();
   const office = getOfficeConfig();
-
   res.json({
     office: { configured: office.configured, radius: office.radius },
     records: records.map((r) => ({
@@ -120,32 +210,53 @@ router.get('/attendance', async (req, res) => {
     }))
   });
 });
-
 // ---------------- Companies ----------------
 router.get('/companies', async (req, res) => {
   const list = await Company.find().sort({ name: 1 });
   res.json({ companies: list.map(companyView) });
 });
-
-router.post('/companies', async (req, res) => {
+router.post('/companies', imageUpload.single('logo'), async (req, res) => {
   const name = String(req.body.name || '').trim();
   if (!name) return res.status(400).json({ message: 'Company name is required' });
   if (name.length > 60) return res.status(400).json({ message: 'Company name is too long (max 60)' });
+  if (!req.file) return res.status(400).json({ message: 'Company logo is required' });
   const nameKey = name.toLowerCase();
-  if (await Company.exists({ nameKey })) return res.status(409).json({ message: 'That company already exists' });
-  const company = await Company.create({ name, nameKey });
-  res.status(201).json({ company: companyView(company) });
+  if (await Company.exists({ nameKey })) {
+    return res.status(409).json({ message: 'That company already exists' });
+  }
+  const uploadedLogo = await uploadToCloudinary(req.file, 'creative-manager/company-logos');
+  try {
+    const company = await Company.create({
+      name,
+      nameKey,
+      logo: uploadedLogo.secure_url,
+      logoPublicId: uploadedLogo.public_id
+    });
+    res.status(201).json({ company: companyView(company) });
+  } catch (error) {
+    await deleteFromCloudinary(uploadedLogo.public_id).catch(() => {});
+    throw error;
+  }
 });
-
 router.delete('/companies/:id', async (req, res) => {
   if (!validId(req.params.id)) return res.status(404).json({ message: 'Company not found' });
-  const company = await Company.findByIdAndDelete(req.params.id);
+
+  const company = await Company.findById(req.params.id);
   if (!company) return res.status(404).json({ message: 'Company not found' });
+
   await Sme.updateMany({ companies: company._id }, { $pull: { companies: company._id } });
   await SopAssignment.deleteMany({ company: company._id });
+
+  await Company.deleteOne({ _id: company._id });
+
+  if (company.logoPublicId) {
+    await deleteFromCloudinary(company.logoPublicId).catch((error) => {
+      console.error('Company logo deletion failed:', error.message);
+    });
+  }
+
   res.json({ message: 'Company deleted' });
 });
-
 // ---------------- Manage SOPs (assigned to a user) ----------------
 const findUser = async (req, res) => {
   if (!validId(req.params.id)) {
@@ -153,10 +264,16 @@ const findUser = async (req, res) => {
     return null;
   }
   const user = await Sme.findById(req.params.id);
-  if (!user) res.status(404).json({ message: 'User not found' });
+  if (!user) {
+    res.status(404).json({ message: 'User not found' });
+    return null;
+  }
+  if (String(user.role || '').toUpperCase() !== 'SME') {
+    res.status(403).json({ message: 'Companies and SOPs can only be assigned to SME users.' });
+    return null;
+  }
   return user;
 };
-
 // Returns an error message, or null when the body is fine for this user.
 const validateSop = (user, { company, type, text, date }) => {
   if (!company || !type || !String(text || '').trim() || !date) {
@@ -170,14 +287,12 @@ const validateSop = (user, { company, type, text, date }) => {
   if (!isRealDate(date)) return 'Enter a valid SOP date';
   return null;
 };
-
 router.get('/users/:id/sop-assignments', async (req, res) => {
   const user = await findUser(req, res);
   if (!user) return;
   const list = await SopAssignment.find({ user: user._id }).sort({ date: -1, createdAt: -1 }).limit(300);
   res.json({ assignments: list.map(sopView) });
 });
-
 router.post('/users/:id/sop-assignments', async (req, res) => {
   const user = await findUser(req, res);
   if (!user) return;
@@ -187,7 +302,6 @@ router.post('/users/:id/sop-assignments', async (req, res) => {
   const doc = await SopAssignment.create({ user: user._id, company, type, text, date, createdBy: req.user.id });
   res.status(201).json({ assignment: sopView(doc) });
 });
-
 router.put('/users/:id/sop-assignments/:sopId', async (req, res) => {
   const user = await findUser(req, res);
   if (!user) return;
@@ -201,7 +315,6 @@ router.put('/users/:id/sop-assignments/:sopId', async (req, res) => {
   await doc.save();
   res.json({ assignment: sopView(doc) });
 });
-
 router.delete('/users/:id/sop-assignments/:sopId', async (req, res) => {
   const user = await findUser(req, res);
   if (!user) return;
@@ -210,7 +323,6 @@ router.delete('/users/:id/sop-assignments/:sopId', async (req, res) => {
   if (!doc) return res.status(404).json({ message: 'SOP not found' });
   res.json({ message: 'SOP deleted' });
 });
-
 // ---------------- MOM approvals ----------------
 const momItemView = (m) => ({
   id: m._id,
@@ -221,7 +333,6 @@ const momItemView = (m) => ({
   sme: m.user ? { id: m.user._id, name: m.user.name || m.user.fullname || m.user.email, email: m.user.email } : { id: '', name: 'Removed user', email: '' },
   mom: momView(m.mom),
 });
-
 // Every MOM an SME has submitted, newest first.
 router.get('/moms', async (req, res) => {
   const list = await Meeting.find({ 'mom.submittedAt': { $exists: true } })
@@ -231,14 +342,12 @@ router.get('/moms', async (req, res) => {
     .populate('user', 'name fullname email');
   res.json({ moms: list.map(momItemView) });
 });
-
 // action: 'approve' | 'send-back' | 'reject'. Send back / reject need a reason.
 const REVIEW = {
   approve: { status: 'approved', needsNote: false },
   'send-back': { status: 'sent_back', needsNote: true },
   reject: { status: 'rejected', needsNote: true },
 };
-
 const reviewMom = async (req, res, action) => {
   const { status, needsNote } = REVIEW[action];
   if (!validId(req.params.id)) return res.status(404).json({ message: 'MOM not found' });
@@ -249,12 +358,10 @@ const reviewMom = async (req, res, action) => {
   if (meeting.mom.status !== 'pending') {
     return res.status(400).json({ message: `This MOM is not waiting for review (it is ${meeting.mom.status.replace('_', ' ')})` });
   }
-
   const note = String(req.body?.note || '').trim();
   if (needsNote && note.length < 3) {
     return res.status(400).json({ message: 'Give a reason (at least 3 characters)' });
   }
-
   // Approving schedules the next meeting for the SME, so it shows up active on their dashboard.
   let nextScheduled = false;
   if (status === 'approved' && meeting.company && meeting.user && meeting.mom.nextMeeting) {
@@ -274,18 +381,15 @@ const reviewMom = async (req, res, action) => {
     }
     nextScheduled = true;
   }
-
   meeting.mom.status = status;
   meeting.mom.reviewedAt = new Date();
   meeting.mom.reviewNote = needsNote ? note : '';
   await meeting.save();
   res.json({ mom: momItemView(meeting), nextScheduled });
 };
-
 router.put('/moms/:id/approve', (req, res) => reviewMom(req, res, 'approve'));
 router.put('/moms/:id/send-back', (req, res) => reviewMom(req, res, 'send-back'));
 router.put('/moms/:id/reject', (req, res) => reviewMom(req, res, 'reject'));
-
 // ---------------- Creative approvals ----------------
 const creativeItemView = (c) => ({
   id: c._id,
@@ -306,7 +410,6 @@ const creativeItemView = (c) => ({
   company: c.company ? { id: c.company._id, name: c.company.name } : { id: '', name: 'Removed company' },
   sme: c.user ? { id: c.user._id, name: c.user.name || c.user.fullname || c.user.email, email: c.user.email } : { id: '', name: 'Removed user', email: '' },
 });
-
 // Every creative an SME has submitted, newest first.
 router.get('/creatives', async (req, res) => {
   const list = await Creative.find({})
@@ -316,7 +419,6 @@ router.get('/creatives', async (req, res) => {
     .populate('user', 'name fullname email');
   res.json({ creatives: list.map(creativeItemView) });
 });
-
 // Approve -> it appears on the SME's calendar. Reject needs a reason.
 const reviewCreative = async (req, res, action) => {
   if (!validId(req.params.id)) return res.status(404).json({ message: 'Creative not found' });
@@ -340,5 +442,4 @@ const reviewCreative = async (req, res, action) => {
 };
 router.put('/creatives/:id/approve', (req, res) => reviewCreative(req, res, 'approve'));
 router.put('/creatives/:id/reject', (req, res) => reviewCreative(req, res, 'reject'));
-
 export default router;

@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-
 const pointSchema = new mongoose.Schema(
   {
     lat: Number,
@@ -9,11 +8,10 @@ const pointSchema = new mongoose.Schema(
   },
   { _id: false }
 );
-
 const attendanceSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
-    role: { type: String, enum: ['admin', 'sme'], required: true },
+    role: { type: String, enum: ['admin', 'sme', 'des'], required: true },
     name: String,
     email: String,
     sessionId: { type: String, required: true, index: true },
@@ -24,9 +22,7 @@ const attendanceSchema = new mongoose.Schema(
   },
   { timestamps: true, collection: 'attendance' }
 );
-
 const Attendance =
   mongoose.models.Attendance ||
   mongoose.model('Attendance', attendanceSchema);
-
 export default Attendance;

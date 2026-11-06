@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
-import { X, CalendarDays, Building2, Clock3, Play, Square, Upload, Image as ImageIcon, Trash2, LoaderCircle, AlertCircle, Repeat, UserRound, FileText, Flag, Target, FolderOpen } from 'lucide-react';
+import { X, CalendarDays, Building2, Clock3, Play, Square, Upload, Image as ImageIcon, Trash2, LoaderCircle, AlertCircle, Repeat, UserRound, FileText, Flag, Target, FolderOpen, Video, File, Download, Eye } from 'lucide-react';
 import api from '../api';
 import '../styles/taskdetailsmodal.css';
 const formatDate = date => {
@@ -25,87 +25,88 @@ const TaskDetailsModal = ({ task, onClose }) => {
     const [uploading, setUploading] = useState(false);
     const [deletingId, setDeletingId] = useState('');
     const [error, setError] = useState('');
-    const [selectedImages, setSelectedImages] = useState([]);
+    const [selectedFiles, setSelectedFiles] = useState([]);
     const fileInputRef = useRef(null);
     useEffect(() => {
+        let active = true;
         const fetchAttachments = async () => {
             try {
                 setLoadingImages(true);
                 setError('');
-                const response = await api.get(`/sme/tasks/${task._id}/image-attachments`);
-                setAttachments(response.data.attachments || []);
+                const response = await api.get(`/sme/tasks/${task._id}/attachments`);
+                if (active) setAttachments(Array.isArray(response.data.attachments) ? response.data.attachments : []);
             } catch (err) {
-                setError(err.response?.data?.message || 'Unable to load task images.');
+                if (active) {
+                    setAttachments([]);
+                    setError(err.response?.data?.message || 'Unable to load task attachments.');
+                }
             } finally {
-                setLoadingImages(false);
+                if (active) setLoadingImages(false);
             }
         };
         fetchAttachments();
+        return () => { active = false; };
     }, [task._id]);
-    const handleImageSelection = event => {
+    const handleFileSelection = event => {
         const files = Array.from(event.target.files || []);
-        const remaining = 5 - attachments.length;
+        const remaining = Math.max(0, 5 - attachments.length);
+        if (!files.length) {
+            setSelectedFiles([]);
+            return;
+        }
         if (files.length > remaining) {
-            setError(`You can select only ${remaining} more image(s).`);
-            setSelectedImages(files.slice(0, Math.max(0, remaining)));
+            setError(`You can select only ${remaining} more file(s).`);
+            setSelectedFiles(files.slice(0, remaining));
         } else {
             setError('');
-            setSelectedImages(files);
+            setSelectedFiles(files);
         }
         event.target.value = '';
     };
-const handleUpload = async () => {
-    if (!selectedImages.length) {
-        setError('Please choose at least one image first.');
-        return;
-    }
-
-    const formData = new FormData();
-
-    selectedImages.forEach(file => {
-        formData.append('images', file, file.name);
-    });
-
-    console.log('Selected files:', selectedImages);
-    console.log('FormData files:', [...formData.entries()]);
-
-    try {
-        setUploading(true);
-        setError('');
-
-        const response = await api.post(
-            `/sme/tasks/${task._id}/image-attachments`,
-            formData,
-            {
-                headers: {
-                    'Content-Type': undefined
-                }
+    const handleUpload = async () => {
+        if (!selectedFiles.length) {
+            setError('Please choose at least one file first.');
+            return;
+        }
+        const formData = new FormData();
+        selectedFiles.forEach(file => formData.append('files', file, file.name));
+        try {
+            setUploading(true);
+            setError('');
+            const uploadResponse = await api.post(
+                `/sme/tasks/${task._id}/attachments`,
+                formData,
+                { headers: { 'Content-Type': undefined } }
+            );
+            console.log('Attachment upload response:', uploadResponse.data);
+            const refreshed = await api.get(`/sme/tasks/${task._id}/attachments`);
+            console.log('Attachments fetched from server:', refreshed.data);
+            const savedAttachments = refreshed.data?.attachments;
+            if (!Array.isArray(savedAttachments)) {
+                throw new Error('Upload completed, but server did not return the saved attachments list.');
             }
-        );
-
-        setAttachments(prev => [
-            ...response.data.attachments,
-            ...prev
-        ]);
-
-        setSelectedImages([]);
-        setError('');
-    } catch (err) {
-        console.error('Upload response:', err.response?.data || err);
-        setError(err.response?.data?.message || 'Image upload failed.');
-    } finally {
-        setUploading(false);
-    }
-};
+            setAttachments(savedAttachments);
+            setSelectedFiles([]);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            if (!savedAttachments.length) {
+                setError('Upload request completed, but no saved attachments were returned. Please check the backend GET route.');
+            }
+        } catch (err) {
+            console.error('Task attachment upload error:', err.response?.data || err);
+            setError(err.response?.data?.message || err.message || 'File upload failed.');
+        } finally {
+            setUploading(false);
+        }
+    };
     const handleDeleteImage = async attachmentId => {
-        if (!window.confirm('Are you sure you want to delete this image?')) return;
+        if (!window.confirm('Are you sure you want to delete this attachment?')) return;
         try {
             setDeletingId(attachmentId);
             setError('');
             await api.delete(`/sme/tasks/${task._id}/attachments/${attachmentId}`);
             setAttachments(prev => prev.filter(item => item._id !== attachmentId));
         } catch (err) {
-            setError(err.response?.data?.message || 'Image deletion failed.');
+            setError(err.response?.data?.message || 'Attachment deletion failed.');
         } finally {
             setDeletingId('');
         }
@@ -163,18 +164,18 @@ const handleUpload = async () => {
                     <section className="tdm-section">
                         <div className="tdm-attachments-heading">
                             <div>
-                                <h3><ImageIcon size={18} /> Task Images</h3>
-                                <p>Upload and manage task reference images.</p>
+                                <h3><FolderOpen size={18} /> Task Attachments</h3>
+                                <p>Upload and manage images, videos, PDFs and documents. Maximum 5 files.</p>
                             </div>
                         </div>
                         <div className="tdm-upload-controls">
                             <input
                                 ref={fileInputRef}
                                 type="file"
-                                accept="image/jpeg,image/png,image/webp"
+                                accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
                                 multiple
                                 hidden
-                                onChange={handleImageSelection}
+                                onChange={handleFileSelection}
                             />
                             <button
                                 type="button"
@@ -183,65 +184,121 @@ const handleUpload = async () => {
                                 disabled={uploading || attachments.length >= 5}
                             >
                                 <FolderOpen size={17} />
-                                Choose Images
+                                Choose Files
                             </button>
                             <button
                                 type="button"
                                 className="tdm-upload-btn"
                                 onClick={handleUpload}
-                                disabled={uploading || selectedImages.length === 0 || attachments.length >= 5}
+                                disabled={uploading || selectedFiles.length === 0 || attachments.length >= 5}
                             >
                                 {uploading ? <LoaderCircle size={17} className="tdm-spin" /> : <Upload size={17} />}
-                                {uploading ? 'Uploading...' : `Upload ${selectedImages.length || ''} Images`}
+                                {uploading ? 'Uploading...' : `Upload ${selectedFiles.length || ''} Files`}
                             </button>
                         </div>
-                        {selectedImages.length > 0 && (
+                        {selectedFiles.length > 0 && (
                             <div className="tdm-selected-images">
-                                <strong>Selected Images ({selectedImages.length})</strong>
-                                {selectedImages.map((file, index) => (
-                                    <div className="tdm-selected-image" key={`${file.name}-${index}`}>
-                                        <ImageIcon size={16} />
-                                        <span title={file.name}>{file.name}</span>
-                                        <small>{(file.size / (1024 * 1024)).toFixed(2)} MB</small>
-                                        <button
-                                            type="button"
-                                            onClick={() => setSelectedImages(prev => prev.filter((_, i) => i !== index))}
-                                            disabled={uploading}
-                                            aria-label="Remove selected image"
-                                        >
-                                            <X size={15} />
-                                        </button>
-                                    </div>
-                                ))}
+                                <strong>Selected Files ({selectedFiles.length})</strong>
+                                {selectedFiles.map((file, index) => {
+                                    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+                                    const isVideo = file.type.startsWith('video/') || ['mp4', 'mov', 'avi', 'webm', 'mkv'].includes(extension);
+                                    const isImage = file.type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(extension);
+                                    return (
+                                        <div className="tdm-selected-image" key={`${file.name}-${file.lastModified}-${index}`}>
+                                            {isImage ? <ImageIcon size={18} /> : isVideo ? <Video size={18} /> : <File size={18} />}
+                                            <span title={file.name}>{file.name}</span>
+                                            <small>{(file.size / (1024 * 1024)).toFixed(2)} MB</small>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedFiles(prev => prev.filter((_, i) => i !== index))}
+                                                disabled={uploading}
+                                                aria-label="Remove selected file"
+                                            >
+                                                <X size={15} />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                         {error && <div className="tdm-error"><AlertCircle size={16} />{error}</div>}
                         {loadingImages ? (
-                            <div className="tdm-empty"><LoaderCircle size={22} className="tdm-spin" />Loading images...</div>
+                            <div className="tdm-empty"><LoaderCircle size={22} className="tdm-spin" />Loading attachments...</div>
                         ) : attachments.length === 0 ? (
-                            <div className="tdm-empty"><ImageIcon size={26} /><span>No images uploaded yet.</span></div>
+                            <div className="tdm-empty"><FolderOpen size={26} /><span>No attachments uploaded yet.</span></div>
                         ) : (
                             <div className="tdm-gallery">
-                                {attachments.map(item => (
-                                    <div className="tdm-image-card" key={item._id}>
-                                        <a href={item.imageUrl} target="_blank" rel="noreferrer" className="tdm-image-link">
-                                            <img src={item.imageUrl} alt={item.originalName} loading="lazy" />
-                                        </a>
-                                        <div className="tdm-image-info">
-                                            <span title={item.originalName}>{item.originalName}</span>
-                                            <small>{formatDate(item.createdAt)}</small>
+                                {attachments.map((item, index) => {
+                                    const fileUrl = item.url || item.fileUrl || item.imageUrl || '';
+                                    const fileName = item.originalName || 'Attachment';
+                                    const extension = fileName.split('.').pop()?.toLowerCase() || '';
+                                    const mimeType = item.mimeType || '';
+                                    const fileType = item.fileType || (
+                                        mimeType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(extension) ? 'image' :
+                                            mimeType.startsWith('video/') || ['mp4', 'mov', 'avi', 'webm', 'mkv'].includes(extension) ? 'video' :
+                                                mimeType === 'application/pdf' || extension === 'pdf' ? 'pdf' : 'document'
+                                    );
+                                    const attachmentId = item._id || item.publicId || fileUrl || `attachment-${index}`;
+                                    return (
+                                        <div className="tdm-image-card" key={attachmentId}>
+                                            <div className="tdm-attachment-preview">
+                                                {!fileUrl ? (
+                                                    <div className="tdm-file-preview">
+                                                        <AlertCircle size={30} />
+                                                        <span>File URL unavailable</span>
+                                                    </div>
+                                                ) : fileType === 'image' ? (
+                                                    <a href={fileUrl} target="_blank" rel="noreferrer" className="tdm-image-link">
+                                                        <img
+                                                            src={fileUrl}
+                                                            alt={fileName}
+                                                            loading="lazy"
+                                                            onError={event => {
+                                                                console.error('Image failed to load:', fileUrl);
+                                                                event.currentTarget.style.display = 'none';
+                                                            }}
+                                                        />
+                                                    </a>
+                                                ) : fileType === 'video' ? (
+                                                    <video src={fileUrl} controls preload="metadata" />
+                                                ) : fileType === 'pdf' ? (
+                                                    <a href={fileUrl} target="_blank" rel="noreferrer" className="tdm-file-preview">
+                                                        <FileText size={38} />
+                                                        <span>PDF Document</span>
+                                                        <Eye size={17} />
+                                                    </a>
+                                                ) : (
+                                                    <a href={fileUrl} target="_blank" rel="noreferrer" className="tdm-file-preview">
+                                                        <File size={38} />
+                                                        <span>Document</span>
+                                                        <Eye size={17} />
+                                                    </a>
+                                                )}
+                                            </div>
+                                            <div className="tdm-image-info">
+                                                <span title={fileName}>{fileName}</span>
+                                                <small>{formatDate(item.uploadedAt || item.createdAt)}</small>
+                                                <small>{((item.size || 0) / (1024 * 1024)).toFixed(2)} MB</small>
+                                            </div>
+                                            <div className="tdm-attachment-actions">
+                                                {fileUrl && (
+                                                    <a href={fileUrl} target="_blank" rel="noreferrer" className="tdm-download-btn">
+                                                        <Download size={15} /> View / Download
+                                                    </a>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    className="tdm-delete-image"
+                                                    disabled={!!deletingId || !item._id}
+                                                    onClick={() => handleDeleteImage(item._id)}
+                                                    aria-label="Delete attachment"
+                                                >
+                                                    {deletingId === item._id ? <LoaderCircle size={16} className="tdm-spin" /> : <Trash2 size={16} />}
+                                                </button>
+                                            </div>
                                         </div>
-                                        <button
-                                            type="button"
-                                            className="tdm-delete-image"
-                                            disabled={!!deletingId}
-                                            onClick={() => handleDeleteImage(item._id)}
-                                            aria-label="Delete image"
-                                        >
-                                            {deletingId === item._id ? <LoaderCircle size={16} className="tdm-spin" /> : <Trash2 size={16} />}
-                                        </button>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </section>

@@ -15,15 +15,54 @@ import Task from './Tasks.js';
 import Creative, { CREATIVE_PLATFORMS, CREATIVE_STATUSES } from './Creative.js';
 import SocialMetrics from './SocialMetrics.js';
 import Admin from '../admin/Admin.js';
-const taskImageUpload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024, files: 5 },
-    fileFilter: (req, file, cb) => {
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-        if (allowedTypes.includes(file.mimetype)) return cb(null, true);
-        cb(new Error('Only JPG, PNG and WEBP images are allowed.'));
+const allowedMimeTypes = [
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+  'video/mp4', 'video/webm', 'video/quicktime',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain', 'text/csv'
+];
+
+const taskFileUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024, files: 5 },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+      'video/mp4', 'video/webm', 'video/quicktime',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain', 'text/csv'
+    ];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(new Error('Unsupported file type. Upload images, videos, PDF or supported documents.'));
     }
+    cb(null, true);
+  }
 });
+
+const uploadToCloudinary = (buffer, folder = 'creative-manager/tasks', resourceType = 'image') => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream({
+      folder,
+      resource_type: resourceType
+    }, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+    stream.end(buffer);
+  });
+};
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 5 },
@@ -34,18 +73,6 @@ const upload = multer({
     cb(null, true);
   }
 });
-const uploadToCloudinary = (buffer, folder = 'creative-manager/tasks') => {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream({
-      folder,
-      resource_type: 'image'
-    }, (error, result) => {
-      if (error) return reject(error);
-      resolve(result);
-    });
-    stream.end(buffer);
-  });
-};
 const router = express.Router();
 router.use(protect(['sme']));
 // Companies the admin assigned to the logged-in SME (max 5), in the order assigned.
@@ -313,55 +340,7 @@ router.patch('/tasks/:id/end', async (req, res) => {
     res.status(500).json({ message: 'Unable to complete task' });
   }
 });
-// Upload task images to Cloudinary
-router.post('/tasks/:id/attachments', (req, res) => {
-  upload.array('files', 5)(req, res, async (uploadError) => {
-    if (uploadError) {
-      return res.status(400).json({ message: uploadError.message });
-    }
-    const uploadedImages = [];
-    try {
-      const files = req.files || [];
-      if (!files.length) {
-        return res.status(400).json({ message: 'Please select at least one image' });
-      }
-      const task = await Task.findOne({
-        _id: req.params.id,
-        user: req.user.id
-      });
-      if (!task) {
-        return res.status(404).json({ message: 'Task not found' });
-      }
-      for (const file of files) {
-        const result = await uploadToCloudinary(file.buffer);
-        uploadedImages.push({
-          url: result.secure_url,
-          publicId: result.public_id,
-          originalName: file.originalname,
-          uploadedAt: new Date()
-        });
-      }
-      task.attachments.push(...uploadedImages);
-      await task.save();
-      const updatedTask = await Task.findById(task._id).populate('company', 'name');
-      return res.json({
-        message: 'Images uploaded successfully',
-        task: updatedTask
-      });
-    } catch (error) {
-      await Promise.all(
-        uploadedImages.map((image) =>
-          cloudinary.uploader.destroy(image.publicId).catch(() => null)
-        )
-      );
-      console.error('Task attachment error:', error);
-      return res.status(500).json({ message: 'Unable to upload images' });
-    }
-  });
-});
-// =========================================
-// CALENDAR: REFERENCE CREATIVES
-// =========================================
+
 const creativeView = (c) => ({
   id: c._id,
   companyId: String(c.company?._id || c.company),
@@ -1091,125 +1070,123 @@ router.put('/meetings/:id/mom', async (req, res) => {
   await meeting.save();
   res.json({ meeting: meetingView(meeting) });
 });
-router.get('/tasks/:taskId/image-attachments', async (req, res) => {
-    try {
-        const task = await Task.findOne({
-            _id: req.params.taskId,
-            user: req.user.id
-        });
-        if (!task) {
-            return res.status(404).json({ message: 'Task not found.' });
-        }
-        const attachments = await TaskAttachment.find({
-            task: task._id,
-            user: req.user.id
-        })
-            .select('_id originalName mimeType size imageUrl publicId createdAt')
-            .sort({ createdAt: -1 })
-            .lean();
-        res.json({ attachments });
-    } catch (error) {
-        console.error('Fetch task images error:', error);
-        res.status(500).json({
-            message: 'Unable to load task images.'
-        });
-    }
-});
-router.post('/tasks/:taskId/image-attachments', (req, res, next) => {
-    taskImageUpload.array('images', 5)(req, res, err => {
-        if (err) return res.status(400).json({ message: err.message });
-        next();
+router.get('/tasks/:taskId/attachments', async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(taskId)) return res.status(400).json({ message: 'Invalid task ID.' });
+    const task = await Task.findOne({ _id: taskId, user: req.user.id });
+    if (!task) return res.status(404).json({ message: 'Task not found.' });
+    const attachments = await TaskAttachment.find({ task: taskId, user: req.user.id })
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json({
+      attachments: attachments.map(item => ({
+        _id: item._id,
+        originalName: item.originalName,
+        mimeType: item.mimeType,
+        fileType: item.fileType || (item.mimeType?.startsWith('image/') ? 'image' : item.mimeType === 'application/pdf' ? 'pdf' : item.mimeType?.startsWith('video/') ? 'video' : 'document'),
+        size: item.size,
+        fileUrl: item.fileUrl || item.imageUrl,
+        createdAt: item.createdAt
+      }))
     });
+  } catch (error) {
+    console.error('Fetch task attachments error:', error);
+    res.status(500).json({ message: 'Unable to load task attachments.' });
+  }
+});
+router.post('/tasks/:taskId/attachments', (req, res, next) => {
+  taskFileUpload.array('files', 5)(req, res, error => {
+    if (error) return res.status(400).json({ message: error.message });
+    next();
+  });
 }, async (req, res) => {
-    const uploadedImages = [];
-    try {
-        const { taskId } = req.params;
-        if (!mongoose.Types.ObjectId.isValid(taskId)) {
-            return res.status(400).json({ message: 'Invalid task ID.' });
-        }
-        const task = await Task.findOne({ _id: taskId, user: req.user.id });
-        if (!task) {
-            return res.status(404).json({ message: 'Task not found.' });
-        }
-        if (!req.files?.length) {
-            return res.status(400).json({ message: 'Please select at least one image.' });
-        }
-        const existingCount = await TaskAttachment.countDocuments({
-            task: taskId,
-            user: req.user.id
-        });
-        if (existingCount + req.files.length > 5) {
-            return res.status(400).json({
-                message: `You can upload only ${5 - existingCount} more image(s).`
-            });
-        }
-        for (const file of req.files) {
-            const result = await uploadToCloudinary(file.buffer, 'creative-manager/tasks');
-            uploadedImages.push({
-                task: taskId,
-                user: req.user.id,
-                originalName: file.originalname,
-                mimeType: file.mimetype,
-                size: file.size,
-                imageUrl: result.secure_url,
-                publicId: result.public_id
-            });
-        }
-        const savedImages = await TaskAttachment.insertMany(uploadedImages);
-        res.status(201).json({
-            message: 'Images uploaded successfully.',
-            attachments: savedImages.map(item => ({
-                _id: item._id,
-                originalName: item.originalName,
-                mimeType: item.mimeType,
-                size: item.size,
-                imageUrl: item.imageUrl,
-                createdAt: item.createdAt
-            }))
-        });
-    } catch (error) {
-        await Promise.all(
-            uploadedImages.map(item =>
-                cloudinary.uploader.destroy(item.publicId).catch(() => {})
-            )
-        );
-        console.error('Task Image Upload Error:', error);
-        res.status(500).json({ message: error.message || 'Image upload failed.' });
+  const uploadedFiles = [];
+  try {
+    const { taskId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(taskId)) return res.status(400).json({ message: 'Invalid task ID.' });
+    const task = await Task.findOne({ _id: taskId, user: req.user.id });
+    if (!task) return res.status(404).json({ message: 'Task not found.' });
+    if (!req.files?.length) return res.status(400).json({ message: 'Please select at least one file.' });
+    const existingCount = await TaskAttachment.countDocuments({ task: taskId, user: req.user.id });
+    if (existingCount + req.files.length > 5) {
+      return res.status(400).json({ message: `You can upload only ${5 - existingCount} more file(s).` });
     }
+    for (const file of req.files) {
+      const result = await uploadToCloudinary(file.buffer, 'creative-manager/tasks', 'auto');
+      const fileType = file.mimetype.startsWith('image/')
+        ? 'image'
+        : file.mimetype.startsWith('video/')
+          ? 'video'
+          : file.mimetype === 'application/pdf'
+            ? 'pdf'
+            : 'document';
+      uploadedFiles.push({
+        task: taskId,
+        user: req.user.id,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        fileType,
+        size: file.size,
+        fileUrl: result.secure_url,
+        publicId: result.public_id,
+        resourceType: result.resource_type
+      });
+    }
+    const savedFiles = await TaskAttachment.insertMany(uploadedFiles);
+    res.status(201).json({
+      message: 'Files uploaded successfully.',
+      attachments: savedFiles.map(item => ({
+        _id: item._id,
+        originalName: item.originalName,
+        mimeType: item.mimeType,
+        fileType: item.fileType,
+        size: item.size,
+        fileUrl: item.fileUrl,
+        createdAt: item.createdAt
+      }))
+    });
+  } catch (error) {
+    await Promise.all(uploadedFiles.map(item =>
+      cloudinary.uploader.destroy(item.publicId, { resource_type: item.resourceType }).catch(() => null)
+    ));
+    console.error('Task attachment upload error:', error);
+    res.status(500).json({ message: 'Unable to upload files.' });
+  }
 });
 router.delete('/tasks/:taskId/attachments/:attachmentId', async (req, res) => {
-    try {
-        const task = await Task.findOne({
-            _id: req.params.taskId,
-            user: req.user.id
-        });
-        if (!task) {
-            return res.status(404).json({ message: 'Task not found.' });
-        }
-        const attachment = await TaskAttachment.findOne({
-            _id: req.params.attachmentId,
-            task: task._id,
-            user: req.user.id
-        });
-        if (!attachment) {
-            return res.status(404).json({ message: 'Image not found.' });
-        }
-        if (attachment.publicId) {
-            await cloudinary.uploader.destroy(attachment.publicId, {
-                resource_type: 'image'
-            });
-        }
-        await TaskAttachment.deleteOne({
-            _id: attachment._id
-        });
-        res.json({
-            message: 'Image deleted successfully.'
-        });
-    } catch (error) {
-        console.error('Delete task image error:', error);
-        res.status(500).json({
-            message: 'Unable to delete image.'
-        });
+  try {
+    const task = await Task.findOne({
+      _id: req.params.taskId,
+      user: req.user.id
+    });
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found.' });
     }
+    const attachment = await TaskAttachment.findOne({
+      _id: req.params.attachmentId,
+      task: task._id,
+      user: req.user.id
+    });
+    if (!attachment) {
+      return res.status(404).json({ message: 'Image not found.' });
+    }
+    if (attachment.publicId) {
+      await cloudinary.uploader.destroy(attachment.publicId, {
+        resource_type: attachment.resourceType || 'image'
+      });
+    }
+    await TaskAttachment.deleteOne({
+      _id: attachment._id
+    });
+    res.json({
+      message: 'Image deleted successfully.'
+    });
+  } catch (error) {
+    console.error('Delete task image error:', error);
+    res.status(500).json({
+      message: 'Unable to delete image.'
+    });
+  }
 });
 export default router;

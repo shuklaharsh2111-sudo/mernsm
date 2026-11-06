@@ -1,1 +1,3 @@
 Pearl White + Royal Blue + Soft Lavender
+
+Get-ChildItem -Recurse -Force -Exclude node_modules | Where-Object { $_.FullName -notmatch '\\node_modules\\' } | ForEach-Object { $_.FullName }

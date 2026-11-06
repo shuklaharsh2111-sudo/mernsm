@@ -20,6 +20,9 @@ const taskSchema = new mongoose.Schema({
         url: { type: String, required: true },
         publicId: { type: String, default: '' },
         originalName: { type: String, required: true },
+        fileType: { type: String, enum: ['image', 'video', 'pdf', 'document', 'file'], default: 'file' },
+        mimeType: { type: String, default: '' },
+        size: { type: Number, default: 0 },
         uploadedAt: { type: Date, default: Date.now }
     }]
 }, { timestamps: true, collection: 'tasks' });
