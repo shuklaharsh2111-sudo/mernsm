@@ -8,6 +8,7 @@ import Admin from './Admin.js';
 import Sme from '../sme/Sme.js';
 import Company, { MAX_ASSIGNED } from '../company/Company.js';
 import SopAssignment, { SOP_TYPE_VALUES } from '../sop/SopAssignment.js';
+import SmiSopAssignment from '../sop/SmiSopAssignment.js';
 import { isRealDate } from '../sop/period.js';
 import Meeting from '../meeting/Meeting.js';
 import { momView, generateMeetingLink } from '../meeting/momHelpers.js';
@@ -233,7 +234,11 @@ router.delete('/users/:id', async (req, res) => {
   const [, UserModel] = entry;
   const user = await UserModel.findByIdAndDelete(req.params.id);
   if (!user) return res.status(404).json({ message: 'User not found in selected collection' });
-  if (collection === 'smes') await SopAssignment.deleteMany({ user: user._id });
+  if (collection === 'smes') {
+    await SopAssignment.deleteMany({ user: user._id });
+    await SmiSopAssignment.deleteMany({ assignedBy: user._id });
+  }
+  if (collection === 'smis') await SmiSopAssignment.deleteMany({ smi: user._id });
   res.json({ message: 'User deleted' });
 });
 // ---------------- Attendance (login / logout times) ----------------
@@ -307,6 +312,7 @@ router.delete('/companies/:id', async (req, res) => {
   if (!company) return res.status(404).json({ message: 'Company not found' });
   await Sme.updateMany({ companies: company._id }, { $pull: { companies: company._id } });
   await SopAssignment.deleteMany({ company: company._id });
+  await SmiSopAssignment.deleteMany({ company: company._id });
   await Company.deleteOne({ _id: company._id });
   if (company.logoPublicId) {
     await deleteFromCloudinary(company.logoPublicId).catch((error) => {

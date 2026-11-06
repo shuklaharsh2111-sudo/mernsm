@@ -5,6 +5,8 @@ import mongoose from 'mongoose';
 import { protect } from '../auth.js';
 import Task from '../sme/Tasks.js';
 import TaskAttachment from '../sme/TaskAttachment.js';
+import SmiSopAssignment from '../sop/SmiSopAssignment.js';
+import { periodKey, resolveToday } from '../sop/period.js';
 
 const allowedTypes = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
@@ -43,6 +45,70 @@ const populateTask = (query) => query
   .populate('company', 'name')
   .populate('user', 'name email')
   .populate('assignedSmi', 'name email');
+
+// ---------------- SOPs an SME assigned to me ----------------
+const sopView = (a, today) => {
+  const key = periodKey(a.type, today);
+  return {
+    id: a._id,
+    type: a.type,
+    text: a.text,
+    date: a.date,
+    active: a.date <= today, // not started yet -> can't be ticked
+    period: key,
+    done: (a.completions || []).some((c) => c.period === key),
+    // The SME ticked the original SOP for this period: shown as completed by the SME, can't be ticked here.
+    completedBySme: Boolean(a.sourceSop?.completions?.some((c) => c.period === key)),
+    completions: (a.completions || []).map((c) => ({ period: c.period, at: c.at })),
+    company: a.company ? { id: a.company._id, name: a.company.name } : { id: '', name: 'Removed company' },
+    assignedBy: a.assignedBy ? { id: a.assignedBy._id, name: a.assignedBy.name } : { id: '', name: 'Removed SME' },
+  };
+};
+const sopListFor = async (userId, today) => {
+  const list = await SmiSopAssignment.find({ smi: userId })
+    .sort({ date: -1, createdAt: -1 })
+    .limit(300)
+    .populate('company', 'name')
+    .populate('assignedBy', 'name')
+    .populate('sourceSop', 'completions');
+  return list.map((a) => sopView(a, today));
+};
+router.get('/sop-assignments', async (req, res) => {
+  try {
+    const today = resolveToday(req.query.today);
+    res.json({ assignments: await sopListFor(req.user.id, today), today });
+  } catch (error) {
+    console.error('SMI fetch SOPs error:', error);
+    res.status(500).json({ message: 'Unable to fetch SOPs' });
+  }
+});
+// Save ticks: body = { today, changes: [{ id, done }] }. A tick is saved for the
+// current period only (today / this week / this month, by the SOP's type).
+router.put('/sop-assignments/completions', async (req, res) => {
+  try {
+    const today = resolveToday(req.body.today);
+    const changes = Array.isArray(req.body.changes) ? req.body.changes.slice(0, 200) : [];
+    if (changes.some((c) => !mongoose.Types.ObjectId.isValid(c?.id) || typeof c.done !== 'boolean')) {
+      return res.status(400).json({ message: 'Invalid changes' });
+    }
+    for (const { id, done } of changes) {
+      const sop = await SmiSopAssignment.findOne({ _id: id, smi: req.user.id }).populate('sourceSop', 'completions');
+      if (!sop || sop.date > today) continue; // not mine, or hasn't started yet
+      const key = periodKey(sop.type, today);
+      if (sop.sourceSop?.completions?.some((c) => c.period === key)) {
+        return res.status(409).json({ message: 'Your SME has already completed this SOP' });
+      }
+      const has = sop.completions.some((c) => c.period === key);
+      if (done && !has) sop.completions.push({ period: key, at: new Date() });
+      if (!done && has) sop.completions = sop.completions.filter((c) => c.period !== key);
+      if (done !== has) await sop.save();
+    }
+    res.json({ assignments: await sopListFor(req.user.id, today), today });
+  } catch (error) {
+    console.error('SMI tick SOP error:', error);
+    res.status(500).json({ message: 'Unable to save SOP' });
+  }
+});
 
 // GET: tasks an SME assigned to the logged-in SMI
 router.get('/tasks', async (req, res) => {

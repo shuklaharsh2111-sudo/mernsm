@@ -78,6 +78,12 @@ export const SMI_NAV = [
     items: [
       { title: 'Dashboard', path: '/smi', icon: LayoutDashboard }
     ]
+  },
+  {
+    heading: 'Workflow',
+    items: [
+      { title: 'Saved', path: '/smi/saved', icon: Bookmark }
+    ]
   }
 ];
 export const navFor = (role) => {

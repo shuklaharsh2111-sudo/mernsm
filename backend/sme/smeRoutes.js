@@ -6,10 +6,11 @@ import mongoose from 'mongoose';
 import { protect } from '../auth.js';
 import Sme from './Sme.js';
 import Company from '../company/Company.js';
-import SopAssignment from '../sop/SopAssignment.js';
+import SopAssignment, { SOP_TYPE_VALUES } from '../sop/SopAssignment.js';
+import SmiSopAssignment from '../sop/SmiSopAssignment.js';
 import Meeting from '../meeting/Meeting.js';
 import { momView, buildMom, generateMeetingLink } from '../meeting/momHelpers.js';
-import { periodKey, resolveToday } from '../sop/period.js';
+import { isRealDate, periodKey, resolveToday } from '../sop/period.js';
 import TaskAttachment from './TaskAttachment.js';
 import Task from './Tasks.js';
 import Creative, { CREATIVE_PLATFORMS, CREATIVE_STATUSES } from './Creative.js';
@@ -130,6 +131,109 @@ router.put('/sop-assignments/completions', async (req, res) => {
     if (done !== has) await sop.save();
   }
   res.json({ assignments: await listFor(req.user.id, today), today });
+});
+// ---------------- SOPs I assign to an SMI ----------------
+const smiSopView = (a, today) => {
+  const key = periodKey(a.type, today);
+  return {
+    id: a._id,
+    smi: a.smi ? { id: a.smi._id, name: a.smi.name, email: a.smi.email } : { id: '', name: 'Removed SMI', email: '' },
+    company: a.company ? { id: a.company._id, name: a.company.name } : { id: '', name: 'Removed company' },
+    sourceSop: a.sourceSop ? String(a.sourceSop._id || a.sourceSop) : null,
+    // The SME ticked the original SOP for this period: the SMI sees it as completed by the SME.
+    completedBySme: Boolean(a.sourceSop?.completions?.some((c) => c.period === key)),
+    type: a.type,
+    text: a.text,
+    date: a.date,
+    period: key,
+    done: (a.completions || []).some((c) => c.period === key),
+    doneCount: (a.completions || []).length,
+    lastDoneAt: (a.completions || []).reduce((m, c) => (!m || c.at > m ? c.at : m), null),
+  };
+};
+const smiSopList = async (smeId, today) => {
+  const list = await SmiSopAssignment.find({ assignedBy: smeId })
+    .sort({ createdAt: -1 })
+    .limit(300)
+    .populate('smi', 'name email').populate('sourceSop', 'completions')
+    .populate('company', 'name');
+  return list.map((a) => smiSopView(a, today));
+};
+// The SME may only use companies the admin gave them.
+const checkSmiSop = async (smeId, { smi, company, type, text, date }) => {
+  if (!mongoose.Types.ObjectId.isValid(smi) || !(await Smi.exists({ _id: smi }))) return 'Choose a valid SMI';
+  if (!mongoose.Types.ObjectId.isValid(company)) return 'Choose a company';
+  const me = await Sme.findById(smeId);
+  if (!me || !(me.companies || []).map(String).includes(String(company))) {
+    return 'You can only assign SOPs for your own companies';
+  }
+  if (!SOP_TYPE_VALUES.includes(type)) return 'Choose Daily, Weekly or Monthly';
+  if (typeof text !== 'string' || !text.trim()) return 'SOP text is required';
+  if (text.trim().length > 5000) return 'SOP text is too long (max 5000 characters)';
+  if (!isRealDate(date)) return 'Enter a valid SOP date';
+  return '';
+};
+router.get('/smi-sops', async (req, res) => {
+  const today = resolveToday(req.query.today);
+  res.json({ assignments: await smiSopList(req.user.id, today), today });
+});
+// body: { smi, company, type, text, date, sourceSop? }. sourceSop = one of my own SOPs being forwarded.
+router.post('/smi-sops', async (req, res) => {
+  let { smi, company, type, text, date } = req.body || {};
+  const { sourceSop } = req.body || {};
+  let source = null;
+  if (sourceSop) {
+    const original = mongoose.Types.ObjectId.isValid(sourceSop)
+      ? await SopAssignment.findOne({ _id: sourceSop, user: req.user.id })
+      : null;
+    if (!original) return res.status(400).json({ message: 'That SOP is not assigned to you' });
+    // Only pending SOPs can go to an SMI: not one that is already done this period.
+    const today = resolveToday(req.body.today);
+    if (original.completions.some((c) => c.period === periodKey(original.type, today))) {
+      return res.status(409).json({ message: 'This SOP is already completed' });
+    }
+    // The admin set this SOP's date (and company, type, text): the SME cannot change them.
+    company = String(original.company);
+    type = original.type;
+    text = original.text;
+    date = original.date;
+    source = sourceSop;
+    // Assigning the same SOP to the same SMI twice would only create duplicates.
+    if (await SmiSopAssignment.exists({ assignedBy: req.user.id, sourceSop: source })) {
+      return res.status(409).json({ message: 'This SOP is already assigned to an SMI' });
+    }
+  }
+  const problem = await checkSmiSop(req.user.id, { smi, company, type, text, date });
+  if (problem) return res.status(400).json({ message: problem });
+  const doc = await SmiSopAssignment.create({
+    smi, company, type, text: text.trim(), date, sourceSop: source, assignedBy: req.user.id,
+  });
+  const full = await SmiSopAssignment.findById(doc._id).populate('smi', 'name email').populate('sourceSop', 'completions').populate('company', 'name');
+  res.status(201).json({ assignment: smiSopView(full, resolveToday(req.body.today)) });
+});
+router.put('/smi-sops/:id', async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(404).json({ message: 'SOP not found' });
+  const doc = await SmiSopAssignment.findOne({ _id: req.params.id, assignedBy: req.user.id });
+  if (!doc) return res.status(404).json({ message: 'SOP not found' });
+  if (doc.sourceSop) {
+    // Forwarded from an admin-assigned SOP: locked once it is with the SMI.
+    return res.status(403).json({
+      message: 'This SOP was assigned by admin, so it can’t be edited once it is assigned to an SMI. Remove it and assign again if needed.',
+    });
+  }
+  const { smi, company, type, text, date } = req.body || {};
+  const problem = await checkSmiSop(req.user.id, { smi, company, type, text, date });
+  if (problem) return res.status(400).json({ message: problem });
+  Object.assign(doc, { smi, company, type, text: text.trim(), date });
+  await doc.save();
+  const full = await SmiSopAssignment.findById(doc._id).populate('smi', 'name email').populate('sourceSop', 'completions').populate('company', 'name');
+  res.json({ assignment: smiSopView(full, resolveToday(req.body.today)) });
+});
+router.delete('/smi-sops/:id', async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(404).json({ message: 'SOP not found' });
+  const doc = await SmiSopAssignment.findOneAndDelete({ _id: req.params.id, assignedBy: req.user.id });
+  if (!doc) return res.status(404).json({ message: 'SOP not found' });
+  res.json({ message: 'SOP removed' });
 });
 // TASK MANAGER APIs
 // GET: every SMI user, for the "Assign To" dropdown

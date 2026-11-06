@@ -6,6 +6,8 @@ import MeetingDetailsModal from '../components/MeetingDetailsModal';
 import { CompanyBadge, EmptyBadge } from '../components/CompanyBadge';
 import TaskManager from '../components/TaskManager';
 import CompanyHealth from '../components/CompanyHealth';
+import SmiSopsPanel from '../components/SmiSopsPanel';
+import AssignSopToSmiModal from '../components/AssignSopToSmiModal';
 import {
   PERIOD_WORD,
   SOP_TYPES,
@@ -56,6 +58,8 @@ const SmeDashboard = () => {
   const [detailId, setDetailId] = useState(null); // meeting whose details are open
   const [momMeeting, setMomMeeting] = useState(null); // meeting whose MOM is being written
   const [savingIds, setSavingIds] = useState([]); // ticks being written right now
+  const [smiSops, setSmiSops] = useState(null); // SOPs I assigned to SMIs
+  const [smiModal, setSmiModal] = useState(null); // { sop } forward, { edit } change, {} new
 
   useEffect(() => {
     let cancelled = false;
@@ -75,6 +79,32 @@ const SmeDashboard = () => {
       cancelled = true;
     };
   }, []);
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get('/sme/smi-sops', { params: { today: todayStr() } })
+      .then((res) => !cancelled && setSmiSops(res.data.assignments))
+      .catch((err) => !cancelled && setError(errMsg(err)));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const onSmiSopSaved = (assignment, wasEdit) => {
+    setSmiSops((list) =>
+      wasEdit ? (list || []).map((x) => (x.id === assignment.id ? assignment : x)) : [assignment, ...(list || [])]
+    );
+    setSmiModal(null);
+  };
+  const onSmiSopDelete = async (a) => {
+    if (!window.confirm(`Remove this SOP from ${a.smi.name}?`)) return;
+    setError('');
+    try {
+      await api.delete(`/sme/smi-sops/${a.id}`);
+      setSmiSops((list) => list.filter((x) => x.id !== a.id));
+    } catch (err) {
+      setError(errMsg(err));
+    }
+  };
   const slots = Array.from(
     { length: SLOTS },
     (_, i) => companies[i] || null
@@ -284,6 +314,30 @@ const SmeDashboard = () => {
                             </span>
                           </div>
                           <p className="sop-item-text">{a.text}</p>
+                          <div className="sop-row-actions">
+                            {/* only pending SOPs that no SMI has yet */}
+                            {smiSops && !a.done && !smiSops.some((x) => x.sourceSop === String(a.id)) && (
+                              <button
+                                type="button"
+                                className="sop-assign-btn"
+                                title="Give this SOP to an SMI to tick"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setSmiModal({ sop: a });
+                                }}
+                              >
+                                Assign to SMI
+                              </button>
+                            )}
+                            {(smiSops || [])
+                              .filter((x) => x.sourceSop === String(a.id))
+                              .map((x) => (
+                                <span key={x.id} className="sop-assigned-to" title={`Assigned to ${x.smi.name}`}>
+                                  {x.done ? '✓' : '•'} {x.smi.name}
+                                </span>
+                              ))}
+                          </div>
                         </div>
                       </label>
                     ))}
@@ -414,6 +468,23 @@ const SmeDashboard = () => {
       {detailMeeting && <MeetingDetailsModal meeting={detailMeeting} onUpdated={onMeetingUpdated} onClose={() => setDetailId(null)} />}
 
       {momMeeting && <SendMomModal meeting={momMeeting} onSaved={onMomSaved} onClose={() => setMomMeeting(null)} />}
+
+      <SmiSopsPanel
+        list={smiSops}
+        onNew={() => setSmiModal({})}
+        onEdit={(a) => setSmiModal({ edit: a })}
+        onDelete={onSmiSopDelete}
+      />
+
+      {smiModal && (
+        <AssignSopToSmiModal
+          companies={companies}
+          sop={smiModal.sop || null}
+          edit={smiModal.edit || null}
+          onSaved={onSmiSopSaved}
+          onClose={() => setSmiModal(null)}
+        />
+      )}
 
       <TaskManager />
       <CompanyHealth />
