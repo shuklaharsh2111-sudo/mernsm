@@ -15,7 +15,7 @@ const Topbar = ({ onMenu }) => {
   }, []);
 
   const found = titleFor(user?.role, pathname);
-  const isHome = pathname === '/sme' || pathname === '/admin';
+  const isHome = ['/sme', '/admin', '/smi', '/des'].includes(pathname);
   const hour = now.getHours();
   const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
   const title = isHome ? `${greeting}, ${user?.name || 'there'}!` : found.title;
@@ -27,7 +27,7 @@ const Topbar = ({ onMenu }) => {
     <header className="app-topbar">
       <button type="button" className="top-menu" onClick={onMenu} aria-label="Open menu"><Menu size={20} /></button>
       <div className="top-title">
-        <span>{user?.role === 'admin' ? 'Administration' : 'SME Workspace'} · {section}</span>
+        <span>{{ admin: 'Administration', sme: 'SME Workspace', des: 'Designer Workspace', smi: 'SMI Workspace' }[user?.role] || 'Workspace'} · {section}</span>
         <h1>{title}</h1>
       </div>
       <div className="top-meta">

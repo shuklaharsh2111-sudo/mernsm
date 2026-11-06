@@ -63,6 +63,7 @@ const userView = (u, collection) => ({
   role: String(u.role || collection).toUpperCase(),
   collection,
   contact: u.contact || '',
+  reportingManagerId: u.reportingManagerId ? String(u.reportingManagerId) : '',
   profileImage: u.profileImage || u.avatar || '',
   companies: collection === 'smes' ? (u.companies || []).map(String) : [],
   createdAt: u.createdAt
@@ -243,7 +244,7 @@ router.get('/attendance', async (req, res) => {
     if (!validId(req.query.userId)) return res.status(400).json({ message: 'Invalid user' });
     filter.userId = req.query.userId;
   }
-  if (['admin', 'sme'].includes(req.query.role)) filter.role = req.query.role;
+  if (['admin', 'reporting_manager', 'sme', 'smi', 'des', 'clients'].includes(req.query.role)) filter.role = req.query.role;
   const range = {};
   if (req.query.from) {
     const d = new Date(`${req.query.from}T00:00:00`);
