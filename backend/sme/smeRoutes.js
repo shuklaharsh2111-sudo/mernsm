@@ -15,6 +15,7 @@ import Task from './Tasks.js';
 import Creative, { CREATIVE_PLATFORMS, CREATIVE_STATUSES } from './Creative.js';
 import SocialMetrics from './SocialMetrics.js';
 import Admin from '../admin/Admin.js';
+import { Smi } from '../admin/UserModels.js';
 const allowedMimeTypes = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
   'video/mp4', 'video/webm', 'video/quicktime',
@@ -131,6 +132,16 @@ router.put('/sop-assignments/completions', async (req, res) => {
   res.json({ assignments: await listFor(req.user.id, today), today });
 });
 // TASK MANAGER APIs
+// GET: every SMI user, for the "Assign To" dropdown
+router.get('/smis', async (req, res) => {
+  try {
+    const smis = await Smi.find({}).select('name email').sort({ name: 1 }).lean();
+    res.json({ smis: smis.map((s) => ({ id: s._id, name: s.name, email: s.email })) });
+  } catch (error) {
+    console.error('Fetch SMIs Error:', error);
+    res.status(500).json({ message: 'Unable to fetch SMI users' });
+  }
+});
 // GET: Logged-in SME ke saare tasks
 router.get('/tasks', async (req, res) => {
   try {
@@ -138,6 +149,7 @@ router.get('/tasks', async (req, res) => {
       user: req.user.id
     })
       .populate('company', 'name')
+      .populate('assignedSmi', 'name email')
       .sort({ createdAt: -1 });
     res.json({ tasks });
   } catch (error) {
@@ -161,7 +173,8 @@ router.post('/tasks', async (req, res) => {
       customObjective,
       priority,
       brief,
-      assignedTo
+      assignedTo,
+      assignedSmi
     } = req.body;
     // Required fields
     if (
@@ -275,6 +288,14 @@ router.post('/tasks', async (req, res) => {
         message: 'Invalid assignee'
       });
     }
+    // Assign to a specific SMI user (optional)
+    let smiId = null;
+    if (assignedSmi) {
+      if (!mongoose.Types.ObjectId.isValid(assignedSmi) || !(await Smi.exists({ _id: assignedSmi }))) {
+        return res.status(400).json({ message: 'Selected SMI user was not found' });
+      }
+      smiId = assignedSmi;
+    }
     const cleanBrief = typeof brief === 'string' ? brief.trim() : '';
     if (cleanBrief.length > 1000) {
       return res.status(400).json({
@@ -295,10 +316,12 @@ router.post('/tasks', async (req, res) => {
       priority,
       brief: cleanBrief,
       dueDate: req.body.dueDate || null,
-      assignedTo: selectedAssignee,
+      assignedTo: smiId ? 'SMI' : selectedAssignee,
+      assignedSmi: smiId,
       status: 'new'
     });
     await task.populate('company', 'name');
+    await task.populate('assignedSmi', 'name email');
     return res.status(201).json({
       message: 'Task created successfully',
       task
@@ -318,7 +341,7 @@ router.patch('/tasks/:id/start', async (req, res) => {
     task.status = 'in-progress';
     task.startedAt = new Date();
     await task.save();
-    const updatedTask = await Task.findById(task._id).populate('company', 'name');
+    const updatedTask = await Task.findById(task._id).populate('company', 'name').populate('assignedSmi', 'name email');
     res.json({ message: 'Task started successfully', task: updatedTask });
   } catch (error) {
     console.error('Start task error:', error);
@@ -333,7 +356,7 @@ router.patch('/tasks/:id/end', async (req, res) => {
     task.status = 'completed';
     task.endedAt = new Date();
     await task.save();
-    const updatedTask = await Task.findById(task._id).populate('company', 'name');
+    const updatedTask = await Task.findById(task._id).populate('company', 'name').populate('assignedSmi', 'name email');
     res.json({ message: 'Task completed successfully', task: updatedTask });
   } catch (error) {
     console.error('End task error:', error);
@@ -1097,7 +1120,7 @@ router.get('/tasks/:taskId/attachments', async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(taskId)) return res.status(400).json({ message: 'Invalid task ID.' });
     const task = await Task.findOne({ _id: taskId, user: req.user.id });
     if (!task) return res.status(404).json({ message: 'Task not found.' });
-    const attachments = await TaskAttachment.find({ task: taskId, user: req.user.id })
+    const attachments = await TaskAttachment.find({ task: taskId })
       .sort({ createdAt: -1 })
       .lean();
     res.json({
@@ -1108,6 +1131,7 @@ router.get('/tasks/:taskId/attachments', async (req, res) => {
         fileType: item.fileType || (item.mimeType?.startsWith('image/') ? 'image' : item.mimeType === 'application/pdf' ? 'pdf' : item.mimeType?.startsWith('video/') ? 'video' : 'document'),
         size: item.size,
         fileUrl: item.fileUrl || item.imageUrl,
+        canDelete: true,
         createdAt: item.createdAt
       }))
     });
@@ -1129,7 +1153,7 @@ router.post('/tasks/:taskId/attachments', (req, res, next) => {
     const task = await Task.findOne({ _id: taskId, user: req.user.id });
     if (!task) return res.status(404).json({ message: 'Task not found.' });
     if (!req.files?.length) return res.status(400).json({ message: 'Please select at least one file.' });
-    const existingCount = await TaskAttachment.countDocuments({ task: taskId, user: req.user.id });
+    const existingCount = await TaskAttachment.countDocuments({ task: taskId });
     if (existingCount + req.files.length > 5) {
       return res.status(400).json({ message: `You can upload only ${5 - existingCount} more file(s).` });
     }
@@ -1186,8 +1210,7 @@ router.delete('/tasks/:taskId/attachments/:attachmentId', async (req, res) => {
     }
     const attachment = await TaskAttachment.findOne({
       _id: req.params.attachmentId,
-      task: task._id,
-      user: req.user.id
+      task: task._id
     });
     if (!attachment) {
       return res.status(404).json({ message: 'Image not found.' });

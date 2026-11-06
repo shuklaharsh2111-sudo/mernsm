@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import api from '../api';
 import { errMsg } from '../sopUtils';
 import '../styles/taskmanager.css';
-import { ListTodo, BriefcaseBusiness, Repeat, CheckCircle2, Plus, Play, Square, Clock3, Building2, X, AlertCircle, CalendarDays } from 'lucide-react';
+import { ListTodo, BriefcaseBusiness, Repeat, CheckCircle2, Plus, Play, Square, Clock3, Building2, X, AlertCircle, CalendarDays, UserRound } from 'lucide-react';
 import TaskDetailsModal from './TaskDetailsModal';
 const initialForm = {
     companyId: '',
@@ -16,10 +16,13 @@ const initialForm = {
     customObjective: '',
     priority: '',
     brief: '',
-    assignedTo: '',
+    assignedSmi: '',
     dueDate: ''
 };
-const TaskManager = () => {
+const TaskManager = ({ role = 'sme' }) => {
+    const base = `/${role}`;
+    const isSmi = role === 'smi';
+    const [smis, setSmis] = useState([]);
     const [companies, setCompanies] = useState([]);
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -38,12 +41,19 @@ const TaskManager = () => {
     const loadData = async () => {
         try {
             setLoading(true);
-            const [companyResponse, taskResponse] = await Promise.all([
-                api.get('/sme/companies'),
-                api.get('/sme/tasks')
-            ]);
-            setCompanies(companyResponse.data.companies || []);
-            setTasks(taskResponse.data.tasks || []);
+            if (isSmi) {
+                const taskResponse = await api.get(`${base}/tasks`);
+                setTasks(taskResponse.data.tasks || []);
+            } else {
+                const [companyResponse, taskResponse, smiResponse] = await Promise.all([
+                    api.get('/sme/companies'),
+                    api.get('/sme/tasks'),
+                    api.get('/sme/smis')
+                ]);
+                setCompanies(companyResponse.data.companies || []);
+                setTasks(taskResponse.data.tasks || []);
+                setSmis(smiResponse.data.smis || []);
+            }
         } catch (err) {
             setTaskError(errMsg(err));
         } finally {
@@ -144,7 +154,7 @@ const TaskManager = () => {
                 tatDays: form.category === 'recurring' ? Number(form.tatDays) : null,
                 customObjective: form.objective === 'Others' ? form.customObjective.trim() : '',
                 brief: form.brief.trim(),
-                assignedTo: form.assignedTo || '',
+                assignedSmi: form.assignedSmi || '',
                 dueDate: form.dueDate || null
             };
             const response = await api.post('/sme/tasks', payload);
@@ -165,7 +175,7 @@ const TaskManager = () => {
         try {
             setActionId(task._id);
             setTaskError('');
-            const response = await api.patch(`/sme/tasks/${task._id}/start`);
+            const response = await api.patch(`${base}/tasks/${task._id}/start`);
             if (!response.data.task) throw new Error('Updated task data was not returned.');
             setTasks(prev => prev.map(item =>
                 item._id === task._id ? response.data.task : item
@@ -181,7 +191,7 @@ const TaskManager = () => {
         try {
             setActionId(task._id);
             setTaskError('');
-            const response = await api.patch(`/sme/tasks/${task._id}/end`);
+            const response = await api.patch(`${base}/tasks/${task._id}/end`);
             if (!response.data.task) throw new Error('Updated task data was not returned.');
             setTasks(prev => prev.map(item =>
                 item._id === task._id ? response.data.task : item
@@ -239,7 +249,7 @@ const TaskManager = () => {
                     </div>
                     <div>
                         <h2>Task Manager</h2>
-                        <p>Manage and track your team's tasks.</p>
+                        <p>{isSmi ? 'Tasks assigned to you by your SME.' : "Manage and track your team's tasks."}</p>
                     </div>
                 </div>
             </div>
@@ -283,7 +293,7 @@ const TaskManager = () => {
                                     <p>{card.description}</p>
                                 </div>
                                 <span className="sme-task-count">{loading ? '--' : String(card.count).padStart(2, '0')}</span>
-                                {card.add && (
+                                {card.add && !isSmi && (
                                     <button
                                         type="button"
                                         className="sme-add-task-btn"
@@ -302,7 +312,12 @@ const TaskManager = () => {
                                     <p className="tm-empty">No tasks available.</p>
                                 ) : (
                                     card.items.map(task => (
-                                        <div className="tm-task-item tm-clickable-task" key={`${card.title}-${task._id}`} onClick={() => setSelectedTask(task)} role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedTask(task); } }}>
+                                        <div className={`tm-task-item tm-clickable-task${!isSmi && task.assignedSmi ? ' tm-smi-task' : ''}`} key={`${card.title}-${task._id}`} onClick={() => setSelectedTask(task)} role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedTask(task); } }}>
+                                            {!isSmi && task.assignedSmi && (
+                                                <span className="tm-smi-badge">
+                                                    <UserRound size={11} /> SMI{task.assignedSmi.name ? ` · ${task.assignedSmi.name}` : ''}
+                                                </span>
+                                            )}
                                             <div className="tm-task-item-heading">
                                                 <h4>{task.title}</h4>
                                                 <span className={`task-priority ${task.priority?.toLowerCase()}`}>
@@ -322,6 +337,9 @@ const TaskManager = () => {
                                             </div>
                                             <div className="tm-task-meta">
                                                 <span>{task.taskType}</span>
+                                                {isSmi && task.user?.name && (
+                                                    <span>Assigned by: {task.user.name}</span>
+                                                )}
                                                 {task.category === 'recurring' && (
                                                     <span>Every {task.frequencyDays} days</span>
                                                 )}
@@ -537,12 +555,11 @@ const TaskManager = () => {
                             </div>
                             <div className="tm-form-group">
                                 <label>Assign To</label>
-                                <select name="assignedTo" value={form.assignedTo} onChange={handleChange}>
+                                <select name="assignedSmi" value={form.assignedSmi} onChange={handleChange}>
                                     <option value="">Not Assigned</option>
-                                    <option value="Admin">Admin</option>
-                                    <option value="SME">SME</option>
-                                    <option value="SMI">SMI</option>
-                                    <option value="Designer">Designer</option>
+                                    {smis.map(smi => (
+                                        <option key={smi.id} value={smi.id}>{smi.name} ({smi.email})</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="tm-form-actions">
@@ -558,7 +575,7 @@ const TaskManager = () => {
                 </div>,
                 document.body
             )}
-            {selectedTask && <TaskDetailsModal task={selectedTask} onClose={() => setSelectedTask(null)} />}
+            {selectedTask && <TaskDetailsModal task={selectedTask} basePath={base} onClose={() => setSelectedTask(null)} />}
         </section>
     );
 };

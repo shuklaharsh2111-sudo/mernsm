@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const taskAttachmentSchema = new mongoose.Schema({
     task: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', required: true, index: true },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'Sme', required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, required: true }, // uploader: an SME or an SMI,
     originalName: { type: String, required: true },
     mimeType: { type: String, required: true },
     fileType: { type: String, enum: ['image', 'video', 'pdf', 'document', 'other'], required: true },
