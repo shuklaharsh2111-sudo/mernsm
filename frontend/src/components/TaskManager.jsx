@@ -19,7 +19,7 @@ const initialForm = {
     assignedSmi: '',
     dueDate: ''
 };
-const TaskManager = ({ role = 'sme' }) => {
+const TaskManager = ({ role = 'sme', onChange }) => {
     const base = `/${role}`;
     const isSmi = role === 'smi';
     const [smis, setSmis] = useState([]);
@@ -180,6 +180,7 @@ const TaskManager = ({ role = 'sme' }) => {
             setTasks(prev => prev.map(item =>
                 item._id === task._id ? response.data.task : item
             ));
+            onChange?.();
         } catch (err) {
             setTaskError(errMsg(err));
         } finally {
@@ -196,6 +197,7 @@ const TaskManager = ({ role = 'sme' }) => {
             setTasks(prev => prev.map(item =>
                 item._id === task._id ? response.data.task : item
             ));
+            onChange?.();
         } catch (err) {
             setTaskError(errMsg(err));
         } finally {

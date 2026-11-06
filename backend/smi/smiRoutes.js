@@ -47,16 +47,25 @@ const populateTask = (query) => query
   .populate('user', 'name email')
   .populate('assignedSmi', 'name email');
 
-// Companies I work on: every company that has an SOP or a task assigned to me,
-// in the order they were first assigned.
+// Companies I still have work for: a company shows while it has an SOP (not yet done
+// for the current period) or a task (not completed) assigned to me, in the order they
+// were first assigned. Once everything of a company is complete it drops off.
 router.get('/companies', async (req, res) => {
   try {
+    const today = resolveToday(req.query.today);
     const [sops, tasks] = await Promise.all([
-      SmiSopAssignment.find({ smi: req.user.id }).select('company createdAt').lean(),
-      Task.find({ assignedSmi: req.user.id }).select('company createdAt').lean(),
+      SmiSopAssignment.find({ smi: req.user.id }).select('company createdAt type completions sourceSop').populate('sourceSop', 'completions').lean(),
+      Task.find({ assignedSmi: req.user.id }).select('company createdAt status').lean(),
     ]);
+    const sopPending = (a) => {
+      const key = periodKey(a.type, today);
+      const mine = (a.completions || []).some((c) => c.period === key);
+      const bySme = (a.sourceSop?.completions || []).some((c) => c.period === key);
+      return !mine && !bySme;
+    };
+    const pending = [...sops.filter(sopPending), ...tasks.filter((t) => t.status !== 'completed')];
     const first = new Map(); // companyId -> earliest assignment time
-    for (const { company, createdAt } of [...sops, ...tasks]) {
+    for (const { company, createdAt } of pending) {
       const id = String(company);
       if (!first.has(id) || createdAt < first.get(id)) first.set(id, createdAt);
     }
