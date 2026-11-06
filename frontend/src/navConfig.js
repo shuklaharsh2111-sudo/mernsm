@@ -72,11 +72,20 @@ export const DES_NAV = [
     ]
   }
 ];
+export const SMI_NAV = [
+  {
+    heading: 'Overview',
+    items: [
+      { title: 'Dashboard', path: '/smi', icon: LayoutDashboard }
+    ]
+  }
+];
 export const navFor = (role) => {
   switch (role) {
     case 'admin': return ADMIN_NAV;
     case 'sme': return SME_NAV;
     case 'des': return DES_NAV;
+    case 'smi': return SMI_NAV;
     default: return [];
   }
 };

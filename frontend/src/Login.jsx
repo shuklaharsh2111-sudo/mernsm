@@ -22,7 +22,8 @@ const Login = () => {
       const dashboardPath = {
         admin: '/admin',
         sme: '/sme',
-        des: '/des'
+        des: '/des',
+        smi: '/smi'
       }[user.role] || '/login';
       navigate(dashboardPath, { replace: true });
     } catch (err) {
