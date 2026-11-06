@@ -13,10 +13,8 @@ const Sidebar = ({ collapsed = false, onToggle, mobileOpen = false, onClose }) =
   const groups = navFor(user?.role);
   const manager =
     user?.reportingManager || user?.reporting_manager || user?.defaultAdmin || user?.adminDetails || null;
-
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-
   // Close the confirmation with Esc (unless the logout is already running)
   useEffect(() => {
     if (!confirmOpen) return undefined;
@@ -24,7 +22,6 @@ const Sidebar = ({ collapsed = false, onToggle, mobileOpen = false, onClose }) =
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [confirmOpen, loggingOut]);
-
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
@@ -94,14 +91,11 @@ const Sidebar = ({ collapsed = false, onToggle, mobileOpen = false, onClose }) =
             <strong>{manager?.name || 'Admin'}</strong>
           </div>
         )}
-   
-
         <button type="button" className="side-logout" onClick={() => setConfirmOpen(true)} title={collapsed ? 'Logout' : undefined}>
           <LogOut size={18} />
           <span>Logout</span>
         </button>
       </div>
-
       {confirmOpen && createPortal(
         <div
           className="logout-confirm-backdrop"
