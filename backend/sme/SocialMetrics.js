@@ -66,6 +66,13 @@ const socialMetricsSchema = new mongoose.Schema(
   { timestamps: true, collection: 'socialmetrics' }
 );
 
-socialMetricsSchema.index({ user: 1, company: 1, month: 1 }, { unique: true });
+// One record per company, month AND platform (Instagram numbers never overwrite Facebook numbers).
+socialMetricsSchema.index({ user: 1, company: 1, month: 1, platform: 1 }, { unique: true });
 
-export default mongoose.models.SocialMetrics || mongoose.model('SocialMetrics', socialMetricsSchema);
+const SocialMetrics = mongoose.models.SocialMetrics || mongoose.model('SocialMetrics', socialMetricsSchema);
+
+// The unique index used to be (user, company, month) only. It would block a second platform in the
+// same month, so drop it once. If it is already gone this is ignored.
+SocialMetrics.collection.dropIndex('user_1_company_1_month_1').catch(() => {});
+
+export default SocialMetrics;

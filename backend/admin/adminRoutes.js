@@ -147,14 +147,76 @@ router.post('/users', imageUpload.single('image'), async (req, res) => {
   });
 });
 router.put('/users/:id/companies', async (req, res) => {
-  if (!validId(req.params.id)) return res.status(404).json({ message: 'SME user not found' });
-  const ids = Array.isArray(req.body.companies) ? [...new Set(req.body.companies.map(String))] : null;
-  if (!ids || ids.some((id) => !validId(id))) return res.status(400).json({ message: 'Invalid companies' });
-  if (ids.length > MAX_ASSIGNED) return res.status(400).json({ message: `You can assign at most ${MAX_ASSIGNED} companies` });
+  if (!validId(req.params.id)) {
+    return res.status(404).json({ message: 'SME user not found' });
+  }
+  const ids = Array.isArray(req.body.companies)
+    ? [...new Set(req.body.companies.map(String))]
+    : null;
+  if (!ids || ids.some(id => !validId(id))) {
+    return res.status(400).json({ message: 'Invalid companies' });
+  }
+  if (ids.length > MAX_ASSIGNED) {
+    return res.status(400).json({ message: `You can assign at most ${MAX_ASSIGNED} companies` });
+  }
   if ((await Company.countDocuments({ _id: { $in: ids } })) !== ids.length) {
     return res.status(400).json({ message: 'One of the companies no longer exists' });
   }
-  const user = await Sme.findById(req.params.id);
+  const userId = new mongoose.Types.ObjectId(req.params.id);
+  await Sme.collection.updateOne(
+    {
+      _id: userId,
+      $or: [
+        { createdAt: { $type: 'object' } },
+        { updatedAt: { $type: 'object' } }
+      ]
+    },
+    [
+      {
+        $set: {
+          createdAt: {
+            $cond: [
+              { $eq: [{ $type: '$createdAt' }, 'object'] },
+              {
+                $convert: {
+                  input: {
+                    $getField: {
+                      field: { $literal: '$date' },
+                      input: '$createdAt'
+                    }
+                  },
+                  to: 'date',
+                  onError: '$$NOW',
+                  onNull: '$$NOW'
+                }
+              },
+              '$createdAt'
+            ]
+          },
+          updatedAt: {
+            $cond: [
+              { $eq: [{ $type: '$updatedAt' }, 'object'] },
+              {
+                $convert: {
+                  input: {
+                    $getField: {
+                      field: { $literal: '$date' },
+                      input: '$updatedAt'
+                    }
+                  },
+                  to: 'date',
+                  onError: '$$NOW',
+                  onNull: '$$NOW'
+                }
+              },
+              '$updatedAt'
+            ]
+          }
+        }
+      }
+    ]
+  );
+  const user = await Sme.findById(userId);
   if (!user || String(user.role || '').toLowerCase() !== 'sme') {
     return res.status(403).json({ message: 'Companies can only be assigned to SME users.' });
   }
@@ -234,27 +296,22 @@ router.post('/companies', imageUpload.single('logo'), async (req, res) => {
     });
     res.status(201).json({ company: companyView(company) });
   } catch (error) {
-    await deleteFromCloudinary(uploadedLogo.public_id).catch(() => {});
+    await deleteFromCloudinary(uploadedLogo.public_id).catch(() => { });
     throw error;
   }
 });
 router.delete('/companies/:id', async (req, res) => {
   if (!validId(req.params.id)) return res.status(404).json({ message: 'Company not found' });
-
   const company = await Company.findById(req.params.id);
   if (!company) return res.status(404).json({ message: 'Company not found' });
-
   await Sme.updateMany({ companies: company._id }, { $pull: { companies: company._id } });
   await SopAssignment.deleteMany({ company: company._id });
-
   await Company.deleteOne({ _id: company._id });
-
   if (company.logoPublicId) {
     await deleteFromCloudinary(company.logoPublicId).catch((error) => {
       console.error('Company logo deletion failed:', error.message);
     });
   }
-
   res.json({ message: 'Company deleted' });
 });
 // ---------------- Manage SOPs (assigned to a user) ----------------

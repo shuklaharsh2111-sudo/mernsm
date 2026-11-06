@@ -1,13 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Serif&display=swap');
-
 /* ---------- PAGE BACKGROUND (full #af0300 + dark) ---------- */
 body:has(.nl-page) {
   background: #af0300;
 }
+
 body:has(.nl-page)::before,
 body:has(.nl-page)::after {
   display: none;
 }
+
 .nl-page {
   width: 100%;
   height: 100%;
@@ -48,6 +48,7 @@ body:has(.nl-page)::after {
     radial-gradient(ellipse at 20% 0%, #2e1a0d 0%, #120a05 45%, #080504 100%);
   border: 1px solid rgba(255, 140, 60, 0.15);
 }
+
 .nl-visual::before {
   content: '';
   position: absolute;
@@ -59,6 +60,7 @@ body:has(.nl-page)::after {
   pointer-events: none;
   z-index: 0;
 }
+
 .nl-visual::after {
   content: '';
   position: absolute;
@@ -70,16 +72,29 @@ body:has(.nl-page)::after {
   background: linear-gradient(180deg, transparent, rgba(120, 45, 5, 0.35));
   pointer-events: none;
 }
+
 /* animated red neon ribbons (same look as the coming-soon page) behind a small astronaut */
 .nl-visual {
   background: radial-gradient(ellipse at 50% 40%, #1a0000 0%, #090000 60%, #030000 100%);
   border-color: rgba(255, 60, 30, 0.25);
 }
-.nl-visual::before { display: none; }
+
+.nl-visual::before {
+  display: none;
+}
 
 /* animatable offsets: they slide every ring outward from the centre */
-@property --nl-r  { syntax: '<length>'; inherits: false; initial-value: 0px; }
-@property --nl-r2 { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@property --nl-r {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --nl-r2 {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
 
 .nl-ribbons {
   position: absolute;
@@ -87,22 +102,24 @@ body:has(.nl-page)::after {
   z-index: 1;
   pointer-events: none;
 }
+
 /* one period (120px) = one glossy ring: dark gap, red face, hot yellow edge lines.
    The rings are born at the centre and travel outward. */
 .nl-ribbons-front {
   background-image: repeating-radial-gradient(circle at 50% 50%,
-    #060000 calc(var(--nl-r) + 0px),   #060000 calc(var(--nl-r) + 30px),
-    #3a0000 calc(var(--nl-r) + 46px),  #a80800 calc(var(--nl-r) + 66px),
-    #ff2a00 calc(var(--nl-r) + 80px),  #ff6a00 calc(var(--nl-r) + 82px),
-    #ffe14a calc(var(--nl-r) + 83px),  #ff4a00 calc(var(--nl-r) + 85px),
-    #ff3000 calc(var(--nl-r) + 88px),  #ffd23a calc(var(--nl-r) + 89px),
-    #ff4a00 calc(var(--nl-r) + 91px),  #c01000 calc(var(--nl-r) + 96px),
-    #ff5a00 calc(var(--nl-r) + 98px),  #ffe14a calc(var(--nl-r) + 99px),
-    #6a0000 calc(var(--nl-r) + 101px), #2a0000 calc(var(--nl-r) + 108px),
-    #060000 calc(var(--nl-r) + 120px));
+      #060000 calc(var(--nl-r) + 0px), #060000 calc(var(--nl-r) + 30px),
+      #3a0000 calc(var(--nl-r) + 46px), #a80800 calc(var(--nl-r) + 66px),
+      #ff2a00 calc(var(--nl-r) + 80px), #ff6a00 calc(var(--nl-r) + 82px),
+      #ffe14a calc(var(--nl-r) + 83px), #ff4a00 calc(var(--nl-r) + 85px),
+      #ff3000 calc(var(--nl-r) + 88px), #ffd23a calc(var(--nl-r) + 89px),
+      #ff4a00 calc(var(--nl-r) + 91px), #c01000 calc(var(--nl-r) + 96px),
+      #ff5a00 calc(var(--nl-r) + 98px), #ffe14a calc(var(--nl-r) + 99px),
+      #6a0000 calc(var(--nl-r) + 101px), #2a0000 calc(var(--nl-r) + 108px),
+      #060000 calc(var(--nl-r) + 120px));
   animation: nlRingsOut 6s linear infinite, nlRibbonPulse 4.5s ease-in-out infinite;
   filter: saturate(1.15);
 }
+
 /* second, wider and slower ring layer for depth, with thin bright pinstripes */
 .nl-ribbons-back {
   background-image:
@@ -114,25 +131,45 @@ body:has(.nl-page)::after {
       transparent calc(var(--nl-r2) + 10px),
       transparent calc(var(--nl-r2) + 13px)),
     repeating-radial-gradient(circle at 50% 50%,
-      #050000 calc(var(--nl-r2) + 0px),   #050000 calc(var(--nl-r2) + 90px),
+      #050000 calc(var(--nl-r2) + 0px), #050000 calc(var(--nl-r2) + 90px),
       #4a0200 calc(var(--nl-r2) + 130px), #c01000 calc(var(--nl-r2) + 170px),
       #ff3a10 calc(var(--nl-r2) + 190px), #6a0000 calc(var(--nl-r2) + 230px),
       #050000 calc(var(--nl-r2) + 260px));
   opacity: 0.55;
   animation: nlRingsOutSlow 16s linear infinite;
 }
+
 @keyframes nlRingsOut {
-  from { --nl-r: 0px; }
-  to   { --nl-r: 120px; }
+  from {
+    --nl-r: 0px;
+  }
+
+  to {
+    --nl-r: 120px;
+  }
 }
+
 /* 260px is a whole number of 13px pinstripe periods, so the loop is seamless */
 @keyframes nlRingsOutSlow {
-  from { --nl-r2: 0px; }
-  to   { --nl-r2: 260px; }
+  from {
+    --nl-r2: 0px;
+  }
+
+  to {
+    --nl-r2: 260px;
+  }
 }
+
 @keyframes nlRibbonPulse {
-  0%, 100% { opacity: 0.85; }
-  50%      { opacity: 1; }
+
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 /* darken toward the centre so the astronaut reads, keep the ribbons bright at the edges */
@@ -145,6 +182,7 @@ body:has(.nl-page)::after {
     radial-gradient(ellipse 52% 46% at 50% 50%, rgba(5, 0, 0, 0.8), rgba(5, 0, 0, 0.35) 70%, transparent 100%),
     linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent 22%, transparent 78%, rgba(0, 0, 0, 0.5));
 }
+
 .nl-glow {
   position: absolute;
   z-index: 2;
@@ -159,9 +197,19 @@ body:has(.nl-page)::after {
   pointer-events: none;
   animation: nlGlow 5s ease-in-out infinite;
 }
+
 @keyframes nlGlow {
-  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.92); }
-  50%      { opacity: 1;   transform: translate(-50%, -50%) scale(1.08); }
+
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
 }
 
 /* astronaut fills the whole box; only a thin feathered rim lets the rings glow around it */
@@ -187,14 +235,27 @@ body:has(.nl-page)::after {
   mask-composite: intersect;
   animation: nlFloat 8s ease-in-out infinite;
 }
+
 /* gentle breathing zoom (a slide would expose gaps now that it covers the box) */
 @keyframes nlFloat {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.035); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.035);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nl-astro, .nl-ribbons, .nl-glow { animation: none; }
+
+  .nl-astro,
+  .nl-ribbons,
+  .nl-glow {
+    animation: none;
+  }
 }
 
 /* ---------- RIGHT: FORM ---------- */
@@ -206,6 +267,7 @@ body:has(.nl-page)::after {
   min-width: 0;
   min-height: 0;
 }
+
 .nl-forgot {
   align-self: flex-end;
   display: flex;
@@ -217,6 +279,7 @@ body:has(.nl-page)::after {
   font-size: 14px;
   cursor: pointer;
 }
+
 .nl-forgot-icon {
   width: 32px;
   height: 32px;
@@ -227,29 +290,34 @@ body:has(.nl-page)::after {
   color: #f26b0f;
   background: #fde0cc;
 }
+
 .nl-form-wrap {
   width: 100%;
   max-width: 520px;
   margin: auto 0;
 }
+
 .nl-eyebrow {
   font-size: 18px;
   line-height: 1.2;
   color: #2a1a10;
 }
+
 .nl-title {
   margin: 4px 0 clamp(14px, 3.4vh, 28px);
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-weight: 400;
   font-size: clamp(34px, 6.4vh, 58px);
   line-height: 0.98;
   letter-spacing: -1px;
   color: #1a0d08;
 }
+
 .nl-title span {
   display: block;
   color: #5b2a0b;
 }
+
 .nl-input {
   position: relative;
   height: clamp(46px, 6.2vh, 56px);
@@ -261,10 +329,12 @@ body:has(.nl-page)::after {
   border-radius: 15px;
   transition: all 0.25s ease;
 }
+
 .nl-input:focus-within {
   background: #fff;
   box-shadow: 0 0 0 3px color-mix(in oklab, #af0300 50%, transparent);
 }
+
 .nl-input input {
   width: 100%;
   min-width: 0;
@@ -274,13 +344,16 @@ body:has(.nl-page)::after {
   color: #2a1a10;
   font-size: 15px;
 }
+
 .nl-input input::placeholder {
   color: #b08c75;
 }
+
 .nl-input input:-webkit-autofill {
   -webkit-text-fill-color: #2a1a10;
   transition: background-color 5000s ease-in-out 0s;
 }
+
 .nl-eye {
   display: flex;
   align-items: center;
@@ -289,6 +362,7 @@ body:has(.nl-page)::after {
   color: #6b5547;
   cursor: pointer;
 }
+
 .nl-submit {
   width: 100%;
   height: clamp(48px, 6.4vh, 58px);
@@ -307,15 +381,18 @@ body:has(.nl-page)::after {
   box-shadow: 0 12px 26px rgba(242, 107, 15, 0.35);
   transition: all 0.3s ease;
 }
+
 .nl-submit:hover {
   transform: translateY(-2px);
   box-shadow: 0 16px 32px rgba(242, 107, 15, 0.45);
 }
+
 .nl-submit:disabled {
   opacity: 0.65;
   cursor: not-allowed;
   transform: none;
 }
+
 .nl-error {
   margin-bottom: 4px;
   padding: 10px 14px;
@@ -325,6 +402,7 @@ body:has(.nl-page)::after {
   color: #b3261e;
   font-size: 13px;
 }
+
 .nl-note {
   display: flex;
   align-items: flex-start;
@@ -334,16 +412,19 @@ body:has(.nl-page)::after {
   line-height: 1.45;
   color: #7a6455;
 }
+
 .nl-note svg {
   flex-shrink: 0;
   margin-top: 2px;
 }
+
 .nl-brand {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-top: clamp(14px, 3vh, 26px);
 }
+
 .nl-brand-mark {
   width: clamp(38px, 5.6vh, 50px);
   height: clamp(38px, 5.6vh, 50px);
@@ -357,8 +438,9 @@ body:has(.nl-page)::after {
   background: linear-gradient(135deg, #ffb04d, #f26b0f 65%, #d14d00);
   box-shadow: 0 8px 20px rgba(242, 107, 15, 0.4);
 }
+
 .nl-brand-name {
-  font-family: 'Anton', Impact, sans-serif;
+  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: clamp(32px, 5vh, 44px);
   letter-spacing: 1px;
   color: #1a0d08;
@@ -370,14 +452,17 @@ body:has(.nl-page)::after {
     overflow-y: auto;
     align-items: flex-start;
   }
+
   .nl-card {
     height: auto;
     margin: auto;
     grid-template-columns: 1fr;
   }
+
   .nl-visual {
     height: 320px;
   }
+
   .nl-panel {
     padding: 20px 20px 30px;
   }
