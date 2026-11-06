@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
-import { errMsg } from '../sopUtils';
+import { errMsg, todayStr } from '../sopUtils';
 import TaskManager from '../components/TaskManager';
 import SmiSopPanel from '../components/SmiSopPanel';
 import { CompanyBadge, EmptyBadge } from '../components/CompanyBadge';
@@ -12,17 +12,20 @@ const SLOTS = 5; // five circles by default, like the SME dashboard
 const SmiDashboard = () => {
   const [companies, setCompanies] = useState([]);
   const [error, setError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
+  // a company leaves the row once all its SOPs and tasks are complete, so refetch after any change
+  const reload = () => setReloadKey((k) => k + 1);
 
   useEffect(() => {
     let cancelled = false;
     api
-      .get('/smi/companies')
+      .get('/smi/companies', { params: { today: todayStr() } })
       .then((res) => !cancelled && setCompanies(res.data.companies))
       .catch((err) => !cancelled && setError(errMsg(err)));
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
 
   const slots = Array.from({ length: Math.max(SLOTS, companies.length) }, (_, i) => companies[i] || null);
 
@@ -35,8 +38,8 @@ const SmiDashboard = () => {
         )}
       </div>
       {error && <p className="error-message" role="alert">{error}</p>}
-      <SmiSopPanel />
-      <TaskManager role="smi" />
+      <SmiSopPanel onChange={reload} />
+      <TaskManager role="smi" onChange={reload} />
     </div>
   );
 };
