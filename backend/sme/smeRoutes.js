@@ -15,6 +15,7 @@ import Task from './Tasks.js';
 import Creative, { CREATIVE_PLATFORMS, CREATIVE_STATUSES } from './Creative.js';
 import SocialMetrics from './SocialMetrics.js';
 import Admin from '../admin/Admin.js';
+import { Des } from '../admin/UserModels.js';
 const allowedMimeTypes = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
   'video/mp4', 'video/webm', 'video/quicktime',
@@ -27,7 +28,6 @@ const allowedMimeTypes = [
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   'text/plain', 'text/csv'
 ];
-
 const taskFileUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024, files: 5 },
@@ -50,7 +50,6 @@ const taskFileUpload = multer({
     cb(null, true);
   }
 });
-
 const uploadToCloudinary = (buffer, folder = 'creative-manager/tasks', resourceType = 'image') => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream({
@@ -340,7 +339,6 @@ router.patch('/tasks/:id/end', async (req, res) => {
     res.status(500).json({ message: 'Unable to complete task' });
   }
 });
-
 const creativeView = (c) => ({
   id: c._id,
   companyId: String(c.company?._id || c.company),
@@ -350,19 +348,105 @@ const creativeView = (c) => ({
   reviewedAt: c.reviewedAt,
   createdAt: c.createdAt,
   rejectionCount: c.rejectionCount || 0,
+  assignedDesigner: c.assignedDesigner?._id
+    ? {
+      id: String(c.assignedDesigner._id),
+      name: c.assignedDesigner.name || c.assignedDesigner.fullname || c.assignedDesigner.email,
+      email: c.assignedDesigner.email || '',
+      avatar: c.assignedDesigner.avatar || c.assignedDesigner.profileImage || ''
+    }
+    : null,
+  assignedAt: c.assignedAt || null,
   date: c.date,
   referenceLinks: c.referenceLinks || [],
-  uploads: (c.uploads || []).map((u) => ({ url: u.url, name: u.originalName })),
+  uploads: (c.uploads || []).map((u) => ({
+    url: u.url,
+    name: u.originalName
+  })),
   contentPillar: {
     title: c.contentPillar?.title || '',
     caption: c.contentPillar?.caption || '',
     hashtags: c.contentPillar?.hashtags || [],
     keywords: c.contentPillar?.keywords || [],
-    platforms: c.contentPillar?.platforms || [],
-  },
+    platforms: c.contentPillar?.platforms || []
+  }
 });
 // My creatives. Optional ?company=<id> and ?status=pending|approved|rejected (default: all).
 // The calendar asks for status=approved: a creative only lands there once the admin approves it.
+// Fetch all designers
+router.get('/designers', async (req, res) => {
+  try {
+    const designers = await Des.find({})
+      .select('name fullname email avatar profileImage')
+      .sort({ name: 1 })
+      .lean();
+    res.json({
+      designers: designers.map((d) => ({
+        id: String(d._id),
+        name: d.name || d.fullname || d.email,
+        email: d.email,
+        avatar: d.avatar || d.profileImage || ''
+      }))
+    });
+  } catch (error) {
+    console.error('Fetch designers error:', error);
+    res.status(500).json({ message: 'Unable to fetch designers' });
+  }
+});
+// Assign approved creative to designer and automatically assign its company
+router.put('/creatives/:id/assign', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { designerId } = req.body || {};
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: 'Invalid creative ID' });
+    }
+    if (!mongoose.isValidObjectId(designerId)) {
+      return res.status(400).json({ message: 'Please select a valid designer' });
+    }
+    const creative = await Creative.findOne({
+      _id: id,
+      user: req.user.id
+    });
+    if (!creative) {
+      return res.status(404).json({ message: 'Creative not found' });
+    }
+    if (creative.status !== 'approved') {
+      return res.status(400).json({ message: 'Only approved creatives can be assigned' });
+    }
+    const designer = await Des.findById(designerId);
+    if (!designer) {
+      return res.status(404).json({ message: 'Designer not found' });
+    }
+    const company = await Company.findById(creative.company);
+    if (!company) {
+      return res.status(404).json({ message: 'Creative company not found' });
+    }
+    const alreadyAssigned = (designer.companies || [])
+      .some((companyId) => String(companyId) === String(creative.company));
+    if (!alreadyAssigned) {
+      await Des.updateOne(
+        { _id: designerId },
+        { $addToSet: { companies: creative.company } }
+      );
+    }
+    creative.assignedDesigner = designerId;
+    creative.assignedAt = new Date();
+    creative.assignedBy = req.user.id;
+    await creative.save();
+    await creative.populate([
+      { path: 'company', select: 'name' },
+      { path: 'assignedDesigner', select: 'name fullname email avatar profileImage' }
+    ]);
+    return res.json({
+      message: 'Creative assigned successfully',
+      creative: creativeView(creative)
+    });
+  } catch (error) {
+    console.error('Assign creative error:', error);
+    return res.status(500).json({ message: 'Unable to assign creative' });
+  }
+});
 router.get('/creatives', async (req, res) => {
   try {
     const filter = { user: req.user.id };
@@ -374,7 +458,11 @@ router.get('/creatives', async (req, res) => {
       if (!CREATIVE_STATUSES.includes(req.query.status)) return res.status(400).json({ message: 'Invalid status' });
       filter.status = req.query.status;
     }
-    const list = await Creative.find(filter).sort({ date: 1, createdAt: 1 }).limit(1000).populate('company', 'name');
+    const list = await Creative.find(filter)
+      .sort({ date: 1, createdAt: 1 })
+      .limit(1000)
+      .populate('company', 'name')
+      .populate('assignedDesigner', 'name fullname email avatar profileImage');
     res.json({ creatives: list.map(creativeView) });
   } catch (error) {
     console.error('Fetch creatives error:', error);
@@ -883,9 +971,7 @@ router.get('/monthly-report', async (req, res) => {
     res.status(500).json({ message: 'Unable to generate the monthly report' });
   }
 });
-// =========================================
 // SETTINGS: PROFILE + PASSWORD
-// =========================================
 const profileView = (u) => ({
   id: u._id,
   name: u.name || u.fullname || u.email,
