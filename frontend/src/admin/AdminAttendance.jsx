@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, RefreshCw, Search, X, Users, LogIn, LogOut, Clock } from 'lucide-react';
 import api from '../api';
 import { errMsg } from '../sopUtils';
+import { roleName } from '../roleNames';
 import '../styles/adminattendance.css';
 
 const fmtTime = (v) =>
@@ -36,10 +37,10 @@ const RANGES = [
 
 const ROLES = [
   { value: '', label: 'Everyone' },
-  { value: 'sme', label: 'SME' },
-  { value: 'smi', label: 'SMI' },
-  { value: 'des', label: 'DES' },
-  { value: 'admin', label: 'Admin' },
+  { value: 'sme', label: roleName('sme') },
+  { value: 'smi', label: roleName('smi') },
+  { value: 'des', label: roleName('des') },
+  { value: 'admin', label: roleName('admin') },
 ];
 
 const STATUSES = [
@@ -258,7 +259,7 @@ const AdminAttendance = () => {
                           <b>{g.user.name}</b>
                           <small>{g.user.email}</small>
                         </span>
-                        <span role="cell"><span className={`role-tag ${g.user.role}`}>{g.user.role.toUpperCase()}</span></span>
+                        <span role="cell"><span className={`role-tag ${g.user.role}`}>{roleName(g.user.role)}</span></span>
                         <span className="aa-time" role="cell" data-label="First login">{fmtTime(g.first.loginAt)}</span>
                         <span className="aa-time" role="cell" data-label="Last logout">{done ? fmtTime(g.last.logoutAt) : <em>—</em>}</span>
                         <span role="cell"><span className={`aa-pill ${done ? 'out' : 'in'}`}>{done ? 'Logged out' : 'No logout yet'}</span></span>
