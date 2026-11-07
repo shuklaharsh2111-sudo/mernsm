@@ -29,7 +29,6 @@ const allowedMimeTypes = [
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   'text/plain', 'text/csv'
 ];
-
 const taskFileUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024, files: 5 },
@@ -52,7 +51,6 @@ const taskFileUpload = multer({
     cb(null, true);
   }
 });
-
 const uploadToCloudinary = (buffer, folder = 'creative-manager/tasks', resourceType = 'image') => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream({
@@ -467,7 +465,6 @@ router.patch('/tasks/:id/end', async (req, res) => {
     res.status(500).json({ message: 'Unable to complete task' });
   }
 });
-
 const creativeView = (c) => ({
   id: c._id,
   companyId: String(c.company?._id || c.company),
@@ -1334,6 +1331,87 @@ router.delete('/tasks/:taskId/attachments/:attachmentId', async (req, res) => {
     console.error('Delete task image error:', error);
     res.status(500).json({
       message: 'Unable to delete image.'
+    });
+  }
+});
+router.put('/creatives/:id/assign', async (req, res) => {
+  try {
+    const { designerId } = req.body || {};
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid creative ID' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(designerId)) {
+      return res.status(400).json({ message: 'Please select a valid designer' });
+    }
+    const creative = await Creative.findOne({
+      _id: id,
+      user: req.user.id
+    }).populate('company', 'name');
+    if (!creative) {
+      return res.status(404).json({ message: 'Creative not found' });
+    }
+    if (creative.status !== 'approved') {
+      return res.status(400).json({
+        message: 'Only approved creatives can be assigned to a designer'
+      });
+    }
+    const Des = mongoose.model('Des');
+    const designerExists = await Des.exists({ _id: designerId });
+    if (!designerExists) {
+      return res.status(400).json({
+        message: 'Selected designer was not found'
+      });
+    }
+    const existingDesignerId = creative.assignedDesigner
+      ? String(creative.assignedDesigner)
+      : '';
+    if (existingDesignerId !== String(designerId)) {
+      const assignedCreatives = await Creative.find({
+        assignedDesigner: designerId
+      }).select('company').lean();
+      const assignedCompanyIds = new Set(
+        assignedCreatives.map((item) => String(item.company))
+      );
+      assignedCompanyIds.add(String(creative.company._id));
+      if (assignedCompanyIds.size > 5) {
+        return res.status(400).json({
+          message: 'This designer can be assigned creatives from a maximum of 5 companies. Please select another designer.'
+        });
+      }
+    }
+    creative.assignedDesigner = designerId;
+    creative.assignedAt = new Date();
+    creative.assignedBy = req.user.id;
+    await creative.save();
+    await creative.populate('assignedDesigner', 'name email');
+    return res.json({
+      message: 'Creative assigned successfully',
+      creative: {
+        id: creative._id,
+        companyId: String(creative.company._id),
+        companyName: creative.company.name,
+        status: creative.status,
+        assignedDesigner: creative.assignedDesigner
+          ? {
+            id: String(creative.assignedDesigner._id),
+            name: creative.assignedDesigner.name,
+            email: creative.assignedDesigner.email
+          }
+          : null,
+        contentPillar: creative.contentPillar,
+        date: creative.date,
+        createdAt: creative.createdAt,
+        uploads: creative.uploads,
+        referenceLinks: creative.referenceLinks,
+        reviewNote: creative.reviewNote,
+        reviewedAt: creative.reviewedAt
+      }
+    });
+  } catch (error) {
+    console.error('Assign creative error:', error);
+    return res.status(500).json({
+      message: 'Unable to assign creative'
     });
   }
 });

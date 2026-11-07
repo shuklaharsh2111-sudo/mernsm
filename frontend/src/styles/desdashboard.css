@@ -1,26 +1,20 @@
 /* Designer workspace: same dark ember glass look as the SME / SMI dashboards.
    Colours come from theme.css tokens (--ink, --ink-3, --orange, --line ...). */
-
 .des-page {
     padding: 0;
 }
-
 .des-header {
     margin-bottom: 26px;
 }
-
 .des-header .page-label {
     color: var(--orange-light);
 }
-
 .des-header h1 {
     margin-top: 10px;
 }
-
 .des-header p {
     color: var(--ink-2);
 }
-
 .des-refresh {
     display: inline-flex;
     align-items: center;
@@ -36,17 +30,14 @@
     backdrop-filter: blur(20px);
     transition: border-color .2s, background .2s;
 }
-
 .des-refresh:hover:not(:disabled) {
     border-color: var(--orange);
     background: rgba(242, 107, 15, 0.18);
 }
-
 .des-refresh:disabled {
     opacity: .6;
     cursor: not-allowed;
 }
-
 /* ---------- stat cards ---------- */
 .des-stats {
     display: grid;
@@ -54,7 +45,6 @@
     gap: 14px;
     margin-bottom: 22px;
 }
-
 .des-stat-card {
     display: flex;
     align-items: center;
@@ -66,7 +56,6 @@
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 12px 36px rgba(0, 0, 0, 0.35);
     backdrop-filter: blur(20px) saturate(150%);
 }
-
 .des-stat-icon {
     display: grid;
     place-items: center;
@@ -75,33 +64,27 @@
     flex-shrink: 0;
     border-radius: 12px;
 }
-
 .des-stat-icon.total {
     color: var(--orange-light);
     background: rgba(242, 107, 15, 0.14);
 }
-
 .des-stat-icon.pending {
     color: var(--warn);
     background: rgba(251, 191, 36, 0.12);
 }
-
 .des-stat-icon.approved {
     color: var(--ok);
     background: rgba(52, 211, 153, 0.12);
 }
-
 .des-stat-icon.rejected {
     color: var(--bad);
     background: rgba(239, 68, 68, 0.12);
 }
-
 .des-stat-card span {
     font-size: 11px;
     font-weight: 600;
     color: var(--ink-3);
 }
-
 .des-stat-card h2 {
     margin: 4px 0 0;
     font-size: 24px;
@@ -109,7 +92,6 @@
     letter-spacing: -.5px;
     color: #fff;
 }
-
 /* ---------- search + filter tabs ---------- */
 .des-toolbar {
     display: flex;
@@ -119,7 +101,6 @@
     gap: 14px;
     margin-bottom: 18px;
 }
-
 .des-search {
     display: flex;
     align-items: center;
@@ -134,11 +115,9 @@
     border: 1px solid rgba(242, 236, 231, 0.2);
     border-radius: 11px;
 }
-
 .des-search:focus-within {
     border-color: var(--orange-light);
 }
-
 .des-search input {
     width: 100%;
     border: none;
@@ -147,17 +126,14 @@
     color: #fff;
     font-size: 13px;
 }
-
 .des-search input::placeholder {
     color: var(--ink-3);
 }
-
 .des-filters {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
 }
-
 .des-filters button {
     display: inline-flex;
     align-items: center;
@@ -172,12 +148,10 @@
     border-radius: 999px;
     transition: all .2s ease;
 }
-
 .des-filters button:hover {
     border-color: rgba(246, 242, 239, 0.45);
     color: #fff;
 }
-
 .des-filters button span {
     min-width: 20px;
     padding: 1px 7px;
@@ -187,25 +161,21 @@
     background: rgba(255, 255, 255, 0.1);
     border-radius: 999px;
 }
-
 .des-filters button.active {
     color: #fff;
     background: #f27b36;
     border-color: rgba(255, 255, 255, 0.3);
 }
-
 .des-filters button.active span {
     color: #fff;
     background: rgba(0, 0, 0, 0.22);
 }
-
 /* ---------- creative cards ---------- */
 .des-creative-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
     gap: 16px;
 }
-
 .des-creative-card {
     display: flex;
     flex-direction: column;
@@ -218,26 +188,22 @@
     backdrop-filter: blur(20px) saturate(150%);
     transition: border-color .2s ease, transform .2s ease;
 }
-
 .des-creative-card:hover {
     border-color: rgba(242, 107, 15, 0.5);
     transform: translateY(-2px);
 }
-
 .des-card-top {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
 }
-
 .des-company {
     display: flex;
     align-items: center;
     gap: 12px;
     min-width: 0;
 }
-
 .des-company-icon {
     display: grid;
     place-items: center;
@@ -248,19 +214,16 @@
     background: rgba(242, 107, 15, 0.14);
     border-radius: 50%;
 }
-
 .des-company h4 {
     margin: 0;
     font-size: 14px;
     font-weight: 700;
     color: #fff;
 }
-
 .des-company span {
     font-size: 11px;
     color: var(--ink-3);
 }
-
 .des-status {
     display: inline-flex;
     align-items: center;
@@ -272,25 +235,21 @@
     border-radius: 999px;
     border: 1px solid transparent;
 }
-
 .des-status.pending {
     color: var(--warn);
     background: rgba(251, 191, 36, 0.12);
     border-color: rgba(251, 191, 36, 0.3);
 }
-
 .des-status.approved {
     color: var(--ok);
     background: rgba(52, 211, 153, 0.12);
     border-color: rgba(52, 211, 153, 0.3);
 }
-
 .des-status.rejected {
     color: var(--bad);
     background: rgba(239, 68, 68, 0.12);
     border-color: rgba(239, 68, 68, 0.3);
 }
-
 .des-card-content h3 {
     margin: 0 0 6px;
     font-size: 16px;
@@ -298,7 +257,6 @@
     letter-spacing: -.2px;
     color: #fff;
 }
-
 .des-caption {
     margin: 0;
     font-size: 12.5px;
@@ -309,7 +267,6 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
-
 .des-review-note {
     display: flex;
     align-items: flex-start;
@@ -323,18 +280,15 @@
     border: 1px solid rgba(239, 68, 68, 0.3);
     border-radius: 10px;
 }
-
 .des-review-note svg {
     flex-shrink: 0;
     margin-top: 2px;
 }
-
 .des-platforms {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
 }
-
 .des-platforms span {
     display: inline-flex;
     align-items: center;
@@ -348,7 +302,6 @@
     border: 1px solid var(--line);
     border-radius: 999px;
 }
-
 .des-card-meta {
     display: flex;
     flex-wrap: wrap;
@@ -356,7 +309,6 @@
     padding-top: 12px;
     border-top: 1px solid var(--line);
 }
-
 .des-card-meta div {
     display: flex;
     align-items: center;
@@ -364,25 +316,21 @@
     font-size: 12px;
     color: var(--ink-3);
 }
-
 .des-card-meta span {
     color: var(--ink-2);
 }
-
 .des-reference-links {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
 }
-
 .des-reference-label {
     font-size: 11px;
     font-weight: 700;
     letter-spacing: .5px;
     color: var(--ink-3);
 }
-
 .des-reference-links a {
     display: inline-flex;
     align-items: center;
@@ -396,11 +344,9 @@
     border: 1px solid rgba(242, 107, 15, 0.3);
     border-radius: 999px;
 }
-
 .des-reference-links a:hover {
     background: rgba(242, 107, 15, 0.22);
 }
-
 .des-card-footer {
     display: flex;
     align-items: center;
@@ -409,7 +355,6 @@
     padding-top: 12px;
     border-top: 1px solid var(--line);
 }
-
 .des-card-footer>span {
     display: inline-flex;
     align-items: center;
@@ -417,7 +362,6 @@
     font-size: 12px;
     color: var(--ink-2);
 }
-
 .des-card-footer .des-assigned-label {
     padding: 3px 10px;
     font-size: 11px;
@@ -426,13 +370,11 @@
     background: rgba(242, 107, 15, 0.12);
     border-radius: 999px;
 }
-
 .des-upload-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
-
 .des-upload-list a {
     display: flex;
     align-items: center;
@@ -445,12 +387,10 @@
     border: 1px solid var(--line);
     border-radius: 10px;
 }
-
 .des-upload-list a:hover {
     border-color: var(--orange);
     color: #fff;
 }
-
 .des-upload-list a span {
     flex: 1;
     min-width: 0;
@@ -458,7 +398,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-
 /* ---------- empty / loading / error ---------- */
 .des-empty {
     display: flex;
@@ -470,7 +409,6 @@
     border: 1px dashed rgba(255, 255, 255, 0.18);
     border-radius: 16px;
 }
-
 .des-empty-icon {
     display: grid;
     place-items: center;
@@ -481,14 +419,12 @@
     background: rgba(242, 107, 15, 0.12);
     border-radius: 50%;
 }
-
 .des-empty h3 {
     margin: 0;
     font-size: 17px;
     font-weight: 700;
     color: #fff;
 }
-
 .des-empty p {
     margin: 8px 0 0;
     max-width: 360px;
@@ -496,7 +432,6 @@
     line-height: 1.6;
     color: var(--ink-3);
 }
-
 .des-loading {
     display: flex;
     flex-direction: column;
@@ -506,24 +441,20 @@
     min-height: 50vh;
     color: var(--ink-2);
 }
-
 .des-loading p {
     margin: 0;
     font-size: 13px;
 }
-
 .des-spinner,
 .des-spin {
     color: var(--orange);
     animation: des-rotate 1s linear infinite;
 }
-
 @keyframes des-rotate {
     to {
         transform: rotate(360deg);
     }
 }
-
 .des-error {
     display: flex;
     align-items: center;
@@ -536,11 +467,9 @@
     border: 1px solid rgba(239, 68, 68, 0.3);
     border-radius: 12px;
 }
-
 .des-error span {
     flex: 1;
 }
-
 .des-error button {
     padding: 6px 14px;
     font-size: 12px;
@@ -551,24 +480,169 @@
     border-radius: 8px;
     cursor: pointer;
 }
-
 @media (max-width: 900px) {
     .des-stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
-
 @media (max-width: 560px) {
     .des-stats {
         grid-template-columns: minmax(0, 1fr);
     }
-
     .des-creative-grid {
         grid-template-columns: minmax(0, 1fr);
     }
-
     .des-header {
         flex-direction: column;
         align-items: flex-start;
+    }
+}
+/* ---------- assigned companies ---------- */
+.des-companies-section {
+    margin-bottom: 28px;
+}
+.des-companies-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.des-companies-heading h2 {
+    margin: 0 0 6px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -.4px;
+    color: #fff;
+}
+.des-companies-heading p {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--ink-2);
+}
+.des-company-total {
+    padding: 8px 14px;
+    border: 1px solid rgba(242, 107, 15, 0.3);
+    border-radius: 999px;
+    background: rgba(242, 107, 15, 0.12);
+    color: var(--orange-light);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.des-companies-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 28px 20px;
+}
+.des-company-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    transition: transform .25s ease;
+}
+
+.des-company-card:hover {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    transform: translateY(-4px);
+}
+.des-company-logo {
+    display: grid;
+    place-items: center;
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #fff;
+    border: none;
+    border-radius: 50%;
+    box-shadow: none;
+    transition: transform .25s ease;
+}
+
+.des-company-card:hover .des-company-logo {
+    transform: scale(1.06);
+    box-shadow: none;
+}
+.des-company-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 10px;
+    border-radius: 50%;
+}
+.des-company-logo svg {
+    color: var(--orange-light);
+}
+.des-company-card h3 {
+    margin: 0;
+    max-width: 100%;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    color: #fff;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+.des-companies-loading,
+.des-companies-empty,
+.des-companies-error {
+    padding: 32px 20px;
+    background: rgba(18, 14, 14, 0.42);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    backdrop-filter: blur(20px);
+    text-align: center;
+    color: var(--ink-2);
+}
+.des-companies-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+.des-loader {
+    color: var(--orange-light);
+    animation: des-rotate 1s linear infinite;
+}
+.des-companies-empty svg {
+    color: var(--orange-light);
+}
+.des-companies-empty h3 {
+    margin: 12px 0 8px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+}
+.des-companies-empty p {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--ink-3);
+}
+.des-companies-error {
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.08);
+}
+@media (max-width: 600px) {
+    .des-companies-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .des-companies-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+    .des-company-logo {
+        width: 85px;
+        height: 85px;
     }
 }
