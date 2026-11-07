@@ -232,6 +232,13 @@ router.delete('/users/:id', async (req, res) => {
   const entry = Object.entries(roleModels).find(([role]) => getRoleCollection(role).toLowerCase() === collection);
   if (!entry) return res.status(400).json({ message: 'Valid user collection is required' });
   const [, UserModel] = entry;
+  // An admin can never delete the account they are signed in with, and the last admin can never be deleted.
+  if (String(req.user.id) === String(req.params.id)) {
+    return res.status(403).json({ message: 'You cannot delete your own account.' });
+  }
+  if (collection === 'admins' && (await Admin.countDocuments()) <= 1) {
+    return res.status(403).json({ message: 'The last admin account cannot be deleted.' });
+  }
   const user = await UserModel.findByIdAndDelete(req.params.id);
   if (!user) return res.status(404).json({ message: 'User not found in selected collection' });
   if (collection === 'smes') {
