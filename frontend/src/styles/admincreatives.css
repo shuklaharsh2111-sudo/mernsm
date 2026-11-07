@@ -1,0 +1,103 @@
+/* =========================================================
+   Admin · Creatives review queue
+   Status tabs, toolbar, grouped cards. Uses the theme tokens.
+========================================================= */
+
+/* ---- status tabs (summary strip) ---- */
+.acq-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 4px 0 16px; }
+.acq-tab {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px; text-align: left;
+  color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  cursor: pointer; font: inherit; transition: border-color .15s, background .15s, transform .15s;
+}
+.acq-tab:hover { border-color: var(--orange); transform: translateY(-1px); }
+.acq-tab.active { background: var(--surface-2); border-color: var(--orange); box-shadow: 0 0 0 1px var(--orange) inset; }
+.acq-tab-icon { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 10px; background: var(--surface-3); color: var(--ink-2); }
+.acq-tab.pending .acq-tab-icon { color: var(--warn); background: rgba(251, 191, 36, .14); }
+.acq-tab.approved .acq-tab-icon { color: var(--ok); background: rgba(52, 211, 153, .14); }
+.acq-tab.rejected .acq-tab-icon { color: var(--bad); background: rgba(239, 68, 68, .14); }
+.acq-tab-text { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: baseline; min-width: 0; }
+.acq-tab-text strong { font-size: 24px; line-height: 1; color: var(--ink); font-weight: 800; }
+.acq-tab-text > span { font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.acq-tab-text small { grid-column: 1 / -1; margin-top: 4px; font-size: 11.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- toolbar ---- */
+.acq-toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.acq-search { position: relative; display: flex; align-items: center; flex: 1 1 260px; min-width: 200px; color: var(--ink-3); }
+.acq-search > svg { position: absolute; left: 12px; pointer-events: none; }
+.acq-search input { width: 100%; padding: 10px 34px 10px 36px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; font: inherit; font-size: 14px; outline: none; }
+.acq-search input:focus, .acq-toolbar select:focus { border-color: var(--orange); }
+.acq-search input[type=search]::-webkit-search-cancel-button { display: none; }
+.acq-search button { position: absolute; right: 8px; display: grid; place-items: center; width: 22px; height: 22px; color: var(--ink-2); background: var(--surface-3); border: 0; border-radius: 50%; cursor: pointer; }
+.acq-toolbar select { flex: 0 1 170px; min-width: 140px; padding: 10px 12px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; font: inherit; font-size: 13.5px; cursor: pointer; outline: none; }
+
+.acq-count { display: flex; align-items: center; gap: 12px; margin: 0 2px 14px; font-size: 13px; color: var(--ink-3); }
+.acq-count b { color: var(--ink); }
+.acq-clear { padding: 0; color: var(--orange-light); background: none; border: 0; font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
+
+/* ---- groups ---- */
+.acq-groups { display: flex; flex-direction: column; gap: 26px; }
+.acq-group-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.acq-group-head h2 { margin: 0; font-size: 15px; font-weight: 800; color: var(--ink); letter-spacing: .2px; }
+.acq-group-head span { padding: 2px 10px; font-size: 12px; font-weight: 800; color: var(--ink); background: var(--grad); border-radius: 999px; }
+.acq-list { display: flex; flex-direction: column; gap: 12px; }
+
+/* ---- card ---- */
+.acq-card { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--warn); border-radius: var(--radius); }
+.acq-card.approved { border-left-color: var(--ok); }
+.acq-card.rejected { border-left-color: var(--bad); }
+.acq-main { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 18px; padding: 16px 18px; }
+.acq-thumb { position: relative; align-self: start; aspect-ratio: 1; overflow: hidden; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; }
+.acq-thumb a, .acq-thumb img { display: block; width: 100%; height: 100%; }
+.acq-thumb img { object-fit: cover; transition: transform .2s; }
+.acq-thumb a:hover img { transform: scale(1.05); }
+.acq-thumb-empty { display: grid; place-content: center; justify-items: center; gap: 4px; width: 100%; height: 100%; color: var(--ink-3); }
+.acq-thumb-count { position: absolute; right: 6px; bottom: 6px; padding: 2px 8px; font-size: 11px; font-weight: 800; color: #fff; background: rgba(0, 0, 0, .7); border-radius: 999px; }
+
+.acq-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.acq-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.acq-title { margin: 0; font-size: 18px; font-weight: 800; line-height: 1.3; color: var(--ink); overflow-wrap: anywhere; }
+.acq-badges { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.acq-wait { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; font-size: 11px; font-weight: 800; border-radius: 999px; }
+.acq-wait.ok { color: var(--ink-2); background: var(--surface-3); }
+.acq-wait.warn { color: #ffe3a3; background: rgba(251, 191, 36, .18); }
+.acq-wait.late { color: #ffc2b8; background: rgba(239, 68, 68, .2); }
+
+.acq-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); }
+.acq-meta span { display: inline-flex; align-items: center; gap: 6px; }
+.acq-meta svg { color: var(--ink-3); }
+.acq-meta .acq-sub { color: var(--ink-3); font-size: 12px; }
+
+.acq-caption { margin: 0; font-size: 14px; line-height: 1.55; color: var(--ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-wrap; overflow-wrap: anywhere; }
+.acq-caption.full { display: none; } /* full caption shows in the details panel */
+
+.acq-foot-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: auto; }
+.acq-platforms { display: flex; flex-wrap: wrap; gap: 6px; }
+.acq-toggle { display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; color: var(--orange-light); background: none; border: 0; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.acq-toggle:hover { background: var(--surface-2); }
+
+/* ---- expandable details ---- */
+.acq-details { display: grid; gap: 0; border-top: 1px solid var(--line); background: var(--surface-2); }
+.acq-section { padding: 14px 18px; }
+.acq-section + .acq-section { border-top: 1px dashed var(--line); }
+.acq-section h4 { margin: 0 0 10px; font-size: 11.5px; font-weight: 800; color: var(--ink-3); text-transform: uppercase; letter-spacing: .7px; }
+
+/* ---- action bar ---- */
+.acq-actions { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; padding: 12px 18px; background: var(--surface-2); border-top: 1px solid var(--line); }
+.acq-reject { width: 100%; }
+.acq-note { margin: 0; padding: 12px 18px; border-top: 1px solid var(--line); border-radius: 0; }
+
+.acq-empty { display: grid; justify-items: center; gap: 6px; padding: 44px 20px; text-align: center; color: var(--ink-3); }
+.acq-empty h3 { margin: 4px 0 0; font-size: 18px; color: var(--ink); }
+.acq-empty p { margin: 0 0 6px; }
+
+@media (max-width: 960px) {
+  .acq-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .acq-main { grid-template-columns: 84px minmax(0, 1fr); gap: 12px; padding: 14px; }
+  .acq-title { font-size: 16px; }
+  .acq-toolbar select { flex: 1 1 140px; }
+  .acq-actions .btn-primary, .acq-actions .btn-ghost { flex: 1; justify-content: center; }
+  .acq-section { padding: 12px 14px; }
+}
