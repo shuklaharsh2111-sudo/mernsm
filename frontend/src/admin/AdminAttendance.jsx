@@ -1,13 +1,14 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, MapPin, RefreshCw } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight, RefreshCw, Search, X, Users, LogIn, LogOut, Clock } from 'lucide-react';
 import api from '../api';
 import { errMsg } from '../sopUtils';
+import '../styles/adminattendance.css';
 
 const fmtTime = (v) =>
   new Date(v).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-const fmtDay = (v) =>
-  new Date(v).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+const fmtDayLong = (v) =>
+  new Date(v).toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
 
 // local calendar day, e.g. "2026-11-03"
 const dayKey = (v) => {
@@ -15,50 +16,56 @@ const dayKey = (v) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-const fmtMins = (mins) => {
-  if (!mins) return '—';
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return h ? `${h}h ${m}m` : `${m}m`;
+const today = () => dayKey(new Date());
+const daysAgo = (n) => {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return dayKey(d);
+};
+const monthStart = () => {
+  const d = new Date();
+  return dayKey(new Date(d.getFullYear(), d.getMonth(), 1));
 };
 
-const sessionMins = (s) =>
-  s.logoutAt ? Math.max(0, Math.round((new Date(s.logoutAt) - new Date(s.loginAt)) / 60000)) : 0;
+const RANGES = [
+  { id: 'today', label: 'Today', get: () => [today(), today()] },
+  { id: 'yesterday', label: 'Yesterday', get: () => [daysAgo(1), daysAgo(1)] },
+  { id: '7', label: 'Last 7 days', get: () => [daysAgo(6), today()] },
+  { id: 'month', label: 'This month', get: () => [monthStart(), today()] },
+];
 
-const today = () => dayKey(new Date());
+const ROLES = [
+  { value: '', label: 'Everyone' },
+  { value: 'sme', label: 'SME' },
+  { value: 'smi', label: 'SMI' },
+  { value: 'des', label: 'DES' },
+  { value: 'admin', label: 'Admin' },
+];
 
-const cell = { padding: '10px 12px' };
-const subCell = { padding: '6px 12px', fontSize: 13 };
+const STATUSES = [
+  { value: 'all', label: 'All' },
+  { value: 'in', label: 'No logout yet' },
+  { value: 'out', label: 'Logged out' },
+];
 
 // One group = one user on one day.
-//  - first login of the day  -> the main login (with location details)
-//  - last session's logout   -> the main logout (or "still logged in")
-//  - every other session     -> listed as a plain extra session
+//  - first login of the day  -> shown as "First login"
+//  - last session's logout   -> shown as "Last logout" (or "No logout yet")
+//  - every other session     -> listed under "more sessions"
 const buildGroups = (records) => {
   const map = new Map();
-
   records.forEach((r) => {
     const key = `${r.userId}|${dayKey(r.loginAt)}`;
     if (!map.has(key)) map.set(key, []);
     map.get(key).push(r);
   });
 
-  return [...map.entries()]
-    .map(([key, sessions]) => {
-      sessions.sort((a, b) => new Date(a.loginAt) - new Date(b.loginAt));
-      const first = sessions[0];
-      const last = sessions[sessions.length - 1];
-      return {
-        key,
-        day: first.loginAt,
-        user: first,
-        first,
-        last,
-        extras: sessions.slice(1),
-        totalMins: sessions.reduce((sum, s) => sum + sessionMins(s), 0)
-      };
-    })
-    .sort((a, b) => new Date(b.day) - new Date(a.day) || a.user.name.localeCompare(b.user.name));
+  return [...map.entries()].map(([key, sessions]) => {
+    sessions.sort((a, b) => new Date(a.loginAt) - new Date(b.loginAt));
+    const first = sessions[0];
+    const last = sessions[sessions.length - 1];
+    return { key, dayKey: dayKey(first.loginAt), day: first.loginAt, user: first, first, last, extras: sessions.slice(1) };
+  });
 };
 
 const AdminAttendance = () => {
@@ -73,6 +80,7 @@ const AdminAttendance = () => {
   const [to, setTo] = useState(today());
   const [role, setRole] = useState('');
   const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('all');
 
   useEffect(() => {
     let cancelled = false;
@@ -92,15 +100,51 @@ const AdminAttendance = () => {
     };
   }, [from, to, role, reloadKey]);
 
-  const groups = useMemo(() => {
+  const activeRange = RANGES.find((r) => {
+    const [f, t] = r.get();
+    return f === from && t === to;
+  })?.id;
+
+  // everything that matches the search box (before the status filter, so the chip counts stay meaningful)
+  const searched = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const filtered = q
-      ? records.filter((r) => `${r.name} ${r.email}`.toLowerCase().includes(q))
-      : records;
-    return buildGroups(filtered);
+    const list = q ? records.filter((r) => `${r.name} ${r.email}`.toLowerCase().includes(q)) : records;
+    return buildGroups(list);
   }, [records, search]);
 
+  const counts = useMemo(() => {
+    const c = { all: searched.length, in: 0, out: 0 };
+    searched.forEach((g) => (g.last.logoutAt ? (c.out += 1) : (c.in += 1)));
+    return c;
+  }, [searched]);
+
+  const stats = useMemo(() => {
+    const people = new Set(searched.map((g) => g.user.userId)).size;
+    const earliest = searched.length ? searched.reduce((a, b) => (new Date(a.first.loginAt) < new Date(b.first.loginAt) ? a : b)) : null;
+    return { people, earliest };
+  }, [searched]);
+
+  const days = useMemo(() => {
+    const visible = searched.filter((g) => status === 'all' || (status === 'in' ? !g.last.logoutAt : !!g.last.logoutAt));
+    const map = new Map();
+    visible.forEach((g) => {
+      if (!map.has(g.dayKey)) map.set(g.dayKey, { key: g.dayKey, day: g.day, rows: [] });
+      map.get(g.dayKey).rows.push(g);
+    });
+    return [...map.values()]
+      .map((d) => ({ ...d, rows: d.rows.sort((a, b) => new Date(a.first.loginAt) - new Date(b.first.loginAt)) }))
+      .sort((a, b) => b.key.localeCompare(a.key));
+  }, [searched, status]);
+
   const toggle = (key) => setOpen((o) => ({ ...o, [key]: !o[key] }));
+  const pickRange = (r) => {
+    const [f, t] = r.get();
+    setFrom(f);
+    setTo(t);
+  };
+
+  const filtered = search.trim() || role || status !== 'all';
+  const clearFilters = () => { setSearch(''); setRole(''); setStatus('all'); };
 
   return (
     <div className="dashboard-content scrollable">
@@ -109,8 +153,7 @@ const AdminAttendance = () => {
           <span className="page-label">ADMINISTRATION</span>
           <h1>Attendance</h1>
           <p>
-            One row per user per day: the first login and the last logout of the day count.
-            Any other logins that day are listed under “more sessions”.
+            One row per person per day, using the first login and the last logout. Extra logins that day sit under “more sessions”.
             {office?.configured
               ? ` Staff can log in only within ${office.radius} m of the office.`
               : ' Office location is not configured yet (set OFFICE_LAT / OFFICE_LNG in backend/.env).'}
@@ -121,118 +164,133 @@ const AdminAttendance = () => {
         </button>
       </div>
 
-      {error && <p className="error-message" role="alert">{error}</p>}
-
-      <div className="glass-panel add-form" style={{ marginBottom: 16 }}>
-        <label className="x-field">
-          <span>From</span>
-          <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} />
-        </label>
-        <label className="x-field">
-          <span>To</span>
-          <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} />
-        </label>
-        <label className="x-field">
-          <span>Role</span>
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="">Everyone</option>
-            <option value="sme">SME</option>
-            <option value="smi">SMI</option>
-            <option value="des">DES</option>
-            <option value="admin">Admin</option>
-          </select>
-        </label>
-        <label className="x-field">
-          <span>Search name / email</span>
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Type to filter" />
-        </label>
+      {/* ---- summary ---- */}
+      <div className="aa-stats">
+        <div className="aa-stat">
+          <span className="aa-stat-icon"><Users size={17} /></span>
+          <div><strong>{loading ? '–' : stats.people}</strong><span>People</span></div>
+        </div>
+        <div className="aa-stat in">
+          <span className="aa-stat-icon"><LogIn size={17} /></span>
+          <div><strong>{loading ? '–' : counts.all}</strong><span>Check-ins</span></div>
+        </div>
+        <div className="aa-stat warn">
+          <span className="aa-stat-icon"><Clock size={17} /></span>
+          <div><strong>{loading ? '–' : counts.in}</strong><span>No logout yet</span></div>
+        </div>
+        <div className="aa-stat out">
+          <span className="aa-stat-icon"><LogOut size={17} /></span>
+          <div><strong>{loading ? '–' : counts.out}</strong><span>Logged out</span></div>
+        </div>
       </div>
+
+      {/* ---- filters ---- */}
+      <div className="aa-filters">
+        <div className="aa-row">
+          <div className="aa-chips" role="group" aria-label="Quick date range">
+            {RANGES.map((r) => (
+              <button key={r.id} type="button" className={activeRange === r.id ? 'active' : ''} onClick={() => pickRange(r)}>{r.label}</button>
+            ))}
+          </div>
+          <div className="aa-dates">
+            <label><span>From</span><input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} /></label>
+            <label><span>To</span><input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} /></label>
+          </div>
+        </div>
+
+        <div className="aa-row">
+          <div className="aa-search">
+            <Search size={15} />
+            <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or email…" aria-label="Search name or email" />
+            {search && <button type="button" onClick={() => setSearch('')} aria-label="Clear search"><X size={14} /></button>}
+          </div>
+          <select value={role} onChange={(e) => setRole(e.target.value)} aria-label="Role">
+            {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+          </select>
+          <div className="aa-chips" role="group" aria-label="Status">
+            {STATUSES.map((s) => (
+              <button key={s.value} type="button" className={status === s.value ? 'active' : ''} onClick={() => setStatus(s.value)}>
+                {s.label} <i>{counts[s.value]}</i>
+              </button>
+            ))}
+          </div>
+          {filtered && <button type="button" className="aa-clear" onClick={clearFilters}>Clear filters</button>}
+        </div>
+      </div>
+
+      {error && <p className="error-message" role="alert">{error}</p>}
 
       {loading ? (
         <p className="muted">Loading…</p>
-      ) : groups.length === 0 ? (
-        <div className="glass-panel"><p className="muted">No logins found for this period.</p></div>
+      ) : days.length === 0 ? (
+        <div className="glass-panel aa-empty">
+          <Clock size={26} />
+          <h3>No logins found</h3>
+          <p className="muted">{filtered ? 'Nothing matches these filters for this period.' : 'Nobody logged in during this period.'}</p>
+          {filtered && <button type="button" className="btn-ghost" onClick={clearFilters}>Clear filters</button>}
+        </div>
       ) : (
-        <div className="glass-panel" style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr>
-                {['Date', 'User', 'Role', 'First login', 'Last logout', 'Time worked', 'Login location'].map((h) => (
-                  <th key={h} style={{ padding: '10px 12px', fontSize: 12, opacity: 0.7 }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map((g) => {
-                const expanded = !!open[g.key];
-                const hasExtras = g.extras.length > 0;
-                const { first, last } = g;
+        <div className="aa-days">
+          {days.map((d) => (
+            <section key={d.key} className="aa-day">
+              <header className="aa-day-head">
+                <h2>{fmtDayLong(d.day)}</h2>
+                <span>{d.rows.length} {d.rows.length === 1 ? 'person' : 'people'}</span>
+              </header>
 
-                return (
-                  <Fragment key={g.key}>
-                    <tr style={{ borderTop: '1px solid rgba(128,128,128,.2)' }}>
-                      <td style={cell}>{fmtDay(g.day)}</td>
-                      <td style={cell}>
-                        <strong>{g.user.name}</strong>
-                        <div className="muted" style={{ fontSize: 12 }}>{g.user.email}</div>
-                      </td>
-                      <td style={cell}>
-                        <span className={`role-tag ${g.user.role}`}>{g.user.role.toUpperCase()}</span>
-                      </td>
-                      <td style={cell}><strong>{fmtTime(first.loginAt)}</strong></td>
-                      <td style={cell}>
-                        {last.logoutAt
-                          ? <strong>{fmtTime(last.logoutAt)}</strong>
-                          : <span className="muted">Still logged in / not logged out</span>}
-                      </td>
-                      <td style={cell}>{fmtMins(g.totalMins)}</td>
-                      <td style={cell}>
-                        {first.distance !== null ? (
-                          <span title={first.accuracy ? `GPS accuracy ±${first.accuracy} m` : ''}>
-                            <MapPin size={13} style={{ verticalAlign: '-2px' }} /> {first.distance} m from office
-                          </span>
-                        ) : (
-                          <span className="muted">Not recorded</span>
-                        )}
-                      </td>
-                    </tr>
+              <div className="aa-table" role="table">
+                <div className="aa-tr aa-th" role="row">
+                  <span role="columnheader">User</span>
+                  <span role="columnheader">Role</span>
+                  <span role="columnheader">First login</span>
+                  <span role="columnheader">Last logout</span>
+                  <span role="columnheader">Status</span>
+                </div>
 
-                    {hasExtras && (
-                      <tr>
-                        <td colSpan={7} style={{ padding: '0 12px 8px' }}>
-                          <button
-                            type="button"
-                            className="btn-ghost"
-                            style={{ fontSize: 12, padding: '4px 8px' }}
-                            onClick={() => toggle(g.key)}
-                            aria-expanded={expanded}
-                          >
+                {d.rows.map((g) => {
+                  const expanded = !!open[g.key];
+                  const hasExtras = g.extras.length > 0;
+                  const done = !!g.last.logoutAt;
+                  return (
+                    <div key={g.key} className="aa-group" role="rowgroup">
+                      <div className="aa-tr" role="row">
+                        <span className="aa-user" role="cell">
+                          <b>{g.user.name}</b>
+                          <small>{g.user.email}</small>
+                        </span>
+                        <span role="cell"><span className={`role-tag ${g.user.role}`}>{g.user.role.toUpperCase()}</span></span>
+                        <span className="aa-time" role="cell" data-label="First login">{fmtTime(g.first.loginAt)}</span>
+                        <span className="aa-time" role="cell" data-label="Last logout">{done ? fmtTime(g.last.logoutAt) : <em>—</em>}</span>
+                        <span role="cell"><span className={`aa-pill ${done ? 'out' : 'in'}`}>{done ? 'Logged out' : 'No logout yet'}</span></span>
+                      </div>
+
+                      {hasExtras && (
+                        <div className="aa-extra-bar">
+                          <button type="button" onClick={() => toggle(g.key)} aria-expanded={expanded}>
                             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                            {' '}{g.extras.length} more session{g.extras.length > 1 ? 's' : ''} this day
+                            {g.extras.length} more session{g.extras.length > 1 ? 's' : ''} this day
                           </button>
-                        </td>
-                      </tr>
-                    )}
+                        </div>
+                      )}
 
-                    {hasExtras && expanded && g.extras.map((s) => (
-                      <tr key={s.id} className="muted">
-                        <td style={subCell} />
-                        <td style={subCell} colSpan={2}>↳ Extra login</td>
-                        <td style={subCell}>{fmtTime(s.loginAt)}</td>
-                        <td style={subCell}>
-                          {s.logoutAt ? fmtTime(s.logoutAt) : 'Not logged out'}
-                        </td>
-                        <td style={subCell}>{fmtMins(sessionMins(s))}</td>
-                        <td style={subCell}>
-                          {s.distance !== null ? `${s.distance} m from office` : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+                      {hasExtras && expanded && (
+                        <ul className="aa-extras">
+                          {g.extras.map((s) => (
+                            <li key={s.id}>
+                              <span>↳ Extra login</span>
+                              <b>{fmtTime(s.loginAt)}</b>
+                              <span>to</span>
+                              <b>{s.logoutAt ? fmtTime(s.logoutAt) : 'not logged out'}</b>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       )}
     </div>
