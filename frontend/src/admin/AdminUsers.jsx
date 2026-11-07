@@ -5,9 +5,10 @@ import { errMsg } from '../sopUtils';
 import AssignCompaniesModal from '../components/AssignCompaniesModal';
 import ManageSopsModal from '../components/ManageSopsModal';
 import "../styles/adminusers.css";
+import { roleName } from '../roleNames';
 
 const ROLES = ['ADMIN', 'REPORTING_MANAGER', 'SME', 'SMI', 'DES', 'CLIENTS'];
-const roleLabel = (r) => String(r || '').replace(/_/g, ' ');
+const roleLabel = roleName; // full role name, e.g. SME -> Social Media Executive
 const emptyForm = { name: '', contact: '', email: '', password: '', reportingManagerId: '', role: 'SME', profileImage: null };
 const initialsOf = (name = '') => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || 'U';
 const fmtJoined = (d) => {
