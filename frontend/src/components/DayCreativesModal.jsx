@@ -55,10 +55,10 @@ export default function DayCreativesModal({ company, platformLabel, date, creati
                         {c.status === 'rejected' && c.reviewNote && <small className="day-item-note">Admin: {c.reviewNote}</small>}
                       </span>
                     </button>
-                    {c.status === 'rejected' && (
+                    {onEdit && c.status === 'rejected' && (
                       <button type="button" className="day-item-edit" aria-label={`Edit ${title} and resubmit`} title="Edit & resubmit" onClick={() => onEdit(c)}><Pencil size={15} /></button>
                     )}
-                    <button type="button" className="day-item-del" aria-label={`Delete ${title}`} title="Delete" onClick={() => onDelete(c.id)}><Trash2 size={15} /></button>
+                    {onDelete && <button type="button" className="day-item-del" aria-label={`Delete ${title}`} title="Delete" onClick={() => onDelete(c.id)}><Trash2 size={15} /></button>}
                   </li>
                 );
               })}
@@ -68,7 +68,7 @@ export default function DayCreativesModal({ company, platformLabel, date, creati
 
         <div className="modal-foot">
           <button type="button" className="btn-ghost" onClick={onClose}>Close</button>
-          <button type="button" className="btn-primary" onClick={onAdd}><Plus size={15} /> Add {platformLabel} creative</button>
+          {onAdd && <button type="button" className="btn-primary" onClick={onAdd}><Plus size={15} /> Add {platformLabel} creative</button>}
         </div>
       </div>
     </div>,
