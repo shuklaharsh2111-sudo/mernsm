@@ -1,9 +1,10 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useState } from 'react';
-import { Eye, Trash2, Pencil, Image as ImageIcon, UserRoundPlus, X, CheckCircle2 } from 'lucide-react';
+import { Eye, Trash2, Pencil, Image as ImageIcon, UserRoundPlus, X, CheckCircle2, Palette } from 'lucide-react';
 import api from '../api';
 import CreativeViewModal from '../components/CreativeViewModal';
 import ReferenceCreativeModal from '../components/ReferenceCreativeModal';
+import DesignOutputModal from '../components/DesignOutputModal';
 import { PLATFORMS } from '../components/creativePlatforms';
 import { errMsg, fmtDay, fmtDateTime } from '../sopUtils';
 import '../style.css';
@@ -13,6 +14,7 @@ const TABS = [
   { value: 'pending', label: 'Pending' },
   { value: 'approved', label: 'Approved' },
   { value: 'rejected', label: 'Redo' },
+  { value: 'designer', label: 'Designer Output' },
   { value: 'all', label: 'All' },
 ];
 const SmePendingCreatives = () => {
@@ -23,6 +25,7 @@ const SmePendingCreatives = () => {
   const [viewing, setViewing] = useState(null);
   const [editing, setEditing] = useState(null);
   const [assigning, setAssigning] = useState(null);
+  const [reviewing, setReviewing] = useState(null);
   const [designers, setDesigners] = useState([]);
   const [selectedDesigner, setSelectedDesigner] = useState('');
   const [designersLoading, setDesignersLoading] = useState(false);
@@ -44,13 +47,16 @@ const SmePendingCreatives = () => {
     return () => document.removeEventListener('keydown', onKey);
   }, [assigning, savingAssignment]);
   const counts = useMemo(() => {
-    const c = { all: items.length, pending: 0, approved: 0, rejected: 0 };
+    const c = { all: items.length, pending: 0, approved: 0, rejected: 0, designer: 0 };
     items.forEach((i) => {
       if (c[i.status] !== undefined) c[i.status] += 1;
+      if (i.designOutput) c.designer += 1;
     });
     return c;
   }, [items]);
-  const shown = items.filter((i) => tab === 'all' || i.status === tab);
+  const shown = items.filter((i) => (
+    tab === 'all' || (tab === 'designer' ? Boolean(i.designOutput) : i.status === tab)
+  ));
   const withdraw = async (c) => {
     if (!window.confirm('Withdraw this creative?')) return;
     try {
@@ -116,7 +122,7 @@ const SmePendingCreatives = () => {
       {loading ? (
         <p className="muted">Loading…</p>
       ) : shown.length === 0 ? (
-        <div className="glass-panel"><p className="muted">No {tab === 'all' ? '' : `${tab} `}creatives yet.</p></div>
+        <div className="glass-panel"><p className="muted">{tab === 'designer' ? 'No designer output yet.' : `No ${tab === 'all' ? '' : `${tab} `}creatives yet.`}</p></div>
       ) : (
         <div className="mom-list">
           {shown.map((c) => (
@@ -144,6 +150,20 @@ const SmePendingCreatives = () => {
                     <span>Assigned to <strong>{c.assignedDesigner.name}</strong></span>
                   </div>
                 )}
+                {c.designOutput && (
+                  <button type="button" className="design-output-chip" onClick={() => setReviewing(c)}>
+                    {(c.designOutput.mimeType || '').startsWith('image/')
+                      ? <img src={c.designOutput.url} alt="" />
+                      : <Palette size={18} />}
+                    <span>
+                      <strong>Designer output</strong>
+                      <em>{c.designOutput.name || 'Design file'}</em>
+                    </span>
+                    <i className={`status-pill ${c.designOutput.status === 'submitted' ? 'pending' : c.designOutput.status === 'redo' ? 'rejected' : 'approved'}`}>
+                      {c.designOutput.status === 'submitted' ? 'Review' : c.designOutput.status === 'redo' ? 'Redo sent' : 'Approved'}
+                    </i>
+                  </button>
+                )}
               </div>
               <div className="creative-row-side">
                 <span className={`status-pill ${c.status}`}>{c.status === 'rejected' ? 'redo' : c.status}</span>
@@ -151,10 +171,15 @@ const SmePendingCreatives = () => {
                   <button type="button" className="btn-ghost" onClick={() => setViewing(c)}>
                     <Eye size={14} /> Preview
                   </button>
-                  {c.status === 'approved' && (
+                  {c.status === 'approved' && tab !== 'designer' && !c.designOutput && (
                     <button type="button" className="btn-primary" onClick={() => openAssign(c)}>
                       <UserRoundPlus size={14} />
                       {c.assignedDesigner ? 'Reassign' : 'Assign'}
+                    </button>
+                  )}
+                  {tab === 'designer' && c.designOutput && (
+                    <button type="button" className="btn-primary" onClick={() => setReviewing(c)}>
+                      <Palette size={14} /> {c.designOutput.status === 'submitted' ? 'Review output' : 'View output'}
                     </button>
                   )}
                   {c.status === 'rejected' && (
@@ -195,6 +220,13 @@ const SmePendingCreatives = () => {
             )));
             setEditing(null);
           }}
+        />
+      )}
+      {reviewing && (
+        <DesignOutputModal
+          creative={reviewing}
+          onClose={() => setReviewing(null)}
+          onUpdated={(saved) => setItems((list) => list.map((c) => (c.id === saved.id ? saved : c)))}
         />
       )}
       {assigning && createPortal(
