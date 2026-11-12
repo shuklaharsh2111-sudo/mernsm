@@ -1,18 +1,55 @@
-import multer from 'multer';
-import cloudinary from '../config/cloudinary.js';
-import mongoose from 'mongoose';
 import express from 'express';
+import multer from 'multer';
+import mongoose from 'mongoose';
 import { protect } from '../auth.js';
 import Creative from '../sme/Creative.js';
+import cloudinary from '../config/cloudinary.js';
 const router = express.Router();
-const designerUpload = multer({
+const MAX_FILE_MB = 10;
+const ALLOWED_TYPES = [
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+  'video/mp4', 'video/webm', 'video/quicktime',
+  'application/pdf'
+];
+const designUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: MAX_FILE_MB * 1024 * 1024, files: 1 },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) cb(null, true);
-    else cb(new Error('Only image files are allowed'));
+    if (!ALLOWED_TYPES.includes(file.mimetype)) {
+      return cb(new Error('Unsupported file type. Upload JPG, PNG, WEBP, GIF, MP4, WEBM, MOV or PDF files.'));
+    }
+    cb(null, true);
   }
 });
+const uploadErrorMessage = (err) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') return `Each file must be ${MAX_FILE_MB}MB or smaller.`;
+    if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') return 'Please upload only one file.';
+  }
+  return err.message || 'File upload failed.';
+};
+// Cloudinary stores PDFs under the "image" resource type
+const resourceTypeFor = (mimetype) => (mimetype.startsWith('video/') ? 'video' : 'image');
+const uploadBuffer = (file) => new Promise((resolve, reject) => {
+  const resource_type = resourceTypeFor(file.mimetype);
+  const stream = cloudinary.uploader.upload_stream(
+    { folder: 'creative-manager/designs', resource_type },
+    (error, result) => (error ? reject(error) : resolve({ ...result, resource_type }))
+  );
+  stream.end(file.buffer);
+});
+export const designView = (d) => (d ? {
+  url: d.url,
+  originalName: d.originalName,
+  mimeType: d.mimeType,
+  size: d.size,
+  uploadedAt: d.uploadedAt,
+  status: d.status,
+  note: d.note || '',
+  reviewedAt: d.reviewedAt,
+  version: d.version || 1,
+  redoCount: d.redoCount || 0
+} : null);
 router.use(protect(['des']));
 router.get('/companies', async (req, res) => {
   try {
@@ -58,7 +95,7 @@ router.get('/creatives', async (req, res) => {
     return res.status(200).json({
       success: true,
       count: creatives.length,
-      creatives
+      creatives: creatives.map((c) => ({ ...c, designOutput: designView(c.designOutput) }))
     });
   } catch (error) {
     console.error('DES creatives error:', error);
@@ -68,83 +105,78 @@ router.get('/creatives', async (req, res) => {
     });
   }
 });
-router.post('/creatives/:id/work-upload', (req, res, next) => {
-  designerUpload.single('image')(req, res, (error) => {
-    if (error) {
-      console.error('Designer Multer Error:', error);
-      return res.status(400).json({
-        success: false,
-        message: error.code === 'LIMIT_FILE_SIZE'
-          ? 'Image size must be less than 10 MB'
-          : error.message || 'Image upload validation failed'
-      });
+// Designer delivers ONE finished file per creative. Uploading again replaces it (used after the SME asks for a redo).
+router.post('/creatives/:id/design', (req, res) => {
+  designUpload.single('file')(req, res, async (uploadError) => {
+    if (uploadError) return res.status(400).json({ message: uploadErrorMessage(uploadError) });
+    let uploaded = null;
+    try {
+      if (!mongoose.isValidObjectId(req.params.id)) {
+        return res.status(400).json({ message: 'Invalid creative id.' });
+      }
+      if (!req.file) {
+        return res.status(400).json({ message: 'Please choose a file to upload.' });
+      }
+      const creative = await Creative.findOne({ _id: req.params.id, assignedDesigner: req.user.id });
+      if (!creative) {
+        return res.status(404).json({ message: 'Creative not found or not assigned to you.' });
+      }
+      const prev = creative.designOutput
+        ? {
+            status: creative.designOutput.status,
+            publicId: creative.designOutput.publicId,
+            resourceType: creative.designOutput.resourceType,
+            version: creative.designOutput.version,
+            redoCount: creative.designOutput.redoCount
+          }
+        : null;
+      if (prev?.status === 'approved') {
+        return res.status(400).json({ message: 'This design was already approved, so it can no longer be changed.' });
+      }
+      const result = await uploadBuffer(req.file);
+      uploaded = { publicId: result.public_id, resourceType: result.resource_type };
+      creative.designOutput = {
+        url: result.secure_url,
+        publicId: result.public_id,
+        resourceType: result.resource_type,
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        uploadedAt: new Date(),
+        status: 'submitted',
+        note: '',
+        reviewedAt: null,
+        version: (prev?.version || 0) + 1,
+        redoCount: prev?.redoCount || 0
+      };
+      await creative.save();
+      if (prev?.publicId) {
+        await cloudinary.uploader.destroy(prev.publicId, { resource_type: prev.resourceType || 'image' }).catch(() => null);
+      }
+      return res.status(201).json({ message: 'Design uploaded.', designOutput: designView(creative.designOutput) });
+    } catch (error) {
+      if (uploaded) await cloudinary.uploader.destroy(uploaded.publicId, { resource_type: uploaded.resourceType }).catch(() => null);
+      console.error('DES upload error:', error);
+      return res.status(500).json({ message: error.message || 'Failed to upload design.' });
     }
-    next();
   });
-}, async (req, res) => {
+});
+router.delete('/creatives/:id/design', async (req, res) => {
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid creative ID'
-      });
-    }
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please select an image'
-      });
-    }
-    if (!process.env.CLOUDINARY_CLOUD_NAME ||
-        !process.env.CLOUDINARY_API_KEY ||
-        !process.env.CLOUDINARY_API_SECRET) {
-      return res.status(500).json({
-        success: false,
-        message: 'Cloudinary configuration is missing'
-      });
-    }
-    const creative = await Creative.findOne({
-      _id: req.params.id,
-      assignedDesigner: req.user.id
-    });
-    if (!creative) {
-      return res.status(404).json({
-        success: false,
-        message: 'Creative not found or not assigned to you'
-      });
-    }
-    const uploaded = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream({
-        folder: 'creative-manager/designer-work',
-        resource_type: 'image'
-      }, (error, result) => {
-        if (error) return reject(error);
-        if (!result?.secure_url) {
-          return reject(new Error('Cloudinary did not return an image URL'));
-        }
-        resolve(result);
-      }).end(req.file.buffer);
-    });
-    creative.designerWork = creative.designerWork || {};
-    creative.designerWork.uploads = creative.designerWork.uploads || [];
-    creative.designerWork.uploads.push({
-      url: uploaded.secure_url,
-      publicId: uploaded.public_id,
-      originalName: req.file.originalname,
-      uploadedAt: new Date()
-    });
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: 'Invalid creative id.' });
+    const creative = await Creative.findOne({ _id: req.params.id, assignedDesigner: req.user.id });
+    if (!creative) return res.status(404).json({ message: 'Creative not found or not assigned to you.' });
+    const out = creative.designOutput;
+    if (!out) return res.status(404).json({ message: 'Nothing uploaded yet.' });
+    if (out.status === 'approved') return res.status(400).json({ message: 'An approved design cannot be deleted.' });
+    const { publicId, resourceType } = out;
+    creative.designOutput = null;
     await creative.save();
-    return res.status(200).json({
-      success: true,
-      message: 'Your work uploaded successfully',
-      creative
-    });
+    if (publicId) await cloudinary.uploader.destroy(publicId, { resource_type: resourceType || 'image' }).catch(() => null);
+    return res.json({ designOutput: null });
   } catch (error) {
-    console.error('Designer work upload error:', error);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Unable to upload image'
-    });
+    console.error('DES delete upload error:', error);
+    return res.status(500).json({ message: 'Failed to delete the design.' });
   }
 });
 export default router;

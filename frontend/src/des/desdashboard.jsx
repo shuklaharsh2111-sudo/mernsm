@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
-import CreativeDetailsModal from './CreativeDetailsModal';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Palette, Search, RefreshCw, CalendarDays, Building2,
   UserRound, ExternalLink, Image, Clock3, CheckCircle2,
-  XCircle, AlertCircle, LoaderCircle
+  XCircle, AlertCircle, LoaderCircle, Upload
 } from 'lucide-react';
 import api from '../api';
 import '../style.css';
@@ -16,7 +15,6 @@ const PLATFORM_ICONS = {
   x: ExternalLink,
   youtube: ExternalLink
 };
-
 const formatDate = (date) => {
   if (!date) return 'Not specified';
   const parsed = new Date(date);
@@ -44,6 +42,95 @@ const statusConfig = {
     className: 'rejected'
   }
 };
+const MAX_FILE_MB = 10;
+const ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,application/pdf';
+const formatSize = (bytes) => {
+  if (!bytes) return '';
+  return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+};
+const OUTPUT_STATUS = {
+  submitted: { label: 'Waiting for SME review', className: 'pending' },
+  approved: { label: 'Approved by SME', className: 'approved' },
+  redo: { label: 'Redo requested', className: 'rejected' }
+};
+// One delivered file per creative. Uploading again replaces it (that is how a redo is sent back).
+const DesignUpload = ({ creativeId, output, onChange }) => {
+  const inputRef = useRef(null);
+  const [file, setFile] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const locked = output?.status === 'approved';
+  const pick = (e) => {
+    const f = e.target.files?.[0] || null;
+    setMessage({ type: '', text: '' });
+    if (f && f.size > MAX_FILE_MB * 1024 * 1024) {
+      setFile(null);
+      e.target.value = '';
+      setMessage({ type: 'error', text: `${f.name} is larger than ${MAX_FILE_MB}MB.` });
+      return;
+    }
+    setFile(f);
+  };
+  const upload = async () => {
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    setBusy(true);
+    setMessage({ type: '', text: '' });
+    try {
+      // The api client defaults to JSON; clearing Content-Type lets the browser
+      // send multipart/form-data with the right boundary so the file arrives.
+      const res = await api.post(`/des/creatives/${creativeId}/design`, fd, { headers: { 'Content-Type': undefined } });
+      onChange(res.data.designOutput);
+      setFile(null);
+      if (inputRef.current) inputRef.current.value = '';
+      setMessage({ type: 'success', text: 'Sent to the SME for review.' });
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Upload failed. Please try again.' });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const st = output ? OUTPUT_STATUS[output.status] : null;
+  return (
+    <div className="des-design-uploads">
+      <span className="des-reference-label">My Design</span>
+      {output && (
+        <div className="des-upload-list">
+          <div className="des-upload-row">
+            <a href={output.url} target="_blank" rel="noopener noreferrer">
+              <Image size={15} />
+              <span>{output.originalName || 'Design file'}</span>
+              {output.size ? <em>{formatSize(output.size)}</em> : null}
+              <ExternalLink size={14} />
+            </a>
+          </div>
+          <span className={`des-output-badge ${st?.className || ''}`}>{st?.label}{output.version > 1 ? ` · v${output.version}` : ''}</span>
+          {output.status === 'redo' && output.note && (
+            <div className="des-review-note">
+              <AlertCircle size={15} />
+              <span>SME asked for a redo: {output.note}</span>
+            </div>
+          )}
+        </div>
+      )}
+      {!locked && (
+        <>
+          <div className="des-upload-controls">
+            <input ref={inputRef} type="file" accept={ACCEPT} onChange={pick} disabled={busy} />
+            <button type="button" className="des-refresh" onClick={upload} disabled={busy || !file}>
+              {busy ? <LoaderCircle size={16} className="des-spin" /> : <Upload size={16} />}
+              {busy ? 'Uploading…' : output ? 'Upload new version' : 'Upload'}
+            </button>
+          </div>
+          <p className="des-upload-hint">One file only · JPG, PNG, WEBP, GIF, MP4, WEBM, MOV or PDF · up to {MAX_FILE_MB}MB{output ? ' · uploading again replaces your previous file' : ''}</p>
+        </>
+      )}
+      {locked && <p className="des-upload-hint">Your design was approved, so it is locked.</p>}
+      {message.text && <p className={`des-upload-msg ${message.type}`} role="alert">{message.text}</p>}
+    </div>
+  );
+};
 const DesDashboard = () => {
   const [creatives, setCreatives] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +138,6 @@ const DesDashboard = () => {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [activeStatus, setActiveStatus] = useState('all');
-  const [selectedCreative, setSelectedCreative] = useState(null);
   const fetchCreatives = async (refresh = false) => {
     try {
       setError('');
@@ -220,8 +306,9 @@ const DesDashboard = () => {
       <div className="des-creative-grid">
         {filteredCreatives.map((creative) => {
           const pillar = creative.contentPillar || {};
+
           return (
-            <div className="des-creative-card" key={creative._id} onClick={() => setSelectedCreative(creative)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedCreative(creative); } }} >
+            <div className="des-creative-card" key={creative._id}>
               <div className="des-card-top">
                 <div className="des-company">
                   <div className="des-company-icon">
@@ -262,9 +349,9 @@ const DesDashboard = () => {
                   <UserRound size={15} />
                   <span>
                     {creative.user?.name ||
-                      creative.user?.fullname ||
-                      creative.user?.email ||
-                      'SME'}
+                     creative.user?.fullname ||
+                     creative.user?.email ||
+                     'SME'}
                   </span>
                 </div>
                 <div>
@@ -290,17 +377,24 @@ const DesDashboard = () => {
                   ))}
                 </div>
               )}
+              <DesignUpload
+                creativeId={creative._id}
+                output={creative.designOutput || null}
+                onChange={(designOutput) =>
+                  setCreatives((prev) => prev.map((c) => (c._id === creative._id ? { ...c, designOutput } : c)))
+                }
+              />
               <div className="des-card-footer">
                 <span>
                   <Image size={16} />
-                  {creative.uploads?.length || 0} Uploaded Files
+                  {creative.uploads?.length || 0} Reference Files
                 </span>
                 <span className="des-assigned-label">
                   Assigned to You
                 </span>
               </div>
               {creative.uploads?.length > 0 && (
-                <div className="des-upload-list">
+                <div className="des-upload-list des-ref-files">
                   {creative.uploads.map((upload, index) => (
                     <a
                       key={`${upload.publicId || upload.url}-${index}`}
@@ -321,20 +415,6 @@ const DesDashboard = () => {
           );
         })}
       </div>
-      {selectedCreative && (
-        <CreativeDetailsModal
-          creative={selectedCreative}
-          onClose={() => setSelectedCreative(null)}
-          onUpdate={(updatedCreative) => {
-            setCreatives((prev) =>
-              prev.map((item) =>
-                item._id === updatedCreative._id ? updatedCreative : item
-              )
-            );
-            setSelectedCreative(updatedCreative);
-          }}
-        />
-      )}
     </div>
   );
 };

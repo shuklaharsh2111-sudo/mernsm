@@ -479,6 +479,19 @@ router.patch('/tasks/:id/end', async (req, res) => {
     res.status(500).json({ message: 'Unable to complete task' });
   }
 });
+// The one file a designer delivered for a creative, plus where it stands (submitted / approved / redo).
+const designOutputView = (d) => (d ? {
+  url: d.url,
+  name: d.originalName,
+  mimeType: d.mimeType,
+  size: d.size,
+  uploadedAt: d.uploadedAt,
+  status: d.status,
+  note: d.note || '',
+  reviewedAt: d.reviewedAt,
+  version: d.version || 1,
+  redoCount: d.redoCount || 0,
+} : null);
 const creativeView = (c) => ({
   id: c._id,
   companyId: String(c.company?._id || c.company),
@@ -492,6 +505,7 @@ const creativeView = (c) => ({
     ? { id: String(c.assignedDesigner._id), name: c.assignedDesigner.name, email: c.assignedDesigner.email }
     : null,
   date: c.date,
+  designOutput: designOutputView(c.designOutput),
   referenceLinks: c.referenceLinks || [],
   uploads: (c.uploads || []).map((u) => ({ url: u.url, name: u.originalName })),
   contentPillar: {
@@ -1402,6 +1416,45 @@ router.delete('/tasks/:taskId/attachments/:attachmentId', async (req, res) => {
     res.status(500).json({
       message: 'Unable to delete image.'
     });
+  }
+});
+// SME reviews the designer's delivered file: approve it, or ask the designer for a redo (with a note).
+router.put('/creatives/:id/design-review', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const action = String(req.body?.action || '');
+    const note = String(req.body?.note || '').trim();
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid creative ID' });
+    }
+    if (!['approve', 'redo'].includes(action)) {
+      return res.status(400).json({ message: 'Action must be approve or redo' });
+    }
+    if (action === 'redo' && !note) {
+      return res.status(400).json({ message: 'Please tell the designer what to change' });
+    }
+    if (note.length > 500) {
+      return res.status(400).json({ message: 'Note can be at most 500 characters' });
+    }
+    const creative = await Creative.findOne({ _id: id, user: req.user.id })
+      .populate('company', 'name')
+      .populate('assignedDesigner', 'name email');
+    if (!creative) return res.status(404).json({ message: 'Creative not found' });
+    const out = creative.designOutput;
+    if (!out) return res.status(400).json({ message: 'The designer has not uploaded anything yet' });
+    if (out.status !== 'submitted') {
+      return res.status(400).json({ message: out.status === 'approved' ? 'This design is already approved' : 'A redo was already requested; wait for the designer to upload again' });
+    }
+    out.status = action === 'approve' ? 'approved' : 'redo';
+    out.note = action === 'redo' ? note : '';
+    out.reviewedAt = new Date();
+    if (action === 'redo') out.redoCount = (out.redoCount || 0) + 1;
+    creative.markModified('designOutput');
+    await creative.save();
+    res.json({ creative: creativeView(creative) });
+  } catch (error) {
+    console.error('Design review error:', error);
+    res.status(500).json({ message: 'Unable to save your review' });
   }
 });
 router.put('/creatives/:id/assign', async (req, res) => {

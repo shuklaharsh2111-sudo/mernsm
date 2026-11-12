@@ -145,3 +145,20 @@
 .rec-form input, .rec-form textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(242, 236, 231, .2); background: rgba(0, 0, 0, .2); color: inherit; font: inherit; font-size: 13.5px; }
 .rec-form textarea { resize: vertical; min-height: 120px; }
 .rec-form-actions { display: flex; gap: 8px; }
+/* ---- Designer output (SME review) ---- */
+.design-output-chip { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 12px; width: fit-content; max-width: 100%; color: #fff; text-align: left; background: rgba(43, 32, 27, 0.55); border: 1px solid rgba(242, 236, 231, 0.22); border-radius: 12px; cursor: pointer; }
+.design-output-chip:hover { border-color: rgba(242, 236, 231, 0.5); background: rgba(43, 32, 27, 0.8); }
+.design-output-chip img { width: 38px; height: 38px; object-fit: cover; border-radius: 8px; }
+.design-output-chip span { display: flex; flex-direction: column; min-width: 0; }
+.design-output-chip strong { font-size: 13px; }
+.design-output-chip em { max-width: 200px; overflow: hidden; font-style: normal; font-size: 11px; color: #b9aaa0; text-overflow: ellipsis; white-space: nowrap; }
+.design-output-chip i { font-style: normal; }
+.design-preview { display: flex; align-items: center; justify-content: center; max-height: 340px; overflow: hidden; background: rgba(43, 32, 27, 0.5); border: 1px solid rgba(242, 236, 231, 0.16); border-radius: 14px; }
+.design-preview img, .design-preview video { display: block; max-width: 100%; max-height: 340px; object-fit: contain; }
+.design-preview-file { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 36px 16px; color: #f2ece7; }
+.design-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+.design-meta div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.design-meta span { font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: #b9aaa0; }
+.design-meta b { font-size: 14px; color: #fff; overflow-wrap: anywhere; }
+.design-open { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+@media (max-width: 560px) { .design-meta { grid-template-columns: 1fr; } }
