@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import {
   X, Building2, CalendarDays, UserRound, Image as ImageIcon,
@@ -14,47 +13,37 @@ const formatDate = (date) => {
     day: '2-digit', month: 'short', year: 'numeric'
   });
 };
-
 const CreativeDetailsModal = ({ creative, onClose, onUpdate }) => {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
   if (!creative) return null;
-
   const pillar = creative.contentPillar || {};
   const designerUploads = creative.designerWork?.uploads || [];
   const originalUploads = creative.uploads || [];
-
   const status = {
     pending: { label: 'Pending', icon: Clock3 },
     approved: { label: 'Approved', icon: CheckCircle2 },
     rejected: { label: 'Changes Requested', icon: AlertCircle }
   }[creative.status || 'pending'];
-
   const StatusIcon = status.icon;
-
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!file) {
       setError('Please select an image first.');
       return;
     }
-
     try {
       setUploading(true);
       setError('');
       setSuccess('');
-
       const formData = new FormData();
       formData.append('image', file);
-
       const response = await api.post(
         `/des/creatives/${creative._id}/work-upload`,
         formData
       );
-
       onUpdate(response.data.creative);
       setFile(null);
       setSuccess('Your work uploaded successfully!');
@@ -64,7 +53,6 @@ const CreativeDetailsModal = ({ creative, onClose, onUpdate }) => {
       setUploading(false);
     }
   };
-
   return (
     <div className="creative-modal-overlay" onClick={onClose}>
       <div className="creative-modal" onClick={(e) => e.stopPropagation()}>
@@ -78,7 +66,6 @@ const CreativeDetailsModal = ({ creative, onClose, onUpdate }) => {
             <X size={21} />
           </button>
         </div>
-
         <div className="creative-modal-body">
           <div className="creative-detail-top">
             <div className="creative-detail-company-icon">
@@ -93,12 +80,10 @@ const CreativeDetailsModal = ({ creative, onClose, onUpdate }) => {
               {status.label}
             </div>
           </div>
-
           <div className="creative-detail-section">
             <h3>{pillar.title || 'Untitled Creative'}</h3>
             <p>{pillar.caption || 'No caption provided.'}</p>
           </div>
-
           <div className="creative-detail-grid">
             <div className="creative-detail-item">
               <CalendarDays size={17} />
@@ -112,7 +97,6 @@ const CreativeDetailsModal = ({ creative, onClose, onUpdate }) => {
               </div>
             </div>
           </div>
-
           <div className="creative-detail-section">
             <h4><Layers size={17} /> Platforms</h4>
             <div className="creative-detail-platforms">
@@ -121,14 +105,12 @@ const CreativeDetailsModal = ({ creative, onClose, onUpdate }) => {
               )) : <p>No platforms specified.</p>}
             </div>
           </div>
-
           {creative.reviewNote && (
             <div className="creative-detail-note">
               <AlertCircle size={17} />
               <div><strong>Review Note</strong><p>{creative.reviewNote}</p></div>
             </div>
           )}
-
           {creative.referenceLinks?.length > 0 && (
             <div className="creative-detail-section">
               <h4><ExternalLink size={17} /> Reference Links</h4>
@@ -141,7 +123,6 @@ const CreativeDetailsModal = ({ creative, onClose, onUpdate }) => {
               </div>
             </div>
           )}
-
           <div className="creative-detail-section">
             <h4><ImageIcon size={17} /> Original Files ({originalUploads.length})</h4>
             {originalUploads.length ? (
@@ -156,7 +137,6 @@ const CreativeDetailsModal = ({ creative, onClose, onUpdate }) => {
               </div>
             ) : <p className="creative-detail-muted">No original files uploaded.</p>}
           </div>
-
           <div className="creative-upload-section">
             <div className="creative-upload-heading">
               <div>
@@ -165,7 +145,6 @@ const CreativeDetailsModal = ({ creative, onClose, onUpdate }) => {
               </div>
               <span>{designerUploads.length} Uploaded</span>
             </div>
-
             <form onSubmit={handleUpload}>
               <label className="creative-upload-dropzone">
                 <input
@@ -173,16 +152,32 @@ const CreativeDetailsModal = ({ creative, onClose, onUpdate }) => {
                   accept="image/*"
                   hidden
                   onChange={(e) => {
-                    setFile(e.target.files?.[0] || null);
+                    const selectedFile = e.target.files?.[0];
                     setError('');
                     setSuccess('');
+                    if (!selectedFile) {
+                      setFile(null);
+                      return;
+                    }
+                    if (!selectedFile.type.startsWith('image/')) {
+                      setFile(null);
+                      setError('Please select a valid image file.');
+                      e.target.value = '';
+                      return;
+                    }
+                    if (selectedFile.size > 10 * 1024 * 1024) {
+                      setFile(null);
+                      setError('Image size must be less than 10 MB.');
+                      e.target.value = '';
+                      return;
+                    }
+                    setFile(selectedFile);
                   }}
                 />
                 <Upload size={27} />
                 <strong>{file ? file.name : 'Choose your creative image'}</strong>
                 <span>{file ? 'Click to change image' : 'PNG, JPG, WEBP or other image formats · Max 10 MB'}</span>
               </label>
-
               {file && (
                 <div className="creative-selected-file">
                   <FileImage size={17} />
@@ -190,15 +185,12 @@ const CreativeDetailsModal = ({ creative, onClose, onUpdate }) => {
                   <button type="button" onClick={() => setFile(null)}><X size={15} /></button>
                 </div>
               )}
-
               {error && <div className="creative-upload-message error">{error}</div>}
               {success && <div className="creative-upload-message success">{success}</div>}
-
               <button type="submit" className="creative-upload-btn" disabled={!file || uploading}>
                 {uploading ? <><LoaderCircle className="creative-upload-spin" size={18} /> Uploading...</> : <><Upload size={17} /> Upload Image</>}
               </button>
             </form>
-
             {designerUploads.length > 0 && (
               <div className="creative-work-gallery">
                 <h4>Your Uploaded Work</h4>
@@ -222,5 +214,4 @@ const CreativeDetailsModal = ({ creative, onClose, onUpdate }) => {
     </div>
   );
 };
-
 export default CreativeDetailsModal;
