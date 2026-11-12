@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { UserPlus, Building2, ClipboardList, Trash2, Mail, Phone, UserCheck, CalendarDays, ImagePlus, Eye, EyeOff, X, Users } from 'lucide-react';
 import api from '../api';
+import { useAuth } from '../AuthContext';
 import { errMsg } from '../sopUtils';
 import AssignCompaniesModal from '../components/AssignCompaniesModal';
 import ManageSopsModal from '../components/ManageSopsModal';
@@ -19,6 +20,7 @@ const fmtJoined = (d) => {
 };
 
 const AdminUsers = () => {
+  const { user: me } = useAuth();
   const [users, setUsers] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [reportingManagers, setReportingManagers] = useState([]);
@@ -97,11 +99,16 @@ const AdminUsers = () => {
   };
 
   const removeUser = async (u) => {
+    if (String(u.id) === String(me?.id)) {
+      setError('You cannot delete your own account.');
+      return;
+    }
     if (!window.confirm(`Delete ${u.name}? Their assigned SOPs will be deleted too.`)) return;
     setError('');
     setCreated('');
     try {
-      await api.delete(`/admin/users/${u.id}`);
+      // the server needs to know which collection (role group) the user lives in
+      await api.delete(`/admin/users/${u.id}`, { params: { collection: u.collection } });
       reload();
     } catch (err) {
       setError(errMsg(err));
@@ -226,6 +233,7 @@ const AdminUsers = () => {
             const assigned = (u.companies || []).map((id) => byId[id?._id || id]).filter(Boolean);
             const manager = managerById[u.reportingManagerId];
             const isSme = u.collection === 'smes';
+            const isMe = String(u.id) === String(me?.id); // your own account can't be deleted
             return (
               <div key={`${u.collection}-${u.id}`} className="au-card">
                 <div className="au-card-top">
@@ -233,24 +241,14 @@ const AdminUsers = () => {
                     {u.profileImage ? <img src={u.profileImage} alt={u.name} /> : <span>{initialsOf(u.name)}</span>}
                   </div>
                   <div className="au-id">
-                    <h3>{u.name}</h3>
+                    <h3>{u.name}{isMe && <span className="au-you">You</span>}</h3>
                     <span className={`au-role ${String(u.role).toLowerCase()}`}>{roleLabel(u.role)}</span>
                   </div>
-                  <div className="au-actions">
-                    {isSme && (
-                      <>
-                        <button type="button" className="btn-ghost" onClick={() => setAssignUser(u)}>
-                          <Building2 size={15} /> Assign Companies
-                        </button>
-                        <button type="button" className="btn-ghost" onClick={() => setSopUser(u)}>
-                          <ClipboardList size={15} /> Manage SOPs
-                        </button>
-                      </>
-                    )}
-                    <button type="button" className="btn-ghost danger" aria-label={`Delete ${u.name}`} onClick={() => removeUser(u)}>
+                  {!isMe && (
+                    <button type="button" className="btn-ghost danger au-delete" aria-label={`Delete ${u.name}`} title="Delete user" onClick={() => removeUser(u)}>
                       <Trash2 size={15} />
                     </button>
-                  </div>
+                  )}
                 </div>
 
                 <dl className="au-meta">
@@ -259,6 +257,17 @@ const AdminUsers = () => {
                   <div><dt><UserCheck size={14} /> Reporting Manager</dt><dd>{manager ? manager.name : '—'}</dd></div>
                   <div><dt><CalendarDays size={14} /> Joined</dt><dd>{fmtJoined(u.createdAt)}</dd></div>
                 </dl>
+
+                {isSme && (
+                  <div className="au-card-actions">
+                    <button type="button" className="btn-ghost" onClick={() => setAssignUser(u)}>
+                      <Building2 size={15} /> Assign Companies
+                    </button>
+                    <button type="button" className="btn-ghost" onClick={() => setSopUser(u)}>
+                      <ClipboardList size={15} /> Manage SOPs
+                    </button>
+                  </div>
+                )}
 
                 {isSme && (
                   <div className="au-companies">
