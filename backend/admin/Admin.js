@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-
 const adminSchema = new mongoose.Schema({
   name: { type: String, trim: true },
   fullname: String,
@@ -16,7 +15,5 @@ const adminSchema = new mongoose.Schema({
   strict: false,
   collection: 'admins'
 });
-
 const Admin = mongoose.models.Admin || mongoose.model('Admin', adminSchema);
-
 export default Admin;

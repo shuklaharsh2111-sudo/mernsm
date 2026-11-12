@@ -52,7 +52,7 @@ const Sidebar = ({ collapsed = false, onToggle, mobileOpen = false, onClose }) =
               <NavLink
                 key={path}
                 to={path}
-                end={['/admin', '/sme', '/des', '/smi'].includes(path)}
+                end={['/admin', '/sme', '/des', '/smi', '/hr'].includes(path)}
                 title={collapsed ? title : undefined}
                 className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}
               >

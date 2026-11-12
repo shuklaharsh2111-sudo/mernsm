@@ -260,7 +260,7 @@ router.get('/attendance', async (req, res) => {
     if (!validId(req.query.userId)) return res.status(400).json({ message: 'Invalid user' });
     filter.userId = req.query.userId;
   }
-  if (['admin', 'reporting_manager', 'sme', 'smi', 'des', 'clients'].includes(req.query.role)) filter.role = req.query.role;
+  if (['admin', 'reporting_manager', 'sme', 'smi', 'des', 'hr', 'clients'].includes(req.query.role)) filter.role = req.query.role;
   const range = {};
   if (req.query.from) {
     const d = new Date(`${req.query.from}T00:00:00`);

@@ -7,8 +7,8 @@ import AssignCompaniesModal from '../components/AssignCompaniesModal';
 import ManageSopsModal from '../components/ManageSopsModal';
 import "../styles/adminusers.css";
 import { roleName } from '../roleNames';
-
-const ROLES = ['ADMIN', 'REPORTING_MANAGER', 'SME', 'SMI', 'DES', 'CLIENTS'];
+const ROLES = ['ADMIN', 'REPORTING_MANAGER', 'SME', 'SMI', 'DES', 'HR',
+   'CLIENTS'];
 const roleLabel = roleName; // full role name, e.g. SME -> Social Media Executive
 const emptyForm = { name: '', contact: '', email: '', password: '', reportingManagerId: '', role: 'SME', profileImage: null };
 const initialsOf = (name = '') => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || 'U';
@@ -18,7 +18,6 @@ const fmtJoined = (d) => {
     ? date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     : '—';
 };
-
 const AdminUsers = () => {
   const { user: me } = useAuth();
   const [users, setUsers] = useState([]);
@@ -37,7 +36,6 @@ const AdminUsers = () => {
   const [assignUser, setAssignUser] = useState(null);
   const [sopUser, setSopUser] = useState(null);
   const [roleFilter, setRoleFilter] = useState('ALL');
-
   useEffect(() => {
     let cancelled = false;
     Promise.all([
@@ -57,21 +55,16 @@ const AdminUsers = () => {
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
   }, [reloadKey]);
-
   // preview of the chosen profile image
   const previewUrl = useMemo(() => (form.profileImage ? URL.createObjectURL(form.profileImage) : ''), [form.profileImage]);
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
-
   const byId = Object.fromEntries(companies.map((c) => [c.id || c._id, c]));
   const managerById = Object.fromEntries(reportingManagers.map((m) => [m.id || m._id, m]));
-
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     setForm((prev) => ({ ...prev, [name]: name === 'profileImage' ? files?.[0] || null : value }));
   };
-
   const closeForm = () => { setAdding(false); setForm(emptyForm); setShowPassword(false); };
-
   const addUser = async (e) => {
     e.preventDefault();
     setBusy(true);
@@ -97,7 +90,6 @@ const AdminUsers = () => {
       setBusy(false);
     }
   };
-
   const removeUser = async (u) => {
     if (String(u.id) === String(me?.id)) {
       setError('You cannot delete your own account.');
@@ -114,10 +106,8 @@ const AdminUsers = () => {
       setError(errMsg(err));
     }
   };
-
   const counts = users.reduce((acc, u) => ({ ...acc, [u.role]: (acc[u.role] || 0) + 1 }), {});
   const shown = roleFilter === 'ALL' ? users : users.filter((u) => u.role === roleFilter);
-
   return (
     <div className="dashboard-content scrollable au-page">
       <div className="page-header">
@@ -130,17 +120,14 @@ const AdminUsers = () => {
           {adding ? <><X size={16} /> Close</> : <><UserPlus size={16} /> Add User</>}
         </button>
       </div>
-
       {error && <p className="error-message" role="alert">{error}</p>}
       {created && <p className="success-message" role="status">{created}</p>}
-
       {adding && (
         <form className="au-form" onSubmit={addUser}>
           <div className="au-form-head">
             <h3><UserPlus size={17} /> New User</h3>
             <p>Fields marked * are required.</p>
           </div>
-
           <div className="au-form-body">
             <div className="au-avatar-pick">
               <div className="au-avatar-preview">
@@ -152,7 +139,6 @@ const AdminUsers = () => {
               </label>
               <small>{form.profileImage ? form.profileImage.name : 'JPG, PNG or WEBP · max 10 MB'}</small>
             </div>
-
             <div className="au-fields">
               <label className="x-field">
                 <span>Full Name *</span>
@@ -188,7 +174,6 @@ const AdminUsers = () => {
               </label>
             </div>
           </div>
-
           <div className="au-roles">
             <span>Assign Primary Role *</span>
             <div className="au-role-pills">
@@ -200,7 +185,6 @@ const AdminUsers = () => {
               ))}
             </div>
           </div>
-
           <div className="au-form-actions">
             <button type="button" className="btn-ghost" onClick={closeForm} disabled={busy}>Cancel</button>
             <button type="submit" className="btn-primary" disabled={busy}>
@@ -209,7 +193,6 @@ const AdminUsers = () => {
           </div>
         </form>
       )}
-
       {!loading && users.length > 0 && (
         <div className="au-filters">
           {['ALL', ...ROLES.filter((r) => counts[r])].map((r) => (
@@ -219,7 +202,6 @@ const AdminUsers = () => {
           ))}
         </div>
       )}
-
       {loading ? (
         <p className="muted">Loading…</p>
       ) : users.length === 0 ? (
@@ -250,14 +232,12 @@ const AdminUsers = () => {
                     </button>
                   )}
                 </div>
-
                 <dl className="au-meta">
                   <div><dt><Mail size={14} /> Email</dt><dd>{u.email}</dd></div>
                   <div><dt><Phone size={14} /> Contact</dt><dd>{u.contact || '—'}</dd></div>
                   <div><dt><UserCheck size={14} /> Reporting Manager</dt><dd>{manager ? manager.name : '—'}</dd></div>
                   <div><dt><CalendarDays size={14} /> Joined</dt><dd>{fmtJoined(u.createdAt)}</dd></div>
                 </dl>
-
                 {isSme && (
                   <div className="au-card-actions">
                     <button type="button" className="btn-ghost" onClick={() => setAssignUser(u)}>
@@ -268,7 +248,6 @@ const AdminUsers = () => {
                     </button>
                   </div>
                 )}
-
                 {isSme && (
                   <div className="au-companies">
                     <span>Companies ({assigned.length}/{max})</span>
@@ -286,7 +265,6 @@ const AdminUsers = () => {
           })}
         </div>
       )}
-
       {assignUser?.collection === 'smes' && (
         <AssignCompaniesModal
           user={assignUser}
@@ -302,5 +280,4 @@ const AdminUsers = () => {
     </div>
   );
 };
-
 export default AdminUsers;

@@ -31,6 +31,7 @@ const getDashboardPath = (role) => {
   if (role === 'sme') return '/sme';
   if (role === 'des') return '/des';
   if (role === 'smi') return '/smi';
+  if (role === 'hr') return '/hr';
   return '/login';
 };
 const ProtectedRoute = ({ role }) => {

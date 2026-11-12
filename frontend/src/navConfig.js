@@ -87,12 +87,27 @@ export const SMI_NAV = [
     ]
   }
 ];
+export const HR_NAV = [
+  {
+    heading: 'Overview',
+    items: [
+      { title: 'Dashboard', path: '/hr', icon: LayoutDashboard }
+    ]
+  },
+  {
+    heading: 'Management',
+    items: [
+      { title: 'Employees', path: '/hr/employees', icon: Users }
+    ]
+  }
+];
 export const navFor = (role) => {
   switch (role) {
     case 'admin': return ADMIN_NAV;
     case 'sme': return SME_NAV;
     case 'des': return DES_NAV;
     case 'smi': return SMI_NAV;
+    case 'hr': return HR_NAV;
     default: return [];
   }
 };
