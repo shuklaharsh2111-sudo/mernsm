@@ -147,8 +147,8 @@ export default function AddMeetingModal({ companies, onSaved, onClose }) {
           </div>
 
           <label className={`x-field ${cls(show('link'))}`}>
-            <span>Meeting Link (optional — auto-generated if left empty)</span>
-            <input type="url" value={form.link} maxLength={500} placeholder="Leave empty to auto-generate a link" onChange={setField('link')} onBlur={touch('link')} />
+            <span>Meeting Link (optional — a Google Meet link is created on the calendar if left empty)</span>
+            <input type="url" value={form.link} maxLength={500} placeholder="Leave empty to create a Google Meet link" onChange={setField('link')} onBlur={touch('link')} />
             {show('link') && <small className="field-error">{errors.link}</small>}
           </label>
 

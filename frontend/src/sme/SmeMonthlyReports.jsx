@@ -8,6 +8,7 @@ import MonthlyPerformance from '../components/MonthlyPerformance';
 import { GrowthChart, OverviewCharts } from '../components/MonthlyCharts';
 import '../styles/analytics.css';
 import '../styles/monthlyreport.css';
+import logo from '../assets/images/company-logo.png';
 
 const NUM_FIELDS = [
     'followersStart', 'newFollowers', 'unfollowers', 'followersEnd',
@@ -1139,7 +1140,7 @@ const SmeMonthlyReports = () => {
                         header={(
                             <>
                     <header className="mr-doc-head">
-                        <img src="/assets/images/logo.png" alt="Unstoppable" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                        <img src={logo} alt="Unstoppable" onError={e => { e.currentTarget.style.display = 'none'; }} />
                         <h1>Social Media Report</h1>
                         <p>{companyName} · {platLabel} · {monthName(month)}</p>
                     </header>
