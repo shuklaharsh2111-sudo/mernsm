@@ -9,14 +9,18 @@ import Company from '../company/Company.js';
 import SopAssignment, { SOP_TYPE_VALUES } from '../sop/SopAssignment.js';
 import SmiSopAssignment from '../sop/SmiSopAssignment.js';
 import Meeting from '../meeting/Meeting.js';
-import { momView, buildMom, generateMeetingLink } from '../meeting/momHelpers.js';
+import { momView, buildMom, generateMeetingLink, recordingView } from '../meeting/momHelpers.js';
+import { syncMeetingRecording } from '../meeting/grainSync.js';
+import { createMeetingLink } from '../meeting/googleCalendar.js';
+import { resolveAccount } from '../meeting/accounts.js';
+import { mountIntegrationRoutes } from '../meeting/integrationRoutes.js';
 import { isRealDate, periodKey, resolveToday } from '../sop/period.js';
 import TaskAttachment from './TaskAttachment.js';
 import Task from './Tasks.js';
 import Creative, { CREATIVE_PLATFORMS, CREATIVE_STATUSES } from './Creative.js';
 import SocialMetrics from './SocialMetrics.js';
 import Admin from '../admin/Admin.js';
-import { Smi } from '../admin/UserModels.js';
+import { Smi, Des } from '../admin/UserModels.js';
 const allowedMimeTypes = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
   'video/mp4', 'video/webm', 'video/quicktime',
@@ -244,6 +248,16 @@ router.get('/smis', async (req, res) => {
     res.status(500).json({ message: 'Unable to fetch SMI users' });
   }
 });
+// GET: every designer, for the creative "Assign Designer" dropdown
+router.get('/designers', async (req, res) => {
+  try {
+    const designers = await Des.find({}).select('name email').sort({ name: 1 }).lean();
+    res.json({ designers: designers.map((d) => ({ id: d._id, name: d.name, email: d.email })) });
+  } catch (error) {
+    console.error('Fetch designers error:', error);
+    res.status(500).json({ message: 'Unable to fetch designers' });
+  }
+});
 // GET: Logged-in SME ke saare tasks
 router.get('/tasks', async (req, res) => {
   try {
@@ -465,6 +479,30 @@ router.patch('/tasks/:id/end', async (req, res) => {
     res.status(500).json({ message: 'Unable to complete task' });
   }
 });
+// The one file a designer delivered for a creative, plus where it stands (submitted / approved / redo).
+const designOutputView = (d) => (d ? {
+  url: d.url,
+  name: d.originalName,
+  mimeType: d.mimeType,
+  size: d.size,
+  uploadedAt: d.uploadedAt,
+  status: d.status,
+  note: d.note || '',
+  reviewedAt: d.reviewedAt,
+  version: d.version || 1,
+  redoCount: d.redoCount || 0,
+  // earlier versions that were sent back for a redo, newest first
+  history: [...(d.history || [])].reverse().map((h) => ({
+    url: h.url,
+    name: h.originalName,
+    mimeType: h.mimeType,
+    size: h.size,
+    uploadedAt: h.uploadedAt,
+    note: h.note || '',
+    reviewedAt: h.reviewedAt,
+    version: h.version || 1,
+  })),
+} : null);
 const creativeView = (c) => ({
   id: c._id,
   companyId: String(c.company?._id || c.company),
@@ -474,7 +512,11 @@ const creativeView = (c) => ({
   reviewedAt: c.reviewedAt,
   createdAt: c.createdAt,
   rejectionCount: c.rejectionCount || 0,
+  assignedDesigner: c.assignedDesigner && c.assignedDesigner._id
+    ? { id: String(c.assignedDesigner._id), name: c.assignedDesigner.name, email: c.assignedDesigner.email }
+    : null,
   date: c.date,
+  designOutput: designOutputView(c.designOutput),
   referenceLinks: c.referenceLinks || [],
   uploads: (c.uploads || []).map((u) => ({ url: u.url, name: u.originalName })),
   contentPillar: {
@@ -498,7 +540,7 @@ router.get('/creatives', async (req, res) => {
       if (!CREATIVE_STATUSES.includes(req.query.status)) return res.status(400).json({ message: 'Invalid status' });
       filter.status = req.query.status;
     }
-    const list = await Creative.find(filter).sort({ date: 1, createdAt: 1 }).limit(1000).populate('company', 'name');
+    const list = await Creative.find(filter).sort({ date: 1, createdAt: 1 }).limit(1000).populate('company', 'name').populate('assignedDesigner', 'name email');
     res.json({ creatives: list.map(creativeView) });
   } catch (error) {
     console.error('Fetch creatives error:', error);
@@ -1097,18 +1139,21 @@ router.put('/password', async (req, res) => {
     res.status(500).json({ message: 'Unable to change password' });
   }
 });
+mountIntegrationRoutes(router);
 const meetingView = (m) => ({
   id: m._id,
   subject: m.subject,
   date: m.date,
   time: m.time,
   link: m.link || '',
+  onCalendar: Boolean(m.calendar?.eventId),
   joined: Boolean(m.joinedAt),
   priority: m.priority || '',
   fromMom: Boolean(m.fromMeeting),
   attendees: (m.attendees || []).map((a) => ({ name: a.name, designation: a.designation || '' })),
   company: m.company ? { id: m.company._id, name: m.company.name } : { id: '', name: 'Removed company' },
   mom: momView(m.mom),
+  recording: recordingView(m.recording),
 });
 // My meetings, soonest first.
 router.get('/meetings', async (req, res) => {
@@ -1142,7 +1187,11 @@ router.post('/meetings', async (req, res) => {
   if (attendees.some((a) => !a.name || !a.designation)) {
     return res.status(400).json({ message: 'Every attendee needs a name and a designation' });
   }
-  const created = await Meeting.create({ user: req.user.id, company, subject: subj, date, time, link: cleanLink || generateMeetingLink(subj), attendees });
+  // No link typed -> create a Google Calendar event with a Meet link (Grain records meetings it sees on that calendar).
+  // The event goes on THIS SME's calendar (their own Google account, or the shared test one), so their Grain sees it.
+  const account = await resolveAccount(req.user.id, 'sme');
+  const auto = cleanLink ? null : await createMeetingLink({ subject: subj, date, time, attendees, refreshToken: account.googleRefreshToken });
+  const created = await Meeting.create({ user: req.user.id, company, subject: subj, date, time, link: cleanLink || auto.link, calendar: auto?.calendar, attendees });
   await created.populate('company', 'name');
   res.status(201).json({ meeting: meetingView(created) });
 });
@@ -1199,6 +1248,52 @@ router.put('/meetings/:id/join', async (req, res) => {
     await meeting.save();
   }
   res.json({ meeting: meetingView(meeting) });
+});
+// Check Grain right now for this meeting's recording + AI summary (the server also does this on its own every couple of minutes).
+router.post('/meetings/:id/recording/sync', async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid meeting' });
+  const meeting = await Meeting.findOne({ _id: req.params.id, user: req.user.id }).populate('company', 'name');
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+  if (!meeting.joinedAt) return res.status(400).json({ message: 'Join the meeting first' });
+  try {
+    await syncMeetingRecording(meeting);
+    await meeting.populate('company', 'name');
+    res.json({ meeting: meetingView(meeting) });
+  } catch (error) {
+    res.status(400).json({ message: error.message || 'Unable to reach Grain' });
+  }
+});
+// Simple flow (no Grain token): after the call the SME pastes the Grain share link and the AI summary.
+// Body: { url, summary }. Saved on the meeting, so it shows in the meeting and in Records.
+router.put('/meetings/:id/recording/manual', async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid meeting' });
+  const meeting = await Meeting.findOne({ _id: req.params.id, user: req.user.id }).populate('company', 'name');
+  if (!meeting) return res.status(404).json({ message: 'Meeting not found' });
+  if (!meeting.joinedAt) return res.status(400).json({ message: 'Join the meeting first' });
+  const url = String(req.body?.url || '').trim();
+  const summary = String(req.body?.summary || '').trim();
+  if (!/^https?:\/\/\S+\.\S+$/i.test(url)) return res.status(400).json({ message: 'Paste the recording link from Grain (starts with https://)' });
+  if (url.length > 500) return res.status(400).json({ message: 'That link is too long' });
+  if (summary.length < 10) return res.status(400).json({ message: 'Paste the call summary (at least a sentence)' });
+  if (summary.length > 20000) return res.status(400).json({ message: 'The summary is too long (max 20,000 characters)' });
+  meeting.recording = {
+    ...(meeting.recording?.toObject?.() || {}),
+    status: 'ready',
+    account: 'manual',
+    url,
+    summary,
+    savedAt: new Date(),
+    lastError: '',
+  };
+  await meeting.save();
+  res.json({ meeting: meetingView(meeting) });
+});
+// The call transcript (plain text) saved from Grain.
+router.get('/meetings/:id/recording/transcript', async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid meeting' });
+  const meeting = await Meeting.findOne({ _id: req.params.id, user: req.user.id }).select('recording.transcript subject');
+  if (!meeting?.recording?.transcript) return res.status(404).json({ message: 'No transcript saved yet' });
+  res.json({ transcript: meeting.recording.transcript });
 });
 // Submit the minutes of a meeting for the admin's approval (re-submit after a rejection).
 router.put('/meetings/:id/mom', async (req, res) => {
@@ -1334,6 +1429,45 @@ router.delete('/tasks/:taskId/attachments/:attachmentId', async (req, res) => {
     });
   }
 });
+// SME reviews the designer's delivered file: approve it, or ask the designer for a redo (with a note).
+router.put('/creatives/:id/design-review', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const action = String(req.body?.action || '');
+    const note = String(req.body?.note || '').trim();
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid creative ID' });
+    }
+    if (!['approve', 'redo'].includes(action)) {
+      return res.status(400).json({ message: 'Action must be approve or redo' });
+    }
+    if (action === 'redo' && !note) {
+      return res.status(400).json({ message: 'Please tell the designer what to change' });
+    }
+    if (note.length > 500) {
+      return res.status(400).json({ message: 'Note can be at most 500 characters' });
+    }
+    const creative = await Creative.findOne({ _id: id, user: req.user.id })
+      .populate('company', 'name')
+      .populate('assignedDesigner', 'name email');
+    if (!creative) return res.status(404).json({ message: 'Creative not found' });
+    const out = creative.designOutput;
+    if (!out) return res.status(400).json({ message: 'The designer has not uploaded anything yet' });
+    if (out.status !== 'submitted') {
+      return res.status(400).json({ message: out.status === 'approved' ? 'This design is already approved' : 'A redo was already requested; wait for the designer to upload again' });
+    }
+    out.status = action === 'approve' ? 'approved' : 'redo';
+    out.note = action === 'redo' ? note : '';
+    out.reviewedAt = new Date();
+    if (action === 'redo') out.redoCount = (out.redoCount || 0) + 1;
+    creative.markModified('designOutput');
+    await creative.save();
+    res.json({ creative: creativeView(creative) });
+  } catch (error) {
+    console.error('Design review error:', error);
+    res.status(500).json({ message: 'Unable to save your review' });
+  }
+});
 router.put('/creatives/:id/assign', async (req, res) => {
   try {
     const { designerId } = req.body || {};
@@ -1356,7 +1490,6 @@ router.put('/creatives/:id/assign', async (req, res) => {
         message: 'Only approved creatives can be assigned to a designer'
       });
     }
-    const Des = mongoose.model('Des');
     const designerExists = await Des.exists({ _id: designerId });
     if (!designerExists) {
       return res.status(400).json({

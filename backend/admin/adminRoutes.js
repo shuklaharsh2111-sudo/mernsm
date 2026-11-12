@@ -11,7 +11,10 @@ import SopAssignment, { SOP_TYPE_VALUES } from '../sop/SopAssignment.js';
 import SmiSopAssignment from '../sop/SmiSopAssignment.js';
 import { isRealDate } from '../sop/period.js';
 import Meeting from '../meeting/Meeting.js';
-import { momView, generateMeetingLink } from '../meeting/momHelpers.js';
+import { momView, recordingView } from '../meeting/momHelpers.js';
+import { createMeetingLink } from '../meeting/googleCalendar.js';
+import { resolveAccount } from '../meeting/accounts.js';
+import { mountIntegrationRoutes } from '../meeting/integrationRoutes.js';
 import Creative from '../sme/Creative.js';
 import Attendance from '../attendance/Attendance.js';
 import { getOfficeConfig } from '../attendance/geo.js';
@@ -40,6 +43,7 @@ const deleteFromCloudinary = async (publicId) => {
   await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
 };
 router.use(protect(['admin']));
+mountIntegrationRoutes(router);
 const validId = (id) => mongoose.Types.ObjectId.isValid(id);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const companyView = (c) => ({
@@ -403,6 +407,7 @@ const momItemView = (m) => ({
   company: m.company ? { id: m.company._id, name: m.company.name } : { id: '', name: 'Removed company' },
   sme: m.user ? { id: m.user._id, name: m.user.name || m.user.fullname || m.user.email, email: m.user.email } : { id: '', name: 'Removed user', email: '' },
   mom: momView(m.mom),
+  recording: recordingView(m.recording),
 });
 // Every MOM an SME has submitted, newest first.
 router.get('/moms', async (req, res) => {
@@ -438,13 +443,17 @@ const reviewMom = async (req, res, action) => {
   if (status === 'approved' && meeting.company && meeting.user && meeting.mom.nextMeeting) {
     if (!(await Meeting.exists({ fromMeeting: meeting._id }))) {
       const nm = meeting.mom.nextMeeting;
+      // The follow-up belongs to the SME, so it goes on the SME's calendar (their Grain records it).
+      const smeAccount = await resolveAccount(meeting.user._id, 'sme');
+      const auto = await createMeetingLink({ subject: String(nm.agenda).slice(0, 200), date: nm.date, time: nm.time, attendees: meeting.attendees, refreshToken: smeAccount.googleRefreshToken });
       await Meeting.create({
         user: meeting.user._id,
         company: meeting.company._id,
         subject: String(nm.agenda).slice(0, 200),
         date: nm.date,
         time: nm.time,
-        link: generateMeetingLink(nm.agenda),
+        link: auto.link,
+        calendar: auto.calendar,
         attendees: meeting.attendees.map((a) => ({ name: a.name, designation: a.designation })),
         priority: nm.priority,
         fromMeeting: meeting._id,

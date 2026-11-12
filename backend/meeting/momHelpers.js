@@ -60,3 +60,22 @@ export const buildMom = (body, meeting) => {
     mom: { points, attendance, nextSteps: steps, nextMeeting: next, status: 'pending', submittedAt: new Date(), reviewedAt: undefined, reviewNote: '' },
   };
 };
+
+// What the frontend gets for a meeting's Grain recording (null until the SME has joined).
+export const recordingView = (r) =>
+  r
+    ? {
+        status: r.status || 'pending',
+        url: r.url || '',
+        thumbnailUrl: r.thumbnailUrl || '',
+        title: r.title || '',
+        startedAt: r.startedAt || null,
+        durationMs: r.durationMs || 0,
+        summary: r.summary || '',
+        actionItems: (r.actionItems || []).map((a) => ({ text: a.text, assignee: a.assignee || '', status: a.status || 'pending' })),
+        hasTranscript: Boolean(r.transcript),
+        account: r.account || '',
+        savedAt: r.savedAt || null,
+        lastCheckedAt: r.lastCheckedAt || null,
+      }
+    : null;

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Plus, Flag, CalendarDays, Link2 } from 'lucide-react';
 import api from '../api';
+import RecordingPanel from './RecordingPanel';
 import { errMsg, fmtDay, fmtClock } from '../sopUtils';
 import '../styles/mom.css';
 
@@ -124,6 +125,8 @@ export default function MeetingDetailsModal({ meeting, onUpdated, onClose }) {
               ))}
             </div>
           </section>
+
+          <RecordingPanel meeting={meeting} onUpdated={onUpdated} />
 
           {locked ? (
             <p className="mom-banner pending">Attendees can’t be changed after the MOM has been submitted.</p>

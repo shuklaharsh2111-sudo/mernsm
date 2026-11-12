@@ -182,3 +182,7 @@
 @media (max-width: 480px) {
     .st-avatar-row { flex-direction: column; align-items: flex-start; }
 }
+
+/* Grain & Calendar card inside the admin Meetings page */
+.int-details { margin-bottom: 18px; }
+.int-details > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: #ff9a55; padding: 6px 0; }
