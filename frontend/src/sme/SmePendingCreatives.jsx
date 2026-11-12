@@ -1,5 +1,6 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useState } from 'react';
-import { Eye, Trash2, Pencil, Image as ImageIcon, UserRoundPlus, X, CheckCircle2, Loader2 } from 'lucide-react';
+import { Eye, Trash2, Pencil, Image as ImageIcon, UserRoundPlus, X, CheckCircle2 } from 'lucide-react';
 import api from '../api';
 import CreativeViewModal from '../components/CreativeViewModal';
 import ReferenceCreativeModal from '../components/ReferenceCreativeModal';
@@ -36,6 +37,12 @@ const SmePendingCreatives = () => {
       cancelled = true;
     };
   }, []);
+  useEffect(() => {
+    if (!assigning) return undefined;
+    const onKey = (e) => e.key === 'Escape' && !savingAssignment && setAssigning(null);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [assigning, savingAssignment]);
   const counts = useMemo(() => {
     const c = { all: items.length, pending: 0, approved: 0, rejected: 0 };
     items.forEach((i) => {
@@ -63,7 +70,6 @@ const SmePendingCreatives = () => {
       setDesigners(data.designers || []);
     } catch (err) {
       setError(errMsg(err));
-      setAssigning(null);
     } finally {
       setDesignersLoading(false);
     }
@@ -191,62 +197,56 @@ const SmePendingCreatives = () => {
           }}
         />
       )}
-      {assigning && (
-        <div className="designer-assign-overlay" onClick={() => !savingAssignment && setAssigning(null)}>
-          <div className="designer-assign-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="designer-assign-header">
-              <div>
-                <span className="page-label">CREATIVE ASSIGNMENT</span>
-                <h2>Assign Designer</h2>
-                <p>Select a designer for this approved creative.</p>
-              </div>
-              <button type="button" className="btn-ghost" onClick={() => setAssigning(null)} disabled={savingAssignment}>
-                <X size={19} />
+      {assigning && createPortal(
+        <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && !savingAssignment && setAssigning(null)}>
+          <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="assign-designer-title">
+            <div className="modal-head">
+              <h2 id="assign-designer-title">{assigning.assignedDesigner ? 'Reassign Designer' : 'Assign Designer'}</h2>
+              <button type="button" className="modal-close" aria-label="Close" onClick={() => setAssigning(null)} disabled={savingAssignment}>
+                <X size={16} />
               </button>
             </div>
-            <div className="designer-assign-creative">
-              <ImageIcon size={20} />
-              <div>
-                <strong>{assigning.contentPillar.title}</strong>
-                <span>{assigning.companyName || 'Brand'}</span>
+            <div className="modal-body">
+              <div className="sops-form">
+                <div className="sop-preview">
+                  <div className="sop-item-top">
+                    <b>{assigning.companyName || 'Brand'}</b>
+                    <span className="muted">For {fmtDay(assigning.date)}</span>
+                  </div>
+                  <p className="sop-item-text">{assigning.contentPillar.title}</p>
+                </div>
+                <label className="x-field">
+                  <span>Select designer *</span>
+                  <select
+                    value={selectedDesigner}
+                    disabled={designersLoading || !designers.length}
+                    onChange={(e) => setSelectedDesigner(e.target.value)}
+                  >
+                    <option value="">
+                      {designersLoading ? 'Loading designers…' : designers.length ? 'Choose a designer' : 'No designers found'}
+                    </option>
+                    {designers.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}{d.email ? ` (${d.email})` : ''}</option>
+                    ))}
+                  </select>
+                </label>
+                {error && <p className="error-message" role="alert">{error}</p>}
+                <div className="btn-row">
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={saveAssignment}
+                    disabled={designersLoading || !selectedDesigner || savingAssignment}
+                  >
+                    {savingAssignment ? 'Assigning…' : assigning.assignedDesigner ? 'Update assignment' : 'Assign'}
+                  </button>
+                  <button type="button" className="btn-ghost" onClick={() => setAssigning(null)} disabled={savingAssignment}>Cancel</button>
+                </div>
               </div>
-            </div>
-            <label className="designer-assign-label" htmlFor="designer-select">Select Designer</label>
-            {designersLoading ? (
-              <p className="muted">Loading designers...</p>
-            ) : designers.length === 0 ? (
-              <p className="muted">No designers found in the database.</p>
-            ) : (
-              <select
-                id="designer-select"
-                className="designer-assign-select"
-                value={selectedDesigner}
-                onChange={(e) => setSelectedDesigner(e.target.value)}
-              >
-                <option value="">Choose a designer</option>
-                {designers.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name} {d.email ? `(${d.email})` : ''}</option>
-                ))}
-              </select>
-            )}
-            <p className="designer-assign-hint">
-              The company <strong>{assigning.companyName}</strong> will automatically be added to the selected designer's assigned companies.
-            </p>
-            <div className="designer-assign-actions">
-              <button type="button" className="btn-ghost" onClick={() => setAssigning(null)} disabled={savingAssignment}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={saveAssignment}
-                disabled={designersLoading || !designers.length || !selectedDesigner || savingAssignment}
-              >
-                {savingAssignment ? <><Loader2 size={15} className="spin" /> Assigning...</> : <><UserRoundPlus size={15} /> {assigning.assignedDesigner ? 'Update Assignment' : 'Assign Creative'}</>}
-              </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

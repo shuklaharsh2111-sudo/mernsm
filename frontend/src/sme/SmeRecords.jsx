@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Search, Users } from 'lucide-react';
 import api from '../api';
 import MomDetails from '../components/MomDetails';
+import RecordingPanel from '../components/RecordingPanel';
 import { errMsg, fmtDay, fmtDateTime, fmtClock } from '../sopUtils';
 import '../style.css';
 import '../styles/mom.css';
@@ -70,6 +71,7 @@ const SmeRecords = () => {
               </div>
 
               <MomDetails mom={r.mom} />
+              <RecordingPanel meeting={r} />
             </div>
           ))}
         </div>

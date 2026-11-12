@@ -54,6 +54,32 @@ const momSchema = new mongoose.Schema(
   },
   { _id: false }
 );
+// Filled in automatically from Grain (the desktop recorder joined the Google Meet call).
+// pending = joined, waiting for Grain to finish; ready = summary saved; failed = gave up polling.
+export const RECORDING_STATUSES = ['pending', 'ready', 'failed'];
+const recordingSchema = new mongoose.Schema(
+  {
+    status: { type: String, enum: RECORDING_STATUSES, default: 'pending' },
+    grainId: { type: String, default: '' },
+    url: { type: String, default: '' }, // Grain share link (opens the video)
+    thumbnailUrl: { type: String, default: '' },
+    title: { type: String, default: '' },
+    startedAt: { type: Date },
+    durationMs: { type: Number, default: 0 },
+    summary: { type: String, default: '' }, // Grain AI summary (markdown)
+    actionItems: {
+      type: [new mongoose.Schema({ text: String, assignee: String, status: String }, { _id: false })],
+      default: [],
+    },
+    transcript: { type: String, default: '' }, // plain text, speaker: line
+    account: { type: String, default: '' }, // 'own' = the person's Grain, 'default' = shared test account
+    attempts: { type: Number, default: 0 },
+    lastCheckedAt: { type: Date },
+    lastError: { type: String, default: '' },
+    savedAt: { type: Date },
+  },
+  { _id: false }
+);
 const meetingSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'Sme', required: true, index: true },
@@ -63,8 +89,14 @@ const meetingSchema = new mongoose.Schema(
     date: { type: String, required: true, match: /^\d{4}-\d{2}-\d{2}$/ },
     time: { type: String, required: true, match: /^\d{2}:\d{2}$/ },
     link: { type: String, trim: true, maxlength: 500, default: '' },
+    // Set when the meeting was created as a Google Calendar event (so Grain can see and record it).
+    calendar: {
+      type: new mongoose.Schema({ eventId: String, iCalUID: String, htmlLink: String }, { _id: false }),
+      default: undefined,
+    },
     attendees: { type: [attendeeSchema], default: [] },
     mom: { type: momSchema, default: undefined },
+    recording: { type: recordingSchema, default: undefined },
     // Set when the SME clicks Join Now (this is what unlocks the Send MOM button).
     joinedAt: { type: Date },
     // Set on meetings that were scheduled automatically from an approved MOM.
