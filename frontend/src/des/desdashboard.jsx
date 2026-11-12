@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import CreativeDetailsModal from './CreativeDetailsModal';
 import {
   Palette, Search, RefreshCw, CalendarDays, Building2,
   UserRound, ExternalLink, Image, Clock3, CheckCircle2,
@@ -15,6 +16,7 @@ const PLATFORM_ICONS = {
   x: ExternalLink,
   youtube: ExternalLink
 };
+
 const formatDate = (date) => {
   if (!date) return 'Not specified';
   const parsed = new Date(date);
@@ -49,6 +51,7 @@ const DesDashboard = () => {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [activeStatus, setActiveStatus] = useState('all');
+  const [selectedCreative, setSelectedCreative] = useState(null);
   const fetchCreatives = async (refresh = false) => {
     try {
       setError('');
@@ -217,9 +220,8 @@ const DesDashboard = () => {
       <div className="des-creative-grid">
         {filteredCreatives.map((creative) => {
           const pillar = creative.contentPillar || {};
-
           return (
-            <div className="des-creative-card" key={creative._id}>
+            <div className="des-creative-card" key={creative._id} onClick={() => setSelectedCreative(creative)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedCreative(creative); } }} >
               <div className="des-card-top">
                 <div className="des-company">
                   <div className="des-company-icon">
@@ -260,9 +262,9 @@ const DesDashboard = () => {
                   <UserRound size={15} />
                   <span>
                     {creative.user?.name ||
-                     creative.user?.fullname ||
-                     creative.user?.email ||
-                     'SME'}
+                      creative.user?.fullname ||
+                      creative.user?.email ||
+                      'SME'}
                   </span>
                 </div>
                 <div>
@@ -319,6 +321,20 @@ const DesDashboard = () => {
           );
         })}
       </div>
+      {selectedCreative && (
+        <CreativeDetailsModal
+          creative={selectedCreative}
+          onClose={() => setSelectedCreative(null)}
+          onUpdate={(updatedCreative) => {
+            setCreatives((prev) =>
+              prev.map((item) =>
+                item._id === updatedCreative._id ? updatedCreative : item
+              )
+            );
+            setSelectedCreative(updatedCreative);
+          }}
+        />
+      )}
     </div>
   );
 };

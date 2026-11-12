@@ -644,3 +644,13 @@
         height: 85px;
     }
 }
+.des-creative-card {
+  cursor: pointer;
+  transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+}
+
+.des-creative-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255,145,90,.4);
+  box-shadow: 0 12px 35px rgba(0,0,0,.18);
+}
