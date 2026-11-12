@@ -491,6 +491,17 @@ const designOutputView = (d) => (d ? {
   reviewedAt: d.reviewedAt,
   version: d.version || 1,
   redoCount: d.redoCount || 0,
+  // earlier versions that were sent back for a redo, newest first
+  history: [...(d.history || [])].reverse().map((h) => ({
+    url: h.url,
+    name: h.originalName,
+    mimeType: h.mimeType,
+    size: h.size,
+    uploadedAt: h.uploadedAt,
+    note: h.note || '',
+    reviewedAt: h.reviewedAt,
+    version: h.version || 1,
+  })),
 } : null);
 const creativeView = (c) => ({
   id: c._id,

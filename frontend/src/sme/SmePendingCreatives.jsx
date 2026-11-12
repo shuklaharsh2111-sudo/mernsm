@@ -171,10 +171,15 @@ const SmePendingCreatives = () => {
                   <button type="button" className="btn-ghost" onClick={() => setViewing(c)}>
                     <Eye size={14} /> Preview
                   </button>
-                  {c.status === 'approved' && (
+                  {c.status === 'approved' && tab !== 'designer' && !c.designOutput && (
                     <button type="button" className="btn-primary" onClick={() => openAssign(c)}>
                       <UserRoundPlus size={14} />
                       {c.assignedDesigner ? 'Reassign' : 'Assign'}
+                    </button>
+                  )}
+                  {tab === 'designer' && c.designOutput && (
+                    <button type="button" className="btn-primary" onClick={() => setReviewing(c)}>
+                      <Palette size={14} /> {c.designOutput.status === 'submitted' ? 'Review output' : 'View output'}
                     </button>
                   )}
                   {c.status === 'rejected' && (

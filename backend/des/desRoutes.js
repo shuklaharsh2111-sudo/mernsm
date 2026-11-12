@@ -121,21 +121,48 @@ router.post('/creatives/:id/design', (req, res) => {
       if (!creative) {
         return res.status(404).json({ message: 'Creative not found or not assigned to you.' });
       }
-      const prev = creative.designOutput
-        ? {
-            status: creative.designOutput.status,
-            publicId: creative.designOutput.publicId,
-            resourceType: creative.designOutput.resourceType,
-            version: creative.designOutput.version,
-            redoCount: creative.designOutput.redoCount
-          }
-        : null;
-      if (prev?.status === 'approved') {
+      const cur = creative.designOutput;
+      if (cur?.status === 'approved') {
         return res.status(400).json({ message: 'This design was already approved, so it can no longer be changed.' });
       }
+      const prev = cur
+        ? {
+            status: cur.status,
+            url: cur.url,
+            publicId: cur.publicId,
+            resourceType: cur.resourceType,
+            originalName: cur.originalName,
+            mimeType: cur.mimeType,
+            size: cur.size,
+            uploadedAt: cur.uploadedAt,
+            note: cur.note,
+            reviewedAt: cur.reviewedAt,
+            version: cur.version || 1,
+            redoCount: cur.redoCount || 0,
+            history: (cur.history || []).map((h) => h.toObject())
+          }
+        : null;
       const result = await uploadBuffer(req.file);
       uploaded = { publicId: result.public_id, resourceType: result.resource_type };
+      // A version the SME sent back for a redo is kept in the history; one replaced before review is simply dropped.
+      const keepPrev = prev?.status === 'redo';
+      const history = prev ? [...prev.history] : [];
+      if (keepPrev) {
+        history.push({
+          url: prev.url,
+          publicId: prev.publicId,
+          resourceType: prev.resourceType,
+          originalName: prev.originalName,
+          mimeType: prev.mimeType,
+          size: prev.size,
+          uploadedAt: prev.uploadedAt,
+          note: prev.note,
+          reviewedAt: prev.reviewedAt,
+          version: prev.version
+        });
+      }
       creative.designOutput = {
+        history,
         url: result.secure_url,
         publicId: result.public_id,
         resourceType: result.resource_type,
@@ -150,7 +177,7 @@ router.post('/creatives/:id/design', (req, res) => {
         redoCount: prev?.redoCount || 0
       };
       await creative.save();
-      if (prev?.publicId) {
+      if (prev && !keepPrev && prev.publicId) {
         await cloudinary.uploader.destroy(prev.publicId, { resource_type: prev.resourceType || 'image' }).catch(() => null);
       }
       return res.status(201).json({ message: 'Design uploaded.', designOutput: designView(creative.designOutput) });
@@ -160,23 +187,5 @@ router.post('/creatives/:id/design', (req, res) => {
       return res.status(500).json({ message: error.message || 'Failed to upload design.' });
     }
   });
-});
-router.delete('/creatives/:id/design', async (req, res) => {
-  try {
-    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: 'Invalid creative id.' });
-    const creative = await Creative.findOne({ _id: req.params.id, assignedDesigner: req.user.id });
-    if (!creative) return res.status(404).json({ message: 'Creative not found or not assigned to you.' });
-    const out = creative.designOutput;
-    if (!out) return res.status(404).json({ message: 'Nothing uploaded yet.' });
-    if (out.status === 'approved') return res.status(400).json({ message: 'An approved design cannot be deleted.' });
-    const { publicId, resourceType } = out;
-    creative.designOutput = null;
-    await creative.save();
-    if (publicId) await cloudinary.uploader.destroy(publicId, { resource_type: resourceType || 'image' }).catch(() => null);
-    return res.json({ designOutput: null });
-  } catch (error) {
-    console.error('DES delete upload error:', error);
-    return res.status(500).json({ message: 'Failed to delete the design.' });
-  }
 });
 export default router;

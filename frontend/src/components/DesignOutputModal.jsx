@@ -15,6 +15,20 @@ const formatSize = (bytes) => {
   return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 };
 
+const isImg = (m) => (m || '').startsWith('image/');
+const isVid = (m) => (m || '').startsWith('video/');
+
+function FilePreview({ url, name, mimeType }) {
+  if (isImg(mimeType)) return <img src={url} alt={name || 'Design'} />;
+  if (isVid(mimeType)) return <video src={url} controls />;
+  return (
+    <div className="design-preview-file">
+      <FileText size={34} />
+      <span>{name || 'Design file'}</span>
+    </div>
+  );
+}
+
 // SME: what the designer delivered for one creative. Approve it, or send it back with a redo note.
 export default function DesignOutputModal({ creative, onUpdated, onClose }) {
   const out = creative.designOutput;
@@ -51,12 +65,10 @@ export default function DesignOutputModal({ creative, onUpdated, onClose }) {
 
   if (!out) return null;
   const st = STATUS[out.status] || STATUS.submitted;
-  const isImage = (out.mimeType || '').startsWith('image/');
-  const isVideo = (out.mimeType || '').startsWith('video/');
 
   return createPortal(
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && !busy && onClose()}>
-      <div className="modal-card wide" role="dialog" aria-modal="true" aria-labelledby="design-output-title">
+      <div className="modal-card design-modal" role="dialog" aria-modal="true" aria-labelledby="design-output-title">
         <div className="modal-head">
           <h2 id="design-output-title">Designer Output</h2>
           <button type="button" className="modal-close" aria-label="Close" onClick={onClose} disabled={busy}>
@@ -65,15 +77,34 @@ export default function DesignOutputModal({ creative, onUpdated, onClose }) {
         </div>
         <div className="modal-body">
           <div className="sops-form">
-            <div className="design-preview">
-              {isImage && <img src={out.url} alt={out.name || 'Designer output'} />}
-              {isVideo && <video src={out.url} controls />}
-              {!isImage && !isVideo && (
-                <div className="design-preview-file">
-                  <FileText size={34} />
-                  <span>{out.name || 'Design file'}</span>
+            <div className="design-compare">
+              <section className="design-col">
+                <h3>Reference</h3>
+                {creative.uploads?.length > 0 ? (
+                  <div className="design-ref-list">
+                    {creative.uploads.map((u, i) => (
+                      <a key={`${u.url}-${i}`} className="design-preview" href={u.url} target="_blank" rel="noopener noreferrer" title="Open reference">
+                        <img src={u.url} alt={u.name || `Reference ${i + 1}`} />
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="design-preview"><div className="design-preview-file"><FileText size={30} /><span>No reference image</span></div></div>
+                )}
+                {creative.referenceLinks?.length > 0 && (
+                  <div className="design-ref-links">
+                    {creative.referenceLinks.map((l, i) => (
+                      <a key={`${l}-${i}`} href={l} target="_blank" rel="noopener noreferrer"><ExternalLink size={12} /> Reference link {i + 1}</a>
+                    ))}
+                  </div>
+                )}
+              </section>
+              <section className="design-col">
+                <h3>Designer output <span className="muted">· v{out.version}</span></h3>
+                <div className="design-preview">
+                  <FilePreview url={out.url} name={out.name} mimeType={out.mimeType} />
                 </div>
-              )}
+              </section>
             </div>
 
             <div className="design-meta">
@@ -106,6 +137,28 @@ export default function DesignOutputModal({ creative, onUpdated, onClose }) {
                   onChange={(e) => setNote(e.target.value)}
                 />
               </label>
+            )}
+
+            {out.history?.length > 0 && (
+              <section className="design-history">
+                <h3>History <span className="muted">· earlier versions sent back for redo</span></h3>
+                {out.history.map((h) => (
+                  <div className="design-history-item" key={`${h.url}-${h.version}`}>
+                    <div className="design-preview small">
+                      <FilePreview url={h.url} name={h.name} mimeType={h.mimeType} />
+                    </div>
+                    <div className="design-history-body">
+                      <div className="design-history-top">
+                        <b>Version {h.version}</b>
+                        <span className="status-pill rejected">Redo</span>
+                      </div>
+                      <p className="muted">Uploaded {fmtDateTime(h.uploadedAt)}{h.reviewedAt ? ` · sent back ${fmtDateTime(h.reviewedAt)}` : ''}</p>
+                      {h.note && <p className="mom-note sent_back">Your redo note: {h.note}</p>}
+                      <a className="design-history-open" href={h.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={12} /> Open file</a>
+                    </div>
+                  </div>
+                ))}
+              </section>
             )}
 
             {error && <p className="error-message" role="alert">{error}</p>}
