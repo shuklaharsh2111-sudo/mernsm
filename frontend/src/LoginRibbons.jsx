@@ -51,15 +51,14 @@ const fragmentShader = /* glsl */ `
     // gentle parallax toward the cursor
     p += (uMouse - 0.5) * vec2(0.05, -0.05);
 
-    // tilt the ribbons ~ -35deg
-    float ang = -0.62;
-    mat2 R = mat2(cos(ang), -sin(ang), sin(ang), cos(ang));
-    vec2 q = R * p;
-
+    // concentric rings: distance from the centre drives the ribbon coordinate,
+    // so the ribbons flow in circles from the centre outwards
+    float r = length(p);
+    float ang = atan(p.y, p.x);
     float t = uTime;
-    // curved, slowly breathing ribbons that flow along their length
-    float warp = 0.55 * q.y * q.y + 0.07 * sin(q.y * 3.2 + t * 0.55);
-    float s = (q.x + warp) * 5.2 - t * 0.22;
+    // gentle breathing wobble so the circles are not perfectly rigid
+    float warp = 0.035 * sin(ang * 3.0 + t * 0.5) + 0.02 * sin(ang * 5.0 - t * 0.35);
+    float s = (r + warp) * 5.2 - t * 0.22;
 
     vec3 col = ribbon(s);
 
