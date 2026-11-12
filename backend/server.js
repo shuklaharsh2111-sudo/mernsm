@@ -11,6 +11,8 @@ import smeRoutes from './sme/smeRoutes.js';
 import smiRoutes from './smi/smiRoutes.js';
 import invoiceRoutes from './invoices/invoiceRoutes.js';
 import desRoutes from './des/desRoutes.js';
+import { startGrainPoller } from './meeting/grainSync.js';
+import { googleCallback } from './meeting/integrationRoutes.js';
 dotenv.config();
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -28,6 +30,7 @@ app.get('/api/health', (req, res) => {
     });
 });
 app.use('/api/auth', authRoutes);
+app.get('/api/integrations/google/callback', googleCallback);
 app.use('/api/admin', adminRoutes);
 app.use('/api/sme', smeRoutes);
 app.use('/api/smi', smiRoutes);
@@ -54,4 +57,5 @@ app.use((err, req, res, next) => {
 });
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    startGrainPoller();
 });

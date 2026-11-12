@@ -20,6 +20,24 @@ const creativeSchema = new mongoose.Schema({
     publicId: { type: String, default: '' },
     originalName: { type: String, default: '' }
   }],
+  // The ONE file the designer delivers for this creative. The SME approves it or asks for a redo.
+  designOutput: {
+    type: new mongoose.Schema({
+      url: { type: String, required: true },
+      publicId: { type: String, default: '' },
+      resourceType: { type: String, default: 'image' },
+      originalName: { type: String, default: '' },
+      mimeType: { type: String, default: '' },
+      size: { type: Number, default: 0 },
+      uploadedAt: { type: Date, default: Date.now },
+      status: { type: String, enum: ['submitted', 'approved', 'redo'], default: 'submitted' },
+      note: { type: String, trim: true, maxlength: 500, default: '' },
+      reviewedAt: { type: Date, default: null },
+      version: { type: Number, default: 1 },
+      redoCount: { type: Number, default: 0 }
+    }, { _id: false }),
+    default: null
+  },
   contentPillar: {
     title: { type: String, required: true, trim: true, maxlength: 120 },
     caption: { type: String, trim: true, maxlength: 2200, default: '' },
