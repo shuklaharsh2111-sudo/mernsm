@@ -1,8 +1,6 @@
 import mongoose from 'mongoose';
-
 export const CREATIVE_PLATFORMS = ['instagram', 'facebook', 'linkedin', 'x', 'youtube'];
 export const CREATIVE_STATUSES = ['pending', 'approved', 'rejected'];
-
 const creativeSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'Sme', required: true, index: true },
   company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true },
@@ -47,9 +45,15 @@ const creativeSchema = new mongoose.Schema({
       type: [{ type: String, enum: CREATIVE_PLATFORMS }],
       validate: [(v) => v.length > 0, 'Select at least one platform']
     }
+  },
+  designerWork: {
+    uploads: [{
+      url: { type: String, required: true },
+      publicId: { type: String, default: '' },
+      originalName: { type: String, default: '' },
+      uploadedAt: { type: Date, default: Date.now }
+    }]
   }
 }, { timestamps: true, collection: 'creatives' });
-
 const Creative = mongoose.models.Creative || mongoose.model('Creative', creativeSchema);
-
 export default Creative;
