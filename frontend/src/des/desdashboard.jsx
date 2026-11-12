@@ -217,8 +217,7 @@ const DesDashboard = () => {
       <div className="des-creative-grid">
         {filteredCreatives.map((creative) => {
           const pillar = creative.contentPillar || {};
-          const status = statusConfig[creative.status] || statusConfig.pending;
-          const StatusIcon = status.icon;
+
           return (
             <div className="des-creative-card" key={creative._id}>
               <div className="des-card-top">
@@ -231,10 +230,6 @@ const DesDashboard = () => {
                     <span>{formatDate(creative.date)}</span>
                   </div>
                 </div>
-                <span className={`des-status ${status.className}`}>
-                  <StatusIcon size={14} />
-                  {status.label}
-                </span>
               </div>
               <div className="des-card-content">
                 <h3>{pillar.title || 'Untitled Creative'}</h3>

@@ -5,7 +5,6 @@ import CreativeDetails from './CreativeDetails';
 import CreativeStatusBadge from './CreativeStatusBadge';
 import PlatformPreviewSwitcher from './PlatformPreviewSwitcher';
 import { fmtDay } from '../sopUtils';
-
 // Read-only view of a saved creative: its image in every chosen platform's shape.
 export default function CreativeViewModal({ creative, company, platforms, onEdit, onClose }) {
   useEffect(() => {
@@ -18,11 +17,9 @@ export default function CreativeViewModal({ creative, company, platforms, onEdit
       document.body.style.overflow = prev;
     };
   }, [onClose]);
-
   const { title, caption, hashtags, platforms: keys } = creative.contentPillar;
   const image = creative.uploads[0]?.url || '';
   const chosen = platforms.filter((p) => keys.includes(p.key));
-
   return createPortal(
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-card creative-wide" role="dialog" aria-modal="true" aria-labelledby="creative-view-title">

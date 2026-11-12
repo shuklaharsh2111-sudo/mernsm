@@ -547,7 +547,6 @@
     box-shadow: none;
     transition: transform .25s ease;
 }
-
 .des-company-card:hover {
     background: transparent;
     border: none;
@@ -567,7 +566,6 @@
     box-shadow: none;
     transition: transform .25s ease;
 }
-
 .des-company-card:hover .des-company-logo {
     transform: scale(1.06);
     box-shadow: none;
