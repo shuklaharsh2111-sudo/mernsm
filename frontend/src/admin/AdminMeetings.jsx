@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ThumbsUp, ThumbsDown, Undo2, CalendarCheck } from 'lucide-react';
 import api from '../api';
 import MomDetails from '../components/MomDetails';
+import RecordingPanel from '../components/RecordingPanel';
 import { errMsg, fmtDay, fmtDateTime, fmtClock } from '../sopUtils';
 import '../styles/mom.css';
 
@@ -126,6 +127,7 @@ const AdminMeetings = () => {
                 </div>
 
                 <MomDetails mom={mom} />
+                <RecordingPanel meeting={{ ...m, joined: Boolean(m.recording) }} />
 
                 {(mom.status === 'sent_back' || mom.status === 'rejected') && mom.reviewNote && (
                   <p className={`mom-note ${mom.status}`}>
