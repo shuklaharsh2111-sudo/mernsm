@@ -645,18 +645,87 @@
     }
 }
 /* ---------- designer upload ---------- */
-.des-design-uploads { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
-.des-upload-row { display: flex; align-items: center; gap: 8px; }
-.des-upload-row a { flex: 1; min-width: 0; }
-.des-upload-row a em { font-style: normal; font-size: 11px; color: var(--ink-3, #b9aaa0); }
-.des-output-badge { align-self: flex-start; padding: 3px 12px; font-size: 11px; font-weight: 800; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.4px; }
-.des-output-badge.pending { color: #ffe3a3; background: rgba(230, 155, 58, 0.2); }
-.des-output-badge.approved { color: #a8f1d4; background: rgba(121, 220, 186, 0.2); }
-.des-output-badge.rejected { color: #ffc2d0; background: rgba(255, 110, 150, 0.2); }
-.des-upload-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.des-upload-controls input[type="file"] { flex: 1; min-width: 0; font-size: 12px; color: var(--ink-2); }
-.des-upload-controls input[type="file"]::file-selector-button { margin-right: 10px; padding: 8px 12px; font-size: 12px; color: #fff; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
-.des-upload-hint { font-size: 11px; color: var(--ink-3, #b9aaa0); }
-.des-upload-msg { padding: 8px 12px; font-size: 12px; border-radius: 10px; }
-.des-upload-msg.error { color: #ffc2d0; background: rgba(255, 110, 150, 0.1); border: 1px solid rgba(255, 151, 178, 0.35); }
-.des-upload-msg.success { color: #9cf0cf; background: rgba(121, 220, 186, 0.1); border: 1px solid rgba(121, 220, 186, 0.4); }
+.des-design-uploads {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+}
+.des-upload-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.des-upload-row a {
+    flex: 1;
+    min-width: 0;
+}
+.des-upload-row a em {
+    font-style: normal;
+    font-size: 11px;
+    color: var(--ink-3, #b9aaa0);
+}
+.des-output-badge {
+    align-self: flex-start;
+    padding: 3px 12px;
+    font-size: 11px;
+    font-weight: 800;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.des-output-badge.pending {
+    color: #ffe3a3;
+    background: rgba(230, 155, 58, 0.2);
+}
+.des-output-badge.approved {
+    color: #a8f1d4;
+    background: rgba(121, 220, 186, 0.2);
+}
+.des-output-badge.rejected {
+    color: #ffc2d0;
+    background: rgba(255, 110, 150, 0.2);
+}
+.des-upload-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.des-upload-controls input[type="file"] {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--ink-2);
+}
+.des-upload-controls input[type="file"]::file-selector-button {
+    margin-right: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+}
+.des-upload-hint {
+    font-size: 11px;
+    color: var(--ink-3, #b9aaa0);
+}
+.des-upload-msg {
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 10px;
+}
+.des-upload-msg.error {
+    color: #ffc2d0;
+    background: rgba(255, 110, 150, 0.1);
+    border: 1px solid rgba(255, 151, 178, 0.35);
+}
+.des-upload-msg.success {
+    color: #9cf0cf;
+    background: rgba(121, 220, 186, 0.1);
+    border: 1px solid rgba(121, 220, 186, 0.4);
+}
