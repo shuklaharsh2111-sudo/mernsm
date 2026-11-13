@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { UploadCloud, FileText, Search, Trash2, X, LoaderCircle, Users, UserCheck, PhoneCall, CalendarClock } from 'lucide-react';
+import { UploadCloud, FileText, Search, Trash2, X, LoaderCircle, Users, UserCheck, PhoneCall, CalendarClock, Download } from 'lucide-react';
 import api from '../api';
-import { errMsg } from '../sopUtils';
+import { errMsg, fmtDateTime, todayStr } from '../sopUtils';
 import { fmtDate } from './hrUtils';
 import '../style.css';
 import '../styles/dashboard-glass.css';
 import '../styles/hr.css';
+
+const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 
 const emptyFields = { name: '', mobile: '', email: '', position: '' };
 const FIELD_LABELS = { name: 'name', mobile: 'mobile number', email: 'email', position: 'position' };
@@ -204,6 +206,50 @@ const HrRecruitment = () => {
     setMissing((m) => m.filter((x) => x !== k)); // typed in -> no longer "missing"
   };
 
+  const exportCsv = (listToExport = candidates) => {
+    if (!listToExport || !listToExport.length) return;
+    const header = [
+      'Candidate Name',
+      'Email',
+      'Mobile',
+      'Position',
+      'CV Shortlisted',
+      'Call Done',
+      'Interview Schedule',
+      'Last Remark',
+      'Remark Date',
+      'Resume URL',
+      'Resume Name',
+      'Date Added'
+    ];
+    const rows = listToExport.map((c) => [
+      c.name || '',
+      c.email || '',
+      c.mobile || '',
+      c.position || '',
+      c.shortlisted ? 'Yes' : 'No',
+      c.callDone ? 'Yes' : 'No',
+      fmtDateTime(c.interviewAt),
+      c.remark || '',
+      fmtDateTime(c.remarkAt),
+      c.resume?.url || '',
+      c.resume?.name || '',
+      fmtDateTime(c.createdAt)
+    ]);
+    const csvContent = [header, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const isFiltered = listToExport.length !== candidates.length;
+    const filterTag = isFiltered && filter !== 'all' ? `-${filter}` : isFiltered ? '-filtered' : '';
+    link.download = `candidates${filterTag}-${todayStr()}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="dashboard-content scrollable dash-glass hr-page">
       <div className="page-header">
@@ -212,6 +258,16 @@ const HrRecruitment = () => {
           <h1>Recruitment</h1>
           <p>Upload a resume and the candidate's details are filled in for you. Then track shortlisting, calls and interviews.</p>
         </div>
+        <button
+          type="button"
+          className="hr-export-btn"
+          onClick={() => exportCsv(candidates)}
+          disabled={!candidates.length}
+          title="Export all candidates to CSV"
+        >
+          <Download size={15} />
+          <span>Export CSV</span>
+        </button>
       </div>
 
       {error && <p className="error-message" role="alert">{error}</p>}
@@ -285,6 +341,43 @@ const HrRecruitment = () => {
         <div className="hr-search">
           <Search size={15} />
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, email, mobile or position" />
+        </div>
+        <div className="hr-toolbar-actions">
+          {shown.length !== candidates.length ? (
+            <>
+              <button
+                type="button"
+                className="hr-export-btn"
+                onClick={() => exportCsv(shown)}
+                disabled={!shown.length}
+                title="Export currently filtered candidates to CSV"
+              >
+                <Download size={15} />
+                <span>Export Filtered ({shown.length})</span>
+              </button>
+              <button
+                type="button"
+                className="hr-export-btn ghost"
+                onClick={() => exportCsv(candidates)}
+                disabled={!candidates.length}
+                title="Export all candidates to CSV"
+              >
+                <Download size={15} />
+                <span>Export All ({candidates.length})</span>
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="hr-export-btn"
+              onClick={() => exportCsv(candidates)}
+              disabled={!candidates.length}
+              title="Export all candidates to CSV"
+            >
+              <Download size={15} />
+              <span>Export CSV</span>
+            </button>
+          )}
         </div>
       </div>
       <div className="hr-chips">
