@@ -33,7 +33,7 @@ const MONTHS = [
 ];
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const STATUS_CONFIG = {
-  pending: {
+  submitted: {
     label: 'Pending',
     icon: Clock3,
     className: 'pending'
@@ -43,7 +43,7 @@ const STATUS_CONFIG = {
     icon: CheckCircle2,
     className: 'approved'
   },
-  rejected: {
+  redo: {
     label: 'Changes Requested',
     icon: XCircle,
     className: 'rejected'
@@ -335,37 +335,53 @@ const DesCalendar = () => {
               </div>
               <div className="descal-day-creatives">
                 {day.creatives.map((creative) => {
-                  const status = STATUS_CONFIG[creative.status] || STATUS_CONFIG.pending;
+                  const design = creative.designOutput;
+                  if (!design?.url) return null;
+                  const status = STATUS_CONFIG[design.status] || STATUS_CONFIG.submitted;
                   const StatusIcon = status.icon;
+                  const mimeType = design.mimeType || '';
                   return (
                     <div
                       key={creative._id}
-                      className={`descal-event ${status.className}`}
+                      className={`descal-event descal-design-card ${status.className}`}
                       title={`${creative.contentPillar?.title || 'Untitled Creative'} · ${creative.company?.name || 'Company'}`}
                     >
-                      <span className="descal-event-company">
-                        {creative.company?.name || 'Company'}
-                      </span>
-                      <span className="descal-event-title">
-                        {creative.contentPillar?.title || 'Untitled Creative'}
-                      </span>
-                      <span className="descal-event-status">
-                        <StatusIcon size={11} />
-                        {status.label}
-                      </span>
-                      <div className="descal-event-platforms">
-                        {(creative.contentPillar?.platforms || []).map((key) => {
-                          const platform = PLATFORMS.find(
-                            (item) => item.key === key.toLowerCase()
-                          );
-                          if (!platform) return null;
-                          const PlatformIcon = platform.icon;
-                          return (
-                            <span key={key} title={platform.label}>
-                              <PlatformIcon size={12} />
-                            </span>
-                          );
-                        })}
+                      <div className="descal-design-preview">
+                        {mimeType.startsWith('image/') ? (
+                          <img
+                            src={design.url}
+                            alt={creative.contentPillar?.title || 'Uploaded design'}
+                            loading="lazy"
+                          />
+                        ) : mimeType.startsWith('video/') ? (
+                          <video
+                            src={design.url}
+                            controls
+                            preload="metadata"
+                          />
+                        ) : (
+                          <a
+                            href={design.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="descal-file-preview"
+                          >
+                            <Palette size={25} />
+                            <span>View Uploaded File</span>
+                          </a>
+                        )}
+                        <span className={`descal-design-status ${status.className}`}>
+                          <StatusIcon size={12} />
+                          {status.label}
+                        </span>
+                      </div>
+                      <div className="descal-design-info">
+                        <span className="descal-event-company">
+                          {creative.company?.name || 'Company'}
+                        </span>
+                        <span className="descal-event-title">
+                          {creative.contentPillar?.title || 'Untitled Creative'}
+                        </span>
                       </div>
                     </div>
                   );

@@ -55,7 +55,8 @@ router.get('/companies', async (req, res) => {
   try {
     const creatives = await Creative.find({
       assignedDesigner: req.user.id,
-      company: { $ne: null }
+      company: { $ne: null },
+      'designOutput.url': { $exists: true, $nin: ['', null] }
     })
       .populate('company', 'name logo')
       .lean();
@@ -86,7 +87,8 @@ router.get('/companies', async (req, res) => {
 router.get('/creatives', async (req, res) => {
   try {
     const creatives = await Creative.find({
-      assignedDesigner: req.user.id
+      assignedDesigner: req.user.id,
+      'designOutput.url': { $exists: true, $nin: ['', null] }
     })
       .populate('company', 'name logo')
       .populate('user', 'name fullname email')
@@ -95,13 +97,16 @@ router.get('/creatives', async (req, res) => {
     return res.status(200).json({
       success: true,
       count: creatives.length,
-      creatives: creatives.map((c) => ({ ...c, designOutput: designView(c.designOutput) }))
+      creatives: creatives.map((c) => ({
+        ...c,
+        designOutput: designView(c.designOutput)
+      }))
     });
   } catch (error) {
     console.error('DES creatives error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch assigned creatives'
+      message: 'Failed to fetch uploaded creatives'
     });
   }
 });
@@ -127,20 +132,20 @@ router.post('/creatives/:id/design', (req, res) => {
       }
       const prev = cur
         ? {
-            status: cur.status,
-            url: cur.url,
-            publicId: cur.publicId,
-            resourceType: cur.resourceType,
-            originalName: cur.originalName,
-            mimeType: cur.mimeType,
-            size: cur.size,
-            uploadedAt: cur.uploadedAt,
-            note: cur.note,
-            reviewedAt: cur.reviewedAt,
-            version: cur.version || 1,
-            redoCount: cur.redoCount || 0,
-            history: (cur.history || []).map((h) => h.toObject())
-          }
+          status: cur.status,
+          url: cur.url,
+          publicId: cur.publicId,
+          resourceType: cur.resourceType,
+          originalName: cur.originalName,
+          mimeType: cur.mimeType,
+          size: cur.size,
+          uploadedAt: cur.uploadedAt,
+          note: cur.note,
+          reviewedAt: cur.reviewedAt,
+          version: cur.version || 1,
+          redoCount: cur.redoCount || 0,
+          history: (cur.history || []).map((h) => h.toObject())
+        }
         : null;
       const result = await uploadBuffer(req.file);
       uploaded = { publicId: result.public_id, resourceType: result.resource_type };
