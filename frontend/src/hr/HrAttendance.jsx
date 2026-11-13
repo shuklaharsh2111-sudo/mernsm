@@ -10,7 +10,6 @@ import '../styles/hr.css';
 
 const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return dayKey(d); };
 const ROLES = ['reporting_manager', 'sme', 'smi', 'des', 'hr'];
-
 const HrAttendance = () => {
   const [from, setFromRaw] = useState(daysAgo(6));
   const [to, setToRaw] = useState(dayKey(new Date()));
