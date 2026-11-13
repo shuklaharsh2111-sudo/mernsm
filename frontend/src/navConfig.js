@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Settings, CalendarDays, FolderOpen, Bookmark,
   ChartNoAxesCombined, FileBarChart, Clock, Building2, Receipt,
-  CalendarCheck, Palette, UserCheck, Briefcase, Wifi
+  CalendarCheck, Palette, UserCheck, Briefcase, Wifi, Music
 } from 'lucide-react';
 export const ADMIN_NAV = [
   {
@@ -23,6 +23,11 @@ export const ADMIN_NAV = [
       { title: 'Creatives', path: '/admin/creatives', icon: Palette },
       { title: 'Attendance', path: '/admin/attendance', icon: UserCheck },
       { title: 'Calendar', path: '/admin/calendar', icon: CalendarDays }
+    ]
+  },
+  {
+    heading: 'Music', items: [
+      { title: 'Playlist', path: '/admin/playlist', icon: Music }
     ]
   }
 ];
@@ -50,6 +55,11 @@ export const SME_NAV = [
     heading: 'Account', items: [
       { title: 'Settings', path: '/sme/settings', icon: Settings }
     ]
+  },
+  {
+    heading: 'Music', items: [
+      { title: 'Playlist', path: '/sme/playlist', icon: Music }
+    ]
   }
 ];
 export const DES_NAV = [
@@ -71,6 +81,12 @@ export const DES_NAV = [
     items: [
       { title: 'Monthly Reports', path: '/des/monthly-reports', icon: FileBarChart }
     ]
+  },
+  {
+    heading: 'Music',
+    items: [
+      { title: 'Playlist', path: '/des/playlist', icon: Music }
+    ]
   }
 ];
 export const SMI_NAV = [
@@ -84,6 +100,12 @@ export const SMI_NAV = [
     heading: 'Workflow',
     items: [
       { title: 'Saved', path: '/smi/saved', icon: Bookmark }
+    ]
+  },
+  {
+    heading: 'Music',
+    items: [
+      { title: 'Playlist', path: '/smi/playlist', icon: Music }
     ]
   }
 ];
@@ -99,6 +121,12 @@ export const HR_NAV = [
     items: [
       { title: 'Employees', path: '/hr/employees', icon: Users },
       { title: 'Online / Offline', path: '/hr/online', icon: Wifi }
+    ]
+  },
+  {
+    heading: 'Music',
+    items: [
+      { title: 'Playlist', path: '/hr/playlist', icon: Music }
     ]
   }
 ];

@@ -28,6 +28,9 @@ import DesMonthlyReports from './des/desMonthlyReports';
 import HrEmployees from './hr/HrEmployees';
 import HrOnline from './hr/HrOnline';
 import HrRecruitment from './hr/HrRecruitment';
+import PlaylistPage from './music/PlaylistPage';
+import { MusicProvider } from './music/MusicContext';
+import MiniPlayer from './music/MiniPlayer';
 
 const getDashboardPath = (role) => {
   if (role === 'admin') return '/admin';
@@ -64,6 +67,7 @@ const DashboardLayout = () => {
     setMobileOpen(false);
   }, [pathname]);
   return (
+    <MusicProvider>
     <div className={`app-shell ${collapsed ? 'collapsed' : ''}`}>
       <Sidebar collapsed={collapsed} onToggle={toggleSidebar} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
       {mobileOpen && <div className="app-scrim" onClick={() => setMobileOpen(false)} />}
@@ -72,8 +76,10 @@ const DashboardLayout = () => {
         <main className="app-content">
           <Outlet />
         </main>
+        <MiniPlayer />
       </div>
     </div>
+    </MusicProvider>
   );
 };
 const AppRoutes = () => {
@@ -93,6 +99,7 @@ const AppRoutes = () => {
           <Route path="/admin/creatives" element={<AdminCreatives />} />
           <Route path="/admin/attendance" element={<AdminAttendance />} />
           <Route path="/admin/calendar" element={<AdminCalendar />} />
+          <Route path="/admin/playlist" element={<PlaylistPage workspace="ADMIN WORKSPACE" />} />
         </Route>
       </Route>
       <Route element={<ProtectedRoute role="sme" />}>
@@ -105,6 +112,7 @@ const AppRoutes = () => {
           <Route path="/sme/settings" element={<SmeSettings />} />
           <Route path="/sme/analytics" element={<SmeAnalytics />} />
           <Route path="/sme/monthly-reports" element={<SmeMonthlyReports />} />
+          <Route path="/sme/playlist" element={<PlaylistPage workspace="SME WORKSPACE" />} />
         </Route>
       </Route>
       <Route element={<ProtectedRoute role="des" />}>
@@ -112,12 +120,14 @@ const AppRoutes = () => {
           <Route path="/des" element={<DesHome />} />
           <Route path="/des/creatives" element={<DesDashboard />} />
           <Route path="/des/monthly-reports" element={<DesMonthlyReports />} />
+          <Route path="/des/playlist" element={<PlaylistPage workspace="DESIGNER WORKSPACE" />} />
         </Route>
       </Route>
       <Route element={<ProtectedRoute role="smi" />}>
         <Route element={<DashboardLayout />}>
           <Route path="/smi" element={<SmiDashboard />} />
           <Route path="/smi/saved" element={<SmiSaved />} />
+          <Route path="/smi/playlist" element={<PlaylistPage workspace="SMI WORKSPACE" />} />
         </Route>
       </Route>
       <Route element={<ProtectedRoute role="hr" />}>
@@ -126,6 +136,7 @@ const AppRoutes = () => {
           <Route path="/hr/recruitment" element={<HrRecruitment />} />
           <Route path="/hr/employees" element={<HrEmployees />} />
           <Route path="/hr/online" element={<HrOnline />} />
+          <Route path="/hr/playlist" element={<PlaylistPage workspace="HR WORKSPACE" />} />
         </Route>
       </Route>
       <Route path="/" element={<Navigate to={dashboardPath} replace />} />
