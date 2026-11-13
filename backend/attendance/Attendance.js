@@ -11,7 +11,7 @@ const pointSchema = new mongoose.Schema(
 const attendanceSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
-    role: { type: String, enum: ['admin', 'reporting_manager', 'sme', 'smi', 'des', 'clients'], required: true },
+    role: { type: String, enum: ['admin', 'reporting_manager', 'sme', 'smi', 'des', 'hr', 'clients'], required: true },
     name: String,
     email: String,
     sessionId: { type: String, required: true, index: true },

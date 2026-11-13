@@ -40,6 +40,7 @@ const ROLES = [
   { value: 'sme', label: roleName('sme') },
   { value: 'smi', label: roleName('smi') },
   { value: 'des', label: roleName('des') },
+  { value: 'hr', label: roleName('hr') },
   { value: 'admin', label: roleName('admin') },
 ];
 
