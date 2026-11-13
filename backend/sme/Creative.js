@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
-
-export const CREATIVE_PLATFORMS = ['instagram', 'facebook', 'linkedin', 'x', 'youtube'];
+export const CREATIVE_PLATFORMS = ['facebook', 'instagram', 'threads', 'linkedin', 'youtube', 'x', 'pinterest'];
 export const CREATIVE_STATUSES = ['pending', 'approved', 'rejected'];
 
 const creativeSchema = new mongoose.Schema({

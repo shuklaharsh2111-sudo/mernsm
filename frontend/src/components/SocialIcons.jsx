@@ -42,7 +42,6 @@ const GLYPHS = {
     </>
   ),
 };
-
 export const LinePlatformIcon = ({ platform, size = 18 }) => {
   const glyph = GLYPHS[platform];
   if (!glyph) return null;
@@ -62,7 +61,6 @@ export const LinePlatformIcon = ({ platform, size = 18 }) => {
     </svg>
   );
 };
-
 export const FacebookIcon = ({ size = 14 }) => <LinePlatformIcon platform="facebook" size={size} />;
 export const InstagramIcon = ({ size = 14 }) => <LinePlatformIcon platform="instagram" size={size} />;
 export const ThreadsIcon = ({ size = 14 }) => <LinePlatformIcon platform="threads" size={size} />;

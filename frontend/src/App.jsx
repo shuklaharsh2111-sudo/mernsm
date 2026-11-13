@@ -28,6 +28,7 @@ import DesMonthlyReports from './des/desMonthlyReports';
 import HrDashboard from './hr/HrDashboard';
 import HrEmployees from './hr/HrEmployees';
 import HrAttendance from './hr/HrAttendance';
+import DesCalendar from './des/DesCalendar';
 
 const getDashboardPath = (role) => {
   if (role === 'admin') return '/admin';
@@ -112,6 +113,7 @@ const AppRoutes = () => {
           <Route path="/des" element={<DesHome />} />
           <Route path="/des/creatives" element={<DesDashboard />} />
           <Route path="/des/monthly-reports" element={<DesMonthlyReports />} />
+          <Route path="/des/calendar" element={<DesCalendar />} />
         </Route>
       </Route>
       <Route element={<ProtectedRoute role="smi" />}>
