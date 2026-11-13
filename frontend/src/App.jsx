@@ -25,6 +25,9 @@ import SmiDashboard from './smi/SmiDashboard';
 import SmiSaved from './smi/SmiSaved';
 import DesHome from './des/desHome';
 import DesMonthlyReports from './des/desMonthlyReports';
+import HrDashboard from './hr/HrDashboard';
+import HrEmployees from './hr/HrEmployees';
+import HrAttendance from './hr/HrAttendance';
 
 const getDashboardPath = (role) => {
   if (role === 'admin') return '/admin';
@@ -115,6 +118,13 @@ const AppRoutes = () => {
         <Route element={<DashboardLayout />}>
           <Route path="/smi" element={<SmiDashboard />} />
           <Route path="/smi/saved" element={<SmiSaved />} />
+        </Route>
+      </Route>
+      <Route element={<ProtectedRoute role="hr" />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/hr" element={<HrDashboard />} />
+          <Route path="/hr/employees" element={<HrEmployees />} />
+          <Route path="/hr/attendance" element={<HrAttendance />} />
         </Route>
       </Route>
       <Route path="/" element={<Navigate to={dashboardPath} replace />} />

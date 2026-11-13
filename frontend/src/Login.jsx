@@ -23,7 +23,8 @@ const Login = () => {
         admin: '/admin',
         sme: '/sme',
         des: '/des',
-        smi: '/smi'
+        smi: '/smi',
+        hr: '/hr'
       }[user.role] || '/login';
       navigate(dashboardPath, { replace: true });
     } catch (err) {

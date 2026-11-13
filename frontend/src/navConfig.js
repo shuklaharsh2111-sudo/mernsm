@@ -97,7 +97,8 @@ export const HR_NAV = [
   {
     heading: 'Management',
     items: [
-      { title: 'Employees', path: '/hr/employees', icon: Users }
+      { title: 'Employees', path: '/hr/employees', icon: Users },
+      { title: 'Attendance', path: '/hr/attendance', icon: UserCheck }
     ]
   }
 ];

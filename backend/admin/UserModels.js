@@ -18,6 +18,7 @@ const createModel = (modelName, collectionName) => mongoose.models[modelName] ||
 export const ReportingManager = createModel('ReportingManager', 'reporting_managers');
 export const Smi = createModel('Smi', 'smis');
 export const Des = createModel('Des', 'des');
+export const Hr = createModel('Hr', 'hrs');
 export const Client = createModel('Client', 'clients');
 export const roleModels = {
   admin: Admin,
@@ -25,6 +26,7 @@ export const roleModels = {
   sme: Sme,
   smi: Smi,
   des: Des,
+  hr: Hr,
   clients: Client
 };
 export const roleCollections = {
@@ -33,6 +35,7 @@ export const roleCollections = {
   sme: 'smes',
   smi: 'smis',
   des: 'des',
+  hr: 'hrs',
   clients: 'clients'
 };
 export default userSchema;
