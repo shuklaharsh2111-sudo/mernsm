@@ -44,12 +44,50 @@
 .hr-pill.late { color: #ffe3a3; background: rgba(251, 191, 36, .16); }
 
 /* toolbar + table (employees / attendance) */
-.hr-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.hr-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
 .hr-search { position: relative; flex: 1; min-width: 220px; }
 .hr-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-3); }
 .hr-search input, .hr-toolbar select, .hr-toolbar input[type="date"] { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--ink); font: inherit; font-size: 13px; }
 .hr-search input { padding-left: 36px; }
 .hr-toolbar select, .hr-toolbar input[type="date"] { width: auto; }
+.hr-toolbar-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hr-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 15px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .2s ease;
+}
+.hr-export-btn:hover:not(:disabled) {
+  border-color: rgba(242, 107, 15, .6);
+  background: rgba(242, 107, 15, .14);
+  color: var(--orange-light);
+  transform: translateY(-1px);
+}
+.hr-export-btn.ghost {
+  background: transparent;
+  color: var(--ink-2);
+}
+.hr-export-btn.ghost:hover:not(:disabled) {
+  border-color: var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+.hr-export-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  transform: none;
+}
 .hr-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .hr-chips button { padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink-2); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 .hr-chips button em { font-style: normal; margin-left: 6px; color: var(--ink-3); }
