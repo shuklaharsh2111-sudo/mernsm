@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Settings, CalendarDays, FolderOpen, Bookmark,
   ChartNoAxesCombined, FileBarChart, Clock, Building2, Receipt,
-  CalendarCheck, Palette, UserCheck
+  CalendarCheck, Palette, UserCheck, Briefcase
 } from 'lucide-react';
 export const ADMIN_NAV = [
   {
@@ -99,6 +99,12 @@ export const HR_NAV = [
     items: [
       { title: 'Employees', path: '/hr/employees', icon: Users },
       { title: 'Attendance', path: '/hr/attendance', icon: UserCheck }
+    ]
+  },
+  {
+    heading: 'Hiring',
+    items: [
+      { title: 'Recruitment', path: '/hr/recruitment', icon: Briefcase }
     ]
   }
 ];
