@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, Download } from 'react';
 import { UploadCloud, FileText, Search, Trash2, X, LoaderCircle, Users, UserCheck, PhoneCall, CalendarClock } from 'lucide-react';
 import api from '../api';
 import { errMsg } from '../sopUtils';
@@ -6,10 +6,8 @@ import { fmtDate } from './hrUtils';
 import '../style.css';
 import '../styles/dashboard-glass.css';
 import '../styles/hr.css';
-
 const emptyFields = { name: '', mobile: '', email: '', position: '' };
 const FIELD_LABELS = { name: 'name', mobile: 'mobile number', email: 'email', position: 'position' };
-
 // ISO -> value for <input type="datetime-local"> (local time)
 const toLocalInput = (iso) => {
   if (!iso) return '';
@@ -18,7 +16,6 @@ const toLocalInput = (iso) => {
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 };
-
 const FILTERS = [
   { id: 'all', label: 'All', test: () => true },
   { id: 'shortlisted', label: 'Shortlisted', test: (c) => c.shortlisted },
@@ -26,7 +23,6 @@ const FILTERS = [
   { id: 'callPending', label: 'Call pending', test: (c) => c.shortlisted && !c.callDone },
   { id: 'interview', label: 'Interview scheduled', test: (c) => !!c.interviewAt },
 ];
-
 // Remark box: edits locally, saves when you click away
 const RemarkCell = ({ value, at, onSave }) => {
   const [text, setText] = useState(value);
@@ -44,7 +40,6 @@ const RemarkCell = ({ value, at, onSave }) => {
     </div>
   );
 };
-
 // Small inline-editable cell: edits locally, saves on blur / Enter, reverts if the server says no
 const EditCell = ({ value, onSave, type = 'text', placeholder = '—', label }) => {
   const [text, setText] = useState(value);
@@ -67,7 +62,6 @@ const EditCell = ({ value, onSave, type = 'text', placeholder = '—', label }) 
     />
   );
 };
-
 const HrRecruitment = () => {
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +69,6 @@ const HrRecruitment = () => {
   const [notice, setNotice] = useState('');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
-
   // upload flow
   const fileRef = useRef(null);
   const [file, setFile] = useState(null);
@@ -86,7 +79,6 @@ const HrRecruitment = () => {
   const [formError, setFormError] = useState('');
   const [missing, setMissing] = useState([]); // details the resume did not contain
   const [review, setReview] = useState(false); // false = add straight to the table once details are found
-
   useEffect(() => {
     let cancelled = false;
     api.get('/hr/recruitment')
@@ -95,12 +87,10 @@ const HrRecruitment = () => {
       .finally(() => !cancelled && setLoading(false));
     return () => { cancelled = true; };
   }, []);
-
   const resetUpload = () => {
     setFile(null); setFields(emptyFields); setFormError(''); setMissing([]);
     if (fileRef.current) fileRef.current.value = '';
   };
-
   const pickFile = async (f) => {
     if (!f) return;
     setNotice(''); setError(''); setFormError('');
@@ -136,7 +126,6 @@ const HrRecruitment = () => {
       setParsing(false);
     }
   };
-
   const submit = async (f, data) => {
     const body = new FormData();
     Object.entries(data).forEach(([k, v]) => body.append(k, v));
@@ -146,7 +135,6 @@ const HrRecruitment = () => {
     setNotice(res.data.warning || `${res.data.candidate.name} was added automatically. Click any detail in the table to correct it.`);
     resetUpload();
   };
-
   const saveCandidate = async (e) => {
     e.preventDefault();
     setSaving(true); setFormError('');
@@ -158,7 +146,6 @@ const HrRecruitment = () => {
       setSaving(false);
     }
   };
-
   const update = async (id, patch) => {
     setError('');
     const before = candidates;
@@ -173,7 +160,6 @@ const HrRecruitment = () => {
       return false;
     }
   };
-
   const remove = async (c) => {
     if (!window.confirm(`Remove ${c.name} from recruitment? The resume will be deleted too.`)) return;
     try {
@@ -183,14 +169,12 @@ const HrRecruitment = () => {
       setError(err.response?.data?.message || errMsg(err));
     }
   };
-
   const stats = useMemo(() => ({
     total: candidates.length,
     shortlisted: candidates.filter((c) => c.shortlisted).length,
     called: candidates.filter((c) => c.callDone).length,
     interviews: candidates.filter((c) => c.interviewAt && new Date(c.interviewAt) >= new Date()).length,
   }), [candidates]);
-
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     const test = FILTERS.find((f) => f.id === filter).test;
@@ -198,12 +182,10 @@ const HrRecruitment = () => {
       test(c) && (!q || [c.name, c.email, c.mobile, c.position].some((v) => String(v || '').toLowerCase().includes(q)))
     );
   }, [candidates, query, filter]);
-
   const setField = (k) => (e) => {
     setFields((f) => ({ ...f, [k]: e.target.value }));
     setMissing((m) => m.filter((x) => x !== k)); // typed in -> no longer "missing"
   };
-
   return (
     <div className="dashboard-content scrollable dash-glass hr-page">
       <div className="page-header">
@@ -213,26 +195,21 @@ const HrRecruitment = () => {
           <p>Upload a resume and the candidate's details are filled in for you. Then track shortlisting, calls and interviews.</p>
         </div>
       </div>
-
       {error && <p className="error-message" role="alert">{error}</p>}
       {notice && <p className="success-message" role="status">{notice}</p>}
-
       <div className="kpi-grid">
         <div className="kpi-card"><div className="kpi-top"><span className="kpi-label">Candidates</span><span className="kpi-icon"><Users size={17} /></span></div><div className="kpi-value">{stats.total}</div></div>
         <div className="kpi-card green"><div className="kpi-top"><span className="kpi-label">CV shortlisted</span><span className="kpi-icon"><UserCheck size={17} /></span></div><div className="kpi-value">{stats.shortlisted}</div></div>
         <div className="kpi-card amber"><div className="kpi-top"><span className="kpi-label">Calls done</span><span className="kpi-icon"><PhoneCall size={17} /></span></div><div className="kpi-value">{stats.called}</div></div>
         <div className="kpi-card"><div className="kpi-top"><span className="kpi-label">Upcoming interviews</span><span className="kpi-icon"><CalendarClock size={17} /></span></div><div className="kpi-value">{stats.interviews}</div></div>
       </div>
-
       {/* ---------- Upload resume ---------- */}
       <section className="hr-card">
         <div className="hr-card-head"><h3>Add candidate from resume</h3><small>PDF, Word, TXT or image (JPG, PNG) · max 8MB</small></div>
-
         <label className="hr-review-toggle">
           <input type="checkbox" checked={review} onChange={(e) => setReview(e.target.checked)} />
           Review the details before adding
         </label>
-
         {!file ? (
           <label
             className={`hr-drop ${dragging ? 'drag' : ''}`}
@@ -279,7 +256,6 @@ const HrRecruitment = () => {
           </form>
         )}
       </section>
-
       {/* ---------- Candidates ---------- */}
       <div className="hr-toolbar">
         <div className="hr-search">
@@ -294,7 +270,6 @@ const HrRecruitment = () => {
           </button>
         ))}
       </div>
-
       {loading ? (
         <p className="muted">Loading…</p>
       ) : (
@@ -347,5 +322,4 @@ const HrRecruitment = () => {
     </div>
   );
 };
-
 export default HrRecruitment;
