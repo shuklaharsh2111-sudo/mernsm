@@ -163,6 +163,39 @@ router.get('/dashboard', async (req, res) => {
   });
 });
 
+// ---------------- Online / Offline (who is signed in right now) ----------------
+// Online = today's latest session has no sign-out yet. Offline = signed out, or has not logged in today.
+router.get('/presence', async (req, res) => {
+  const employees = await loadEmployees();
+  const today = startOfDay();
+  const records = await Attendance.find({ role: { $in: EMPLOYEE_ROLES }, loginAt: { $gte: today } })
+    .sort({ loginAt: 1 })
+    .lean();
+  const grouped = groupByUserDay(records);
+  const todayKey = dayKey(today);
+
+  const people = employees
+    .map((e) => {
+      const sessions = grouped.get(e.id)?.get(todayKey);
+      const first = sessions?.[0];
+      const last = sessions?.[sessions.length - 1];
+      const online = !!last && !last.logoutAt;
+      return {
+        id: e.id,
+        name: e.name,
+        role: e.role,
+        profileImage: e.profileImage,
+        online,
+        firstLogin: first?.loginAt || null,
+        lastLogout: online ? null : last?.logoutAt || null
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const online = people.filter((p) => p.online).length;
+  res.json({ summary: { total: people.length, online, offline: people.length - online }, people });
+});
+
 // ---------------- Employees ----------------
 router.get('/employees', async (req, res) => {
   const employees = await loadEmployees();

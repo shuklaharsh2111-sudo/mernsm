@@ -25,9 +25,8 @@ import SmiDashboard from './smi/SmiDashboard';
 import SmiSaved from './smi/SmiSaved';
 import DesHome from './des/desHome';
 import DesMonthlyReports from './des/desMonthlyReports';
-import HrDashboard from './hr/HrDashboard';
 import HrEmployees from './hr/HrEmployees';
-import HrAttendance from './hr/HrAttendance';
+import HrOnline from './hr/HrOnline';
 import HrRecruitment from './hr/HrRecruitment';
 
 const getDashboardPath = (role) => {
@@ -35,7 +34,7 @@ const getDashboardPath = (role) => {
   if (role === 'sme') return '/sme';
   if (role === 'des') return '/des';
   if (role === 'smi') return '/smi';
-  if (role === 'hr') return '/hr';
+  if (role === 'hr') return '/hr/recruitment';
   return '/login';
 };
 const ProtectedRoute = ({ role }) => {
@@ -123,10 +122,10 @@ const AppRoutes = () => {
       </Route>
       <Route element={<ProtectedRoute role="hr" />}>
         <Route element={<DashboardLayout />}>
-          <Route path="/hr" element={<HrDashboard />} />
-          <Route path="/hr/employees" element={<HrEmployees />} />
-          <Route path="/hr/attendance" element={<HrAttendance />} />
+          <Route path="/hr" element={<Navigate to="/hr/recruitment" replace />} />
           <Route path="/hr/recruitment" element={<HrRecruitment />} />
+          <Route path="/hr/employees" element={<HrEmployees />} />
+          <Route path="/hr/online" element={<HrOnline />} />
         </Route>
       </Route>
       <Route path="/" element={<Navigate to={dashboardPath} replace />} />
