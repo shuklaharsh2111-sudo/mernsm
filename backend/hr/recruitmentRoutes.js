@@ -108,6 +108,48 @@ router.get('/', async (req, res) => {
   res.json({ candidates: list.map(view) });
 });
 
+// Export all candidates as CSV
+router.get('/export-csv', async (req, res) => {
+  try {
+    const list = await Candidate.find().sort({ createdAt: -1 });
+    const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const header = [
+      'Candidate Name',
+      'Email',
+      'Mobile',
+      'Position',
+      'CV Shortlisted',
+      'Call Done',
+      'Interview Schedule',
+      'Last Remark',
+      'Remark Date',
+      'Resume URL',
+      'Resume Name',
+      'Date Added'
+    ];
+    const rows = list.map((c) => [
+      c.name || '',
+      c.email || '',
+      c.mobile || '',
+      c.position || '',
+      c.shortlisted ? 'Yes' : 'No',
+      c.callDone ? 'Yes' : 'No',
+      c.interviewAt ? new Date(c.interviewAt).toISOString() : '',
+      c.remark || '',
+      c.remarkAt ? new Date(c.remarkAt).toISOString() : '',
+      c.resume?.url || '',
+      c.resume?.originalName || '',
+      c.createdAt ? new Date(c.createdAt).toISOString() : ''
+    ]);
+    const csv = [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="candidates-${new Date().toISOString().slice(0, 10)}.csv"`);
+    res.send('\uFEFF' + csv);
+  } catch (err) {
+    res.status(500).json({ message: err.message || 'Failed to export candidates CSV.' });
+  }
+});
+
 // Step 2 — save the candidate (with the resume file) after HR has checked the details.
 router.post('/', withUpload(async (req, res) => {
   const name = String(req.body.name || '').trim();
