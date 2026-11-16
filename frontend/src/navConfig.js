@@ -26,6 +26,11 @@ export const ADMIN_NAV = [
     ]
   },
   {
+    heading: 'Account', items: [
+      { title: 'Settings', path: '/admin/settings', icon: Settings }
+    ]
+  },
+  {
     heading: 'Music', items: [
       { title: 'Playlist', path: '/admin/playlist', icon: Music }
     ]
@@ -83,6 +88,11 @@ export const DES_NAV = [
     ]
   },
   {
+    heading: 'Account', items: [
+      { title: 'Settings', path: '/des/settings', icon: Settings }
+    ]
+  },
+  {
     heading: 'Music',
     items: [
       { title: 'Playlist', path: '/des/playlist', icon: Music }
@@ -100,6 +110,11 @@ export const SMI_NAV = [
     heading: 'Workflow',
     items: [
       { title: 'Saved', path: '/smi/saved', icon: Bookmark }
+    ]
+  },
+  {
+    heading: 'Account', items: [
+      { title: 'Settings', path: '/smi/settings', icon: Settings }
     ]
   },
   {
@@ -121,6 +136,11 @@ export const HR_NAV = [
     items: [
       { title: 'Employees', path: '/hr/employees', icon: Users },
       { title: 'Online / Offline', path: '/hr/online', icon: Wifi }
+    ]
+  },
+  {
+    heading: 'Account', items: [
+      { title: 'Settings', path: '/hr/settings', icon: Settings }
     ]
   },
   {
