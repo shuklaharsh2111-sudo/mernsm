@@ -214,7 +214,8 @@ const AdminUsers = () => {
           {shown.map((u) => {
             const assigned = (u.companies || []).map((id) => byId[id?._id || id]).filter(Boolean);
             const manager = managerById[u.reportingManagerId];
-            const isSme = u.collection === 'smes';
+            // Admin can assign companies and SOPs to Social Media Executives (SME) and Social Media Interns (SMI).
+            const canAssign = u.collection === 'smes' || u.collection === 'smis';
             const isMe = String(u.id) === String(me?.id); // your own account can't be deleted
             return (
               <div key={`${u.collection}-${u.id}`} className="au-card">
@@ -238,7 +239,7 @@ const AdminUsers = () => {
                   <div><dt><UserCheck size={14} /> Reporting Manager</dt><dd>{manager ? manager.name : '—'}</dd></div>
                   <div><dt><CalendarDays size={14} /> Joined</dt><dd>{fmtJoined(u.createdAt)}</dd></div>
                 </dl>
-                {isSme && (
+                {canAssign && (
                   <div className="au-card-actions">
                     <button type="button" className="btn-ghost" onClick={() => setAssignUser(u)}>
                       <Building2 size={15} /> Assign Companies
@@ -248,7 +249,7 @@ const AdminUsers = () => {
                     </button>
                   </div>
                 )}
-                {isSme && (
+                {canAssign && (
                   <div className="au-companies">
                     <span>Companies ({assigned.length}/{max})</span>
                     <div>
@@ -265,7 +266,7 @@ const AdminUsers = () => {
           })}
         </div>
       )}
-      {assignUser?.collection === 'smes' && (
+      {assignUser && ['smes', 'smis'].includes(assignUser.collection) && (
         <AssignCompaniesModal
           user={assignUser}
           companies={companies}
@@ -274,7 +275,7 @@ const AdminUsers = () => {
           onClose={() => setAssignUser(null)}
         />
       )}
-      {sopUser?.collection === 'smes' && (
+      {sopUser && ['smes', 'smis'].includes(sopUser.collection) && (
         <ManageSopsModal user={sopUser} companies={companies} onClose={() => setSopUser(null)} />
       )}
     </div>

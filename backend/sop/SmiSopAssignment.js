@@ -1,8 +1,9 @@
 import mongoose from 'mongoose';
 import { SOP_TYPE_VALUES } from './SopAssignment.js';
 
-// SME -> SMI: an SOP an SME wants an SMI to follow for one of the SME's companies.
-// It is either a copy of an SOP the SME already has (sourceSop) or a brand new one.
+// An SOP an SMI has to follow for one company. It comes from either:
+//  - an SME (assignedBy): a copy of an SOP the SME already has (sourceSop) or a brand new one, or
+//  - the admin (createdBy): assigned straight to the SMI, no SME involved (assignedBy stays null).
 const completionSchema = new mongoose.Schema(
   {
     period: { type: String, required: true }, // see period.js
@@ -14,7 +15,8 @@ const completionSchema = new mongoose.Schema(
 const smiSopAssignmentSchema = new mongoose.Schema(
   {
     smi: { type: mongoose.Schema.Types.ObjectId, ref: 'Smi', required: true, index: true },
-    assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Sme', required: true, index: true },
+    assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Sme', default: null, index: true },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
     company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true },
     sourceSop: { type: mongoose.Schema.Types.ObjectId, ref: 'SopAssignment', default: null },
     type: { type: String, enum: SOP_TYPE_VALUES, required: true },

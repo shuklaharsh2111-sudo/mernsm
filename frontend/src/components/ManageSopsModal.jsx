@@ -85,7 +85,7 @@ export default function ManageSopsModal({ user, companies, onClose }) {
         </div>
 
         <div className="modal-body">
-          <p className="modal-text">SME: <b>{user.name}</b></p>
+          <p className="modal-text">{user.collection === 'smis' ? 'SMI' : 'SME'}: <b>{user.name}</b></p>
 
           {userCompanies.length === 0 ? (
             <p className="error-message">
