@@ -4,6 +4,7 @@ import { ArrowRight, Eye, EyeOff, KeyRound, MapPin } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import astronaut from './assets/images/pre-final.png';
 import LoginRibbons from './LoginRibbons';
+import DownloadManual from './DownloadManual';
 import './styles/login.css';
 const Login = () => {
   const { login } = useAuth();
@@ -105,6 +106,7 @@ const Login = () => {
             <div className="nl-brand">
               <span className="nl-brand-mark">N</span>
               <span className="nl-brand-name">NEURO</span>
+              <DownloadManual />
             </div>
           </div>
         </div>
