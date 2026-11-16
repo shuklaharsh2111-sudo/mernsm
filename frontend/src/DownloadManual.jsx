@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Check, Download } from 'lucide-react';
 
 // Put the real manual at frontend/public/NEURO-User-Manual.pdf (same file name) to replace the sample.
-const FILE = 'NEURO-User-Manual.pdf';
+const FILE = 'MANUAL.pdf';
 const PREPARE_MS = 1400;   // keep in sync with the nlFill animation in styles/login.css
 const DONE_MS = 2400;
 
