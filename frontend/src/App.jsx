@@ -26,12 +26,14 @@ import SmiDashboard from './smi/SmiDashboard';
 import SmiSaved from './smi/SmiSaved';
 import DesHome from './des/desHome';
 import DesMonthlyReports from './des/desMonthlyReports';
+import DesCalendar from './des/DesCalendar';
 import HrEmployees from './hr/HrEmployees';
 import HrOnline from './hr/HrOnline';
 import HrRecruitment from './hr/HrRecruitment';
 import PlaylistPage from './music/PlaylistPage';
 import { MusicProvider } from './music/MusicContext';
 import MiniPlayer from './music/MiniPlayer';
+
 
 const getDashboardPath = (role) => {
   if (role === 'admin') return '/admin';
@@ -69,17 +71,17 @@ const DashboardLayout = () => {
   }, [pathname]);
   return (
     <MusicProvider>
-    <div className={`app-shell ${collapsed ? 'collapsed' : ''}`}>
-      <Sidebar collapsed={collapsed} onToggle={toggleSidebar} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
-      {mobileOpen && <div className="app-scrim" onClick={() => setMobileOpen(false)} />}
-      <div className="app-main">
-        <Topbar onMenu={() => setMobileOpen(true)} />
-        <main className="app-content">
-          <Outlet />
-        </main>
-        <MiniPlayer />
+      <div className={`app-shell ${collapsed ? 'collapsed' : ''}`}>
+        <Sidebar collapsed={collapsed} onToggle={toggleSidebar} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+        {mobileOpen && <div className="app-scrim" onClick={() => setMobileOpen(false)} />}
+        <div className="app-main">
+          <Topbar onMenu={() => setMobileOpen(true)} />
+          <main className="app-content">
+            <Outlet />
+          </main>
+          <MiniPlayer />
+        </div>
       </div>
-    </div>
     </MusicProvider>
   );
 };
@@ -121,6 +123,7 @@ const AppRoutes = () => {
         <Route element={<DashboardLayout />}>
           <Route path="/des" element={<DesHome />} />
           <Route path="/des/creatives" element={<DesDashboard />} />
+          <Route path="/des/calendar" element={<DesCalendar />} />
           <Route path="/des/monthly-reports" element={<DesMonthlyReports />} />
           <Route path="/des/playlist" element={<PlaylistPage workspace="DESIGNER WORKSPACE" />} />
           <Route path="/des/settings" element={<ProfileSettings workspace="DESIGNER WORKSPACE" />} />
