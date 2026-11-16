@@ -81,13 +81,24 @@ const router = express.Router();
 router.use(protect(['sme']));
 // Companies the admin assigned to the logged-in SME (max 5), in the order assigned.
 router.get('/companies', async (req, res) => {
-  const me = await Sme.findById(req.user.id);
-  if (!me) return res.status(401).json({ message: 'User not found' });
-  const ids = (me.companies || []).map(String);
-  const found = await Company.find({ _id: { $in: ids } });
-  const byId = Object.fromEntries(found.map((c) => [String(c._id), c]));
-  const companies = ids.filter((id) => byId[id]).map((id) => ({ id, name: byId[id].name }));
-  res.json({ companies });
+  try {
+    const me = await Sme.findById(req.user.id);
+    if (!me) return res.status(401).json({ message: 'User not found' });
+    const ids = (me.companies || []).map(String);
+    const found = await Company.find({ _id: { $in: ids } });
+    const byId = Object.fromEntries(found.map((c) => [String(c._id), c]));
+    const companies = ids
+      .filter((id) => byId[id])
+      .map((id) => ({
+        id,
+        name: byId[id].name,
+        logo: byId[id].logo || ''
+      }));
+    res.json({ companies });
+  } catch (err) {
+    console.error('SME companies error:', err);
+    res.status(500).json({ message: 'Failed to fetch companies' });
+  }
 });
 const view = (a, today) => {
   const key = periodKey(a.type, today);

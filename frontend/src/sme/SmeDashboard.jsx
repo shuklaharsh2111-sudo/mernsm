@@ -70,6 +70,7 @@ const SmeDashboard = () => {
     ])
       .then(([c, a, m]) => {
         if (cancelled) return;
+        console.log('SME COMPANIES API:', c.data.companies);
         setCompanies(c.data.companies);
         setAssigned(a.data.assignments);
         setMeetings(m.data.meetings);
@@ -363,101 +364,101 @@ const SmeDashboard = () => {
               Add Meeting
             </button>
           </div>
-        {!meetings ? (
-          <p className="muted">Loading…</p>
-        ) : activeMeetings.length === 0 ? (
-          <p className="muted">No meetings scheduled yet.</p>
-        ) : (
-          <div className="meeting-list">
-            {activeMeetings.map((m) => (
-              <div
-                className="meeting-item clickable"
-                key={m.id}
-                role="button"
-                tabIndex={0}
-                title="Click to view details or add attendees"
-                onClick={() => setDetailId(m.id)}
-                onKeyDown={(e) => {
-                  if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
-                    e.preventDefault();
-                    setDetailId(m.id);
-                  }
-                }}
-              >
-                <div className="mt-date" aria-hidden="true">
-                  <b>{dateParts(m.date).day}</b>
-                  <span>{dateParts(m.date).mon}</span>
-                </div>
-
-                <div className="mt-body">
-                  <div className="mt-top">
-                    <span className="meeting-company">{m.company.name}</span>
-                    {m.priority && (
-                      <span className={`prio-pill ${m.priority}`} title="Scheduled from the previous meeting's MOM">
-                        <Flag size={11} /> {m.priority}
-                      </span>
-                    )}
+          {!meetings ? (
+            <p className="muted">Loading…</p>
+          ) : activeMeetings.length === 0 ? (
+            <p className="muted">No meetings scheduled yet.</p>
+          ) : (
+            <div className="meeting-list">
+              {activeMeetings.map((m) => (
+                <div
+                  className="meeting-item clickable"
+                  key={m.id}
+                  role="button"
+                  tabIndex={0}
+                  title="Click to view details or add attendees"
+                  onClick={() => setDetailId(m.id)}
+                  onKeyDown={(e) => {
+                    if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      setDetailId(m.id);
+                    }
+                  }}
+                >
+                  <div className="mt-date" aria-hidden="true">
+                    <b>{dateParts(m.date).day}</b>
+                    <span>{dateParts(m.date).mon}</span>
                   </div>
-                  <h3 className="meeting-title">{m.subject}</h3>
-                  <div className="mt-meta">
-                    <span className="mt-time">
-                      <Clock3 size={13} />
-                      {dateParts(m.date).wk}, {fmtTime(m.time)}
-                    </span>
-                    <span className={`mt-state ${hasStarted(m) ? 'live' : ''}`}>{hasStarted(m) ? 'Started' : 'Upcoming'}</span>
-                    <div className="avatar-stack" aria-label="Attendees">
-                      {m.attendees.slice(0, MAX_AVATARS).map((a, i) => (
-                        <span
-                          key={`${a.name}-${i}`}
-                          className="avatar"
-                          style={{ background: avatarColor(a.name) }}
-                          title={a.designation ? `${a.name} — ${a.designation}` : a.name}
-                        >
-                          {initials(a.name)}
-                        </span>
-                      ))}
-                      {m.attendees.length > MAX_AVATARS && (
-                        <span className="avatar avatar-more" title={m.attendees.slice(MAX_AVATARS).map((a) => a.name).join(', ')}>
-                          +{m.attendees.length - MAX_AVATARS}
+
+                  <div className="mt-body">
+                    <div className="mt-top">
+                      <span className="meeting-company">{m.company.name}</span>
+                      {m.priority && (
+                        <span className={`prio-pill ${m.priority}`} title="Scheduled from the previous meeting's MOM">
+                          <Flag size={11} /> {m.priority}
                         </span>
                       )}
                     </div>
+                    <h3 className="meeting-title">{m.subject}</h3>
+                    <div className="mt-meta">
+                      <span className="mt-time">
+                        <Clock3 size={13} />
+                        {dateParts(m.date).wk}, {fmtTime(m.time)}
+                      </span>
+                      <span className={`mt-state ${hasStarted(m) ? 'live' : ''}`}>{hasStarted(m) ? 'Started' : 'Upcoming'}</span>
+                      <div className="avatar-stack" aria-label="Attendees">
+                        {m.attendees.slice(0, MAX_AVATARS).map((a, i) => (
+                          <span
+                            key={`${a.name}-${i}`}
+                            className="avatar"
+                            style={{ background: avatarColor(a.name) }}
+                            title={a.designation ? `${a.name} — ${a.designation}` : a.name}
+                          >
+                            {initials(a.name)}
+                          </span>
+                        ))}
+                        {m.attendees.length > MAX_AVATARS && (
+                          <span className="avatar avatar-more" title={m.attendees.slice(MAX_AVATARS).map((a) => a.name).join(', ')}>
+                            +{m.attendees.length - MAX_AVATARS}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="mt-actions">
-                  <button
-                    type="button"
-                    className="join-now-btn"
-                    disabled={!hasStarted(m) || joiningIds.includes(m.id)}
-                    title={hasStarted(m) ? 'Join the meeting' : `Available from ${fmtDay(m.date)}, ${fmtTime(m.time)}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleJoin(m);
-                    }}
-                  >
-                    <Video size={15} /> Join Now
-                  </button>
-                  {m.joined && (
+                  <div className="mt-actions">
                     <button
                       type="button"
-                      className={`send-mom-btn ${m.mom?.status || ''}`}
+                      className="join-now-btn"
+                      disabled={!hasStarted(m) || joiningIds.includes(m.id)}
+                      title={hasStarted(m) ? 'Join the meeting' : `Available from ${fmtDay(m.date)}, ${fmtTime(m.time)}`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setMomMeeting(m);
+                        handleJoin(m);
                       }}
-                      title={MOM_BTN[m.mom?.status] ? MOM_BTN[m.mom.status].title : MOM_BTN.none.title}
                     >
-                      {MOM_BTN[m.mom?.status]?.icon || MOM_BTN.none.icon}
-                      {MOM_BTN[m.mom?.status]?.label || MOM_BTN.none.label}
+                      <Video size={15} /> Join Now
                     </button>
-                  )}
+                    {m.joined && (
+                      <button
+                        type="button"
+                        className={`send-mom-btn ${m.mom?.status || ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMomMeeting(m);
+                        }}
+                        title={MOM_BTN[m.mom?.status] ? MOM_BTN[m.mom.status].title : MOM_BTN.none.title}
+                      >
+                        {MOM_BTN[m.mom?.status]?.icon || MOM_BTN.none.icon}
+                        {MOM_BTN[m.mom?.status]?.label || MOM_BTN.none.label}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
 
       </div>
 
