@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, RefreshCw, Search, X, Users, LogIn, LogOut, Clock } from 'lucide-react';
+import { RefreshCw, Search, X, Users, LogIn, LogOut, Clock } from 'lucide-react';
 import api from '../api';
 import { errMsg } from '../sopUtils';
 import { roleName } from '../roleNames';
@@ -53,7 +53,7 @@ const STATUSES = [
 // One group = one user on one day.
 //  - first login of the day  -> shown as "First login"
 //  - last session's logout   -> shown as "Last logout" (or "No logout yet")
-//  - every other session     -> listed under "more sessions"
+// Anything in between is ignored: only the first login and the last logout matter.
 const buildGroups = (records) => {
   const map = new Map();
   records.forEach((r) => {
@@ -66,7 +66,7 @@ const buildGroups = (records) => {
     sessions.sort((a, b) => new Date(a.loginAt) - new Date(b.loginAt));
     const first = sessions[0];
     const last = sessions[sessions.length - 1];
-    return { key, dayKey: dayKey(first.loginAt), day: first.loginAt, user: first, first, last, extras: sessions.slice(1) };
+    return { key, dayKey: dayKey(first.loginAt), day: first.loginAt, user: first, first, last };
   });
 };
 
@@ -76,7 +76,6 @@ const AdminAttendance = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
-  const [open, setOpen] = useState({}); // group key -> expanded?
 
   const [from, setFrom] = useState(today());
   const [to, setTo] = useState(today());
@@ -138,7 +137,6 @@ const AdminAttendance = () => {
       .sort((a, b) => b.key.localeCompare(a.key));
   }, [searched, status]);
 
-  const toggle = (key) => setOpen((o) => ({ ...o, [key]: !o[key] }));
   const pickRange = (r) => {
     const [f, t] = r.get();
     setFrom(f);
@@ -155,7 +153,7 @@ const AdminAttendance = () => {
           <span className="page-label">ADMINISTRATION</span>
           <h1>Attendance</h1>
           <p>
-            One row per person per day, using the first login and the last logout. Extra logins that day sit under “more sessions”.
+            One row per person per day, showing only the first login and the last logout.
             {office?.configured
               ? ` Staff can log in only within ${office.radius} m of the office.`
               : ' Office location is not configured yet (set OFFICE_LAT / OFFICE_LNG in backend/.env).'}
@@ -250,8 +248,6 @@ const AdminAttendance = () => {
                 </div>
 
                 {d.rows.map((g) => {
-                  const expanded = !!open[g.key];
-                  const hasExtras = g.extras.length > 0;
                   const done = !!g.last.logoutAt;
                   return (
                     <div key={g.key} className="aa-group" role="rowgroup">
@@ -265,28 +261,6 @@ const AdminAttendance = () => {
                         <span className="aa-time" role="cell" data-label="Last logout">{done ? fmtTime(g.last.logoutAt) : <em>—</em>}</span>
                         <span role="cell"><span className={`aa-pill ${done ? 'out' : 'in'}`}>{done ? 'Logged out' : 'No logout yet'}</span></span>
                       </div>
-
-                      {hasExtras && (
-                        <div className="aa-extra-bar">
-                          <button type="button" onClick={() => toggle(g.key)} aria-expanded={expanded}>
-                            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                            {g.extras.length} more session{g.extras.length > 1 ? 's' : ''} this day
-                          </button>
-                        </div>
-                      )}
-
-                      {hasExtras && expanded && (
-                        <ul className="aa-extras">
-                          {g.extras.map((s) => (
-                            <li key={s.id}>
-                              <span>↳ Extra login</span>
-                              <b>{fmtTime(s.loginAt)}</b>
-                              <span>to</span>
-                              <b>{s.logoutAt ? fmtTime(s.logoutAt) : 'not logged out'}</b>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
                     </div>
                   );
                 })}
