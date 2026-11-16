@@ -6,20 +6,51 @@ const initials = (name = '') =>
     .map((w) => w[0])
     .join('')
     .toUpperCase();
-
-// A white circle with the company's initials. Used on the SME dashboard (max 5).
+// Company badge with logo and initials fallback.
 export function CompanyBadge({ company, size = 72, showName = false }) {
   return (
     <div className="company-item" title={company.name}>
-      <div className="company-circle" style={{ width: size, height: size, fontSize: size * 0.34 }}>
-        {initials(company.name)}
+      <div
+        className="company-circle"
+        style={{
+          width: size,
+          height: size,
+          fontSize: size * 0.34,
+          overflow: 'hidden'
+        }}
+      >
+        {company.logo ? (
+          <img
+            src={company.logo}
+            alt={company.name}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              borderRadius: '50%',
+              display: 'block'
+            }}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.nextSibling.style.display = 'flex';
+            }}
+          />
+        ) : null}
+        <span style={{
+          display: company.logo ? 'none' : 'flex',
+          width: '100%',
+          height: '100%',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          {initials(company.name)}
+        </span>
       </div>
       {showName && <span className="company-name">{company.name}</span>}
     </div>
   );
 }
-
-// A dashed empty slot, shown for each of the 5 places not yet assigned.
+// Empty company slot.
 export function EmptyBadge({ size = 72, showName = false }) {
   return (
     <div className="company-item empty" aria-hidden="true">
