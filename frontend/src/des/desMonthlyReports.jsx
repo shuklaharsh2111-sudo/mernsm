@@ -78,7 +78,7 @@ const DesMonthlyReports = () => {
       padding: 0 !important;
       background: #ffffff !important;
       color: #222222 !important;
-      font-family: Arial, Helvetica, sans-serif !important;
+      font-family: 'Poppins', Arial, Helvetica, sans-serif !important;
       font-size: 12px !important;
     }
     body {
@@ -380,6 +380,9 @@ const DesMonthlyReports = () => {
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Designer Monthly Report - ${month}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
         <style>${printStyles}</style>
       </head>
       <body>
