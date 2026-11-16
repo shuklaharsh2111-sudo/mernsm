@@ -55,11 +55,6 @@
 .aa-pill.in { color: #ffe3a3; background: rgba(251, 191, 36, .16); }
 .aa-pill.out { color: #a8f1d4; background: rgba(52, 211, 153, .16); }
 
-.aa-extra-bar { padding: 0 16px 10px; }
-.aa-extra-bar button { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; color: var(--orange-light); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
-.aa-extras { list-style: none; margin: 0; padding: 4px 16px 12px 40px; display: flex; flex-direction: column; gap: 6px; }
-.aa-extras li { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-3); }
-.aa-extras b { color: var(--ink-2); font-variant-numeric: tabular-nums; }
 
 .aa-empty { display: grid; justify-items: center; gap: 6px; padding: 44px 20px; text-align: center; color: var(--ink-3); }
 .aa-empty h3 { margin: 4px 0 0; font-size: 18px; color: var(--ink); }
