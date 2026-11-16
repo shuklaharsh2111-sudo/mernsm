@@ -5,6 +5,7 @@ import { CompanyBadge } from '../components/CompanyBadge';
 import CreativeViewModal from '../components/CreativeViewModal';
 import DayCreativesModal from '../components/DayCreativesModal';
 import CreativeStatusBadge from '../components/CreativeStatusBadge';
+import { DesignerStatusPill } from '../components/DesignerOutputPanel';
 import { PLATFORMS } from '../components/creativePlatforms';
 import { LinePlatformIcon } from '../components/SocialIcons';
 import { errMsg, todayStr } from '../sopUtils';
@@ -183,6 +184,7 @@ const AdminCalendar = () => {
                             <span className="cal-creative-title">{c.contentPillar.title}</span>
                             <span className="cal-creative-meta">
                               <CreativeStatusBadge status={c.status} compact />
+                              <DesignerStatusPill creative={c} />
                             </span>
                           </span>
                         </span>
@@ -211,7 +213,7 @@ const AdminCalendar = () => {
       )}
 
       {viewing && (
-        <CreativeViewModal creative={viewing} company={active} platforms={PLATFORMS} onClose={() => setViewing(null)} />
+        <CreativeViewModal creative={viewing} company={active} platforms={PLATFORMS} showDesigner onClose={() => setViewing(null)} />
       )}
     </div>
   );

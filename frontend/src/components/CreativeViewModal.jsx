@@ -3,10 +3,11 @@ import { createPortal } from 'react-dom';
 import { X, Pencil } from 'lucide-react';
 import CreativeDetails from './CreativeDetails';
 import CreativeStatusBadge from './CreativeStatusBadge';
+import DesignerOutputPanel from './DesignerOutputPanel';
 import PlatformPreviewSwitcher from './PlatformPreviewSwitcher';
 import { fmtDay } from '../sopUtils';
 // Read-only view of a saved creative: its image in every chosen platform's shape.
-export default function CreativeViewModal({ creative, company, platforms, onEdit, onClose }) {
+export default function CreativeViewModal({ creative, company, platforms, onEdit, onClose, showDesigner = false }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
     document.addEventListener('keydown', onKey);
@@ -34,6 +35,7 @@ export default function CreativeViewModal({ creative, company, platforms, onEdit
           {creative.status === 'rejected' && (
             <p className="mom-note rejected">Admin asked for a redo{creative.reviewNote ? `: ${creative.reviewNote}` : '.'}</p>
           )}
+          {showDesigner && <DesignerOutputPanel creative={creative} />}
           <CreativeDetails creative={creative} />
           {creative.uploads.length > 1 && (
             <div className="creative-thumbs">
