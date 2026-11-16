@@ -39,7 +39,8 @@ const cache = new Map();
 const CACHE_MS = 10 * 60 * 1000;
 
 const searchYoutube = async (q) => {
-  const hit = cache.get(q);
+  const cacheKey = q.toLowerCase().replace(/\s+/g, ' ').trim();   // "Arijit  Singh" and "arijit singh" share one entry
+  const hit = cache.get(cacheKey);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.tracks;
 
   const key = process.env.YOUTUBE_API_KEY;
@@ -68,12 +69,10 @@ const searchYoutube = async (q) => {
       videoId: v.id.videoId,
       duration: isoToSeconds(info.get(v.id.videoId)?.contentDetails?.duration)
     }));
-  cache.set(q, { at: Date.now(), tracks });
+  cache.set(cacheKey, { at: Date.now(), tracks });
   if (cache.size > 100) cache.delete(cache.keys().next().value);
   return tracks;
 };
-
-const DEFAULT_QUERIES = ['top hits', 'bollywood hits', 'lofi chill', 'workout songs', 'focus instrumental music', 'punjabi hits'];
 
 router.get('/sources', (req, res) => res.json({ youtube: !!process.env.YOUTUBE_API_KEY }));
 
@@ -82,8 +81,9 @@ router.get('/search', async (req, res) => {
     if (!process.env.YOUTUBE_API_KEY) {
       return res.status(400).json({ code: 'NO_KEY', message: 'YouTube is not set up. Add YOUTUBE_API_KEY to backend/.env and restart the server.' });
     }
-    let q = str(req.query.q, 100).trim();
-    if (!q) q = DEFAULT_QUERIES[Math.floor(Math.random() * DEFAULT_QUERIES.length)];
+    // No random default search any more: an empty or very short query costs nothing.
+    const q = str(req.query.q, 100).trim();
+    if (q.length < 3) return res.json({ tracks: [], query: q });
     const tracks = await searchYoutube(q);
     res.json({ tracks, query: q });
   } catch (err) {
