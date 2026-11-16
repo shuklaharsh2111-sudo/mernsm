@@ -18,6 +18,7 @@ import SmeCalendar from './sme/SmeCalendar';
 import Invoices from './components/Invoice';
 import SmePendingCreatives from './sme/SmePendingCreatives';
 import SmeSettings from './sme/SmeSettings';
+import ProfileSettings from './settings/ProfileSettings';
 import SmeAnalytics from './sme/SmeAnalytics';
 import SmeMonthlyReports from './sme/SmeMonthlyReports';
 import DesDashboard from './des/desdashboard';
@@ -31,7 +32,6 @@ import HrRecruitment from './hr/HrRecruitment';
 import PlaylistPage from './music/PlaylistPage';
 import { MusicProvider } from './music/MusicContext';
 import MiniPlayer from './music/MiniPlayer';
-import DesCalendar from './des/DesCalendar';
 
 const getDashboardPath = (role) => {
   if (role === 'admin') return '/admin';
@@ -69,17 +69,17 @@ const DashboardLayout = () => {
   }, [pathname]);
   return (
     <MusicProvider>
-      <div className={`app-shell ${collapsed ? 'collapsed' : ''}`}>
-        <Sidebar collapsed={collapsed} onToggle={toggleSidebar} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
-        {mobileOpen && <div className="app-scrim" onClick={() => setMobileOpen(false)} />}
-        <div className="app-main">
-          <Topbar onMenu={() => setMobileOpen(true)} />
-          <main className="app-content">
-            <Outlet />
-          </main>
-          <MiniPlayer />
-        </div>
+    <div className={`app-shell ${collapsed ? 'collapsed' : ''}`}>
+      <Sidebar collapsed={collapsed} onToggle={toggleSidebar} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+      {mobileOpen && <div className="app-scrim" onClick={() => setMobileOpen(false)} />}
+      <div className="app-main">
+        <Topbar onMenu={() => setMobileOpen(true)} />
+        <main className="app-content">
+          <Outlet />
+        </main>
+        <MiniPlayer />
       </div>
+    </div>
     </MusicProvider>
   );
 };
@@ -101,6 +101,7 @@ const AppRoutes = () => {
           <Route path="/admin/attendance" element={<AdminAttendance />} />
           <Route path="/admin/calendar" element={<AdminCalendar />} />
           <Route path="/admin/playlist" element={<PlaylistPage workspace="ADMIN WORKSPACE" />} />
+          <Route path="/admin/settings" element={<ProfileSettings workspace="ADMIN WORKSPACE" />} />
         </Route>
       </Route>
       <Route element={<ProtectedRoute role="sme" />}>
@@ -119,10 +120,10 @@ const AppRoutes = () => {
       <Route element={<ProtectedRoute role="des" />}>
         <Route element={<DashboardLayout />}>
           <Route path="/des" element={<DesHome />} />
-          <Route path="/des/calendar" element={<DesCalendar />} />
           <Route path="/des/creatives" element={<DesDashboard />} />
           <Route path="/des/monthly-reports" element={<DesMonthlyReports />} />
           <Route path="/des/playlist" element={<PlaylistPage workspace="DESIGNER WORKSPACE" />} />
+          <Route path="/des/settings" element={<ProfileSettings workspace="DESIGNER WORKSPACE" />} />
         </Route>
       </Route>
       <Route element={<ProtectedRoute role="smi" />}>
@@ -130,6 +131,7 @@ const AppRoutes = () => {
           <Route path="/smi" element={<SmiDashboard />} />
           <Route path="/smi/saved" element={<SmiSaved />} />
           <Route path="/smi/playlist" element={<PlaylistPage workspace="SMI WORKSPACE" />} />
+          <Route path="/smi/settings" element={<ProfileSettings workspace="SMI WORKSPACE" />} />
         </Route>
       </Route>
       <Route element={<ProtectedRoute role="hr" />}>
@@ -139,6 +141,7 @@ const AppRoutes = () => {
           <Route path="/hr/employees" element={<HrEmployees />} />
           <Route path="/hr/online" element={<HrOnline />} />
           <Route path="/hr/playlist" element={<PlaylistPage workspace="HR WORKSPACE" />} />
+          <Route path="/hr/settings" element={<ProfileSettings workspace="HR WORKSPACE" />} />
         </Route>
       </Route>
       <Route path="/" element={<Navigate to={dashboardPath} replace />} />

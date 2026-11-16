@@ -13,6 +13,7 @@ import invoiceRoutes from './invoices/invoiceRoutes.js';
 import desRoutes from './des/desRoutes.js';
 import hrRoutes from './hr/hrRoutes.js';
 import musicRoutes from './music/musicRoutes.js';
+import accountRoutes from './account/accountRoutes.js';
 import { startGrainPoller } from './meeting/grainSync.js';
 import { googleCallback } from './meeting/integrationRoutes.js';
 dotenv.config();
@@ -39,6 +40,7 @@ app.use('/api/smi', smiRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/hr', hrRoutes);
 app.use('/api/music', musicRoutes);
+app.use('/api/account', accountRoutes);
 app.get('/api/admin/dashboard', protect(['admin']), (req, res) => {
     res.json({ message: 'Admin access granted' });
 });
