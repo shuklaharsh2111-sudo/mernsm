@@ -4,6 +4,7 @@ import {
   ChevronDown, ChevronUp, CalendarDays, User, Building2, Image as ImageIcon, TriangleAlert,
 } from 'lucide-react';
 import CreativeDetails from '../components/CreativeDetails';
+import DesignerOutputPanel, { DesignerStatusPill } from '../components/DesignerOutputPanel';
 import api from '../api';
 import PlatformPreviewSwitcher from '../components/PlatformPreviewSwitcher';
 import { PLATFORMS } from '../components/creativePlatforms';
@@ -164,6 +165,7 @@ const AdminCreatives = () => {
               <div className="acq-badges">
                 {wait && <span className={`acq-wait ${wait.level}`} title={`Submitted ${fmtDateTime(c.submittedAt)}`}>{wait.level === 'late' && <TriangleAlert size={11} />} Waiting {wait.label}</span>}
                 <span className={`status-pill ${c.status}`}>{c.status}</span>
+                <DesignerStatusPill creative={c} />
               </div>
             </div>
 
@@ -228,6 +230,7 @@ const AdminCreatives = () => {
 
         {c.status === 'rejected' && c.reviewNote && <p className="mom-note rejected acq-note">Rejected: {c.reviewNote}</p>}
         {c.status === 'approved' && <p className="mom-note approved acq-note">Approved {fmtDateTime(c.reviewedAt)}. Saved on the calendar.</p>}
+        {c.status === 'approved' && <div className="acq-section acq-designer"><DesignerOutputPanel creative={c} /></div>}
 
         {c.status === 'pending' && (
           <div className="acq-actions">

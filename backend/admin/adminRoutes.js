@@ -471,6 +471,30 @@ router.put('/moms/:id/approve', (req, res) => reviewMom(req, res, 'approve'));
 router.put('/moms/:id/send-back', (req, res) => reviewMom(req, res, 'send-back'));
 router.put('/moms/:id/reject', (req, res) => reviewMom(req, res, 'reject'));
 // ---------------- Creative approvals ----------------
+// What the designer delivered for an approved creative, and where the SME's review of it stands
+// (submitted / approved / redo). Read-only for the admin.
+const designOutputView = (d) => (d ? {
+  url: d.url,
+  name: d.originalName,
+  mimeType: d.mimeType,
+  size: d.size,
+  uploadedAt: d.uploadedAt,
+  status: d.status,
+  note: d.note || '',
+  reviewedAt: d.reviewedAt,
+  version: d.version || 1,
+  redoCount: d.redoCount || 0,
+  history: [...(d.history || [])].reverse().map((h) => ({
+    url: h.url,
+    name: h.originalName,
+    mimeType: h.mimeType,
+    size: h.size,
+    uploadedAt: h.uploadedAt,
+    note: h.note || '',
+    reviewedAt: h.reviewedAt,
+    version: h.version || 1,
+  })),
+} : null);
 const creativeItemView = (c) => ({
   id: c._id,
   status: c.status,
@@ -480,6 +504,12 @@ const creativeItemView = (c) => ({
   date: c.date,
   referenceLinks: c.referenceLinks || [],
   uploads: (c.uploads || []).map((u) => ({ url: u.url, name: u.originalName })),
+  // Only an approved creative can have a designer, so these stay empty for pending / rejected ones.
+  assignedDesigner: c.status === 'approved' && c.assignedDesigner && c.assignedDesigner._id
+    ? { id: String(c.assignedDesigner._id), name: c.assignedDesigner.name, email: c.assignedDesigner.email }
+    : null,
+  assignedAt: c.status === 'approved' ? c.assignedAt || null : null,
+  designOutput: c.status === 'approved' ? designOutputView(c.designOutput) : null,
   contentPillar: {
     title: c.contentPillar?.title || '',
     caption: c.contentPillar?.caption || '',
@@ -496,7 +526,8 @@ router.get('/creatives', async (req, res) => {
     .sort({ createdAt: -1 })
     .limit(500)
     .populate('company', 'name')
-    .populate('user', 'name fullname email');
+    .populate('user', 'name fullname email')
+    .populate('assignedDesigner', 'name email');
   res.json({ creatives: list.map(creativeItemView) });
 });
 // Approve -> it appears on the SME's calendar. Reject needs a reason.
@@ -504,7 +535,8 @@ const reviewCreative = async (req, res, action) => {
   if (!validId(req.params.id)) return res.status(404).json({ message: 'Creative not found' });
   const creative = await Creative.findById(req.params.id)
     .populate('company', 'name')
-    .populate('user', 'name fullname email');
+    .populate('user', 'name fullname email')
+    .populate('assignedDesigner', 'name email');
   if (!creative) return res.status(404).json({ message: 'Creative not found' });
   if (creative.status !== 'pending') {
     return res.status(400).json({ message: `This creative is not waiting for review (it is ${creative.status})` });
