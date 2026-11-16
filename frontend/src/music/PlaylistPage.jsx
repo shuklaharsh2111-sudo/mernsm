@@ -89,19 +89,65 @@ const PlaylistPage = ({ workspace = 'WORKSPACE' }) => {
   const [editing, setEditing] = useState(null);
   const [editName, setEditName] = useState('');
 
-  const search = async (q = query) => {
+  const [filter, setFilter] = useState('');          // local filter inside a playlist (no API call)
+  const abortRef = useRef(null);
+  const inflightKey = useRef('');
+  const clientCache = useRef(new Map());              // query -> tracks, so repeats never hit the server
+
+  const MIN_CHARS = 3;
+  const DEBOUNCE_MS = 700;
+
+  const search = async (raw = query) => {
+    const q = raw.trim();
+    if (q.length < MIN_CHARS) return;
+    const key = q.toLowerCase();
+    if (abortRef.current && inflightKey.current === key) return;   // identical search already running
+    if (abortRef.current) abortRef.current.abort();   // drop any older, still-running search
+    if (clientCache.current.has(key)) {
+      const cached = clientCache.current.get(key);
+      setResults(cached); setSearching(false);
+      setError(cached.length ? '' : 'No songs found. Try another search.');
+      return;
+    }
+    const ctrl = new AbortController();
+    abortRef.current = ctrl; inflightKey.current = key;
     setSearching(true); setError('');
     try {
-      const res = await api.get('/music/search', { params: { q } });
+      const res = await api.get('/music/search', { params: { q }, signal: ctrl.signal });
+      clientCache.current.set(key, res.data.tracks);
       setResults(res.data.tracks);
       if (!res.data.tracks.length) setError('No songs found. Try another search.');
     } catch (e) {
+      if (e?.code === 'ERR_CANCELED' || e?.name === 'CanceledError') return;   // superseded by a newer search
       setResults([]); setError(errText(e, 'Search failed'));
-    } finally { setSearching(false); }
+    } finally {
+      if (abortRef.current === ctrl) { setSearching(false); abortRef.current = null; }
+    }
   };
-  useEffect(() => { search(''); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  // Live search: waits until the user stops typing, and ignores very short text.
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < MIN_CHARS) {
+      if (abortRef.current) { abortRef.current.abort(); abortRef.current = null; }
+      setSearching(false); setError('');
+      if (!q) setResults([]);
+      return undefined;
+    }
+    const t = setTimeout(() => search(q), DEBOUNCE_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   const active = m.playlists.find((p) => p._id === tab);
+  useEffect(() => { setFilter(''); }, [tab]);
+  const shownTracks = active
+    ? active.tracks.filter((t) => {
+        const f = filter.trim().toLowerCase();
+        return !f || t.title.toLowerCase().includes(f) || t.artist.toLowerCase().includes(f);
+      })
+    : [];
   useEffect(() => { if (tab !== 'discover' && !active && m.playlists.length) setTab('discover'); }, [tab, active, m.playlists]);
 
   const create = async (e) => {
@@ -156,10 +202,13 @@ const PlaylistPage = ({ workspace = 'WORKSPACE' }) => {
               <form className="pl-search" onSubmit={(e) => { e.preventDefault(); search(); }}>
                 <Search size={16} />
                 <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search songs, artists or moods…" />
+                {query && <button type="button" className="pl-btn" onClick={() => setQuery('')} aria-label="Clear search"><X size={16} /></button>}
                 <button type="submit" className="btn-primary">Search</button>
               </form>
               {error && <p className="pl-error">{error}</p>}
-              {searching ? <p className="pl-empty">Loading songs…</p> : (
+              {query.trim().length < MIN_CHARS && !searching ? (
+                <p className="pl-empty">Type at least {MIN_CHARS} letters to search songs. Results appear as you type.</p>
+              ) : searching ? <p className="pl-empty">Loading songs…</p> : (
                 <ul className="pl-list">
                   {results.map((t) => <TrackRow key={t.trackId} track={t} list={results} m={m} />)}
                 </ul>
@@ -192,11 +241,20 @@ const PlaylistPage = ({ workspace = 'WORKSPACE' }) => {
                   </>
                 )}
               </div>
+              {active.tracks.length > 0 && (
+                <div className="pl-search">
+                  <Search size={16} />
+                  <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={`Search in ${active.name}…`} />
+                  {filter && <button type="button" className="pl-btn" onClick={() => setFilter('')} aria-label="Clear filter"><X size={16} /></button>}
+                </div>
+              )}
               {active.tracks.length === 0 ? (
                 <p className="pl-empty">{active.isFavorite ? 'Tap the heart on any song to save it here.' : 'Empty playlist. Use the + button on a song in Discover to add it.'}</p>
+              ) : shownTracks.length === 0 ? (
+                <p className="pl-empty">No songs in this playlist match “{filter}”.</p>
               ) : (
                 <ul className="pl-list">
-                  {active.tracks.map((t) => (
+                  {shownTracks.map((t) => (
                     <TrackRow key={t.trackId} track={t} list={active.tracks} m={m} onRemove={(tr) => m.removeFromPlaylist(active._id, tr.trackId)} />
                   ))}
                 </ul>
