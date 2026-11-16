@@ -455,3 +455,101 @@ body:has(.nl-page)::after {
     padding: 20px 20px 30px;
   }
 }
+
+/* ---------- DOWNLOAD MANUAL BUTTON (icon only, on the NEURO row, tooltip on hover) ---------- */
+.nl-dl {
+  position: relative;
+  margin-left: auto;      /* sits on the NEURO row, pushed to the right edge of the form */
+  flex-shrink: 0;
+  z-index: 2;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.nl-dl:focus-visible { outline: 2px solid #f26b0f; outline-offset: 3px; border-radius: 50%; }
+.nl-dl:disabled { cursor: progress; }
+
+/* same look as the "Forgot password?" icon */
+.nl-dl-icon {
+  position: relative;
+  width: clamp(38px, 5.6vh, 50px);     /* same size as the NEURO "N" mark */
+  height: clamp(38px, 5.6vh, 50px);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  color: #f26b0f;
+  background: #fde0cc;
+  transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease;
+}
+.nl-dl:hover:not(:disabled) .nl-dl-icon { background: #f26b0f; color: #fff; transform: scale(1.08); }
+.nl-dl:active:not(:disabled) .nl-dl-icon { transform: scale(0.92); }
+.nl-dl-ic { position: relative; grid-area: 1 / 1; width: 42%; height: 42%; transition: transform 0.3s ease, opacity 0.2s ease; }
+.nl-dl-down { animation: nlBob 2.2s ease-in-out infinite; }
+.nl-dl:hover:not(:disabled) .nl-dl-down { animation-duration: 0.8s; }
+.nl-dl-check { opacity: 0; transform: translateY(10px); }
+
+/* loading: a lighter orange rises inside the circle while the arrow drops in */
+.nl-dl-fill {
+  position: absolute;
+  inset: 0;
+  background: #ffb67d;
+  transform: scaleY(0);
+  transform-origin: bottom;
+}
+.nl-dl.is-loading .nl-dl-down { animation: nlDrop 0.5s ease-in infinite; color: #b84300; }
+.nl-dl.is-loading .nl-dl-fill { animation: nlFill 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+/* done: turns green with a tick */
+.nl-dl.is-done .nl-dl-icon { background: #2e9e5b; color: #fff; }
+.nl-dl.is-done .nl-dl-fill { display: none; }
+.nl-dl.is-done .nl-dl-down { opacity: 0; animation: none; transform: translateY(-10px); }
+.nl-dl.is-done .nl-dl-check { opacity: 1; transform: translateY(0); }
+
+/* tooltip / toast message */
+.nl-dl-tip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: #1a0d08;
+  color: #fff3ea;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: 0 8px 22px rgba(26, 13, 8, 0.28);
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.nl-dl-tip::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 100%;
+  border: 5px solid transparent;
+  border-top-color: #1a0d08;
+}
+.nl-dl:hover .nl-dl-tip,
+.nl-dl:focus-visible .nl-dl-tip,
+.nl-dl.is-loading .nl-dl-tip,
+.nl-dl.is-done .nl-dl-tip { opacity: 1; transform: translateY(0); }
+.nl-dl.is-done .nl-dl-tip { background: #1f7a45; }
+.nl-dl.is-done .nl-dl-tip::after { border-top-color: #1f7a45; }
+
+@keyframes nlBob { 0%, 100% { transform: translateY(-1px); } 50% { transform: translateY(1.5px); } }
+@keyframes nlDrop {
+  0% { transform: translateY(-10px); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translateY(10px); opacity: 0; }
+}
+@keyframes nlFill { to { transform: scaleY(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .nl-dl *, .nl-dl { animation: none !important; transition: none !important; }
+  .nl-dl.is-loading .nl-dl-fill { transform: scaleY(1); }
+}
