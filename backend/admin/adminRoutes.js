@@ -18,7 +18,7 @@ import { mountIntegrationRoutes } from '../meeting/integrationRoutes.js';
 import Creative from '../sme/Creative.js';
 import Attendance from '../attendance/Attendance.js';
 import { getOfficeConfig } from '../attendance/geo.js';
-import { ReportingManager, roleModels } from './UserModels.js';
+import { ReportingManager, Smi, roleModels } from './UserModels.js';
 const router = express.Router();
 const imageUpload = multer({
   storage: multer.memoryStorage(),
@@ -70,7 +70,7 @@ const userView = (u, collection) => ({
   contact: u.contact || '',
   reportingManagerId: u.reportingManagerId ? String(u.reportingManagerId) : '',
   profileImage: u.profileImage || u.avatar || '',
-  companies: collection === 'smes' ? (u.companies || []).map(String) : [],
+  companies: ['smes', 'smis'].includes(collection) ? (u.companies || []).map(String) : [],
   createdAt: u.createdAt
 });
 const getRoleCollection = (role) => roleModels[role]?.collection?.collectionName || '';
@@ -146,16 +146,82 @@ router.post('/users', imageUpload.single('image'), async (req, res) => {
     avatar: imageUrl,
     reportingManagerId
   };
-  if (role === 'sme') userData.companies = [];
+  if (role === 'sme' || role === 'smi') userData.companies = [];
   const user = await UserModel.create(userData);
   res.status(201).json({
     user: userView(user, getRoleCollection(role))
   });
 });
-router.put('/users/:id/companies', async (req, res) => {
+// Companies can be assigned to SME and SMI users.
+const ASSIGNABLE = [
+  { Model: Sme, role: 'sme', collection: 'smes' },
+  { Model: Smi, role: 'smi', collection: 'smis' },
+];
+// Some old records stored createdAt/updatedAt as { $date: ... } objects, which breaks save(). Repair them first.
+const repairTimestamps = (Model, userId) => Model.collection.updateOne(
+  {
+    _id: userId,
+    $or: [
+      { createdAt: { $type: 'object' } },
+      { updatedAt: { $type: 'object' } }
+    ]
+  },
+  [
+    {
+      $set: {
+        createdAt: {
+          $cond: [
+            { $eq: [{ $type: '$createdAt' }, 'object'] },
+            {
+              $convert: {
+                input: { $getField: { field: { $literal: '$date' }, input: '$createdAt' } },
+                to: 'date',
+                onError: '$$NOW',
+                onNull: '$$NOW'
+              }
+            },
+            '$createdAt'
+          ]
+        },
+        updatedAt: {
+          $cond: [
+            { $eq: [{ $type: '$updatedAt' }, 'object'] },
+            {
+              $convert: {
+                input: { $getField: { field: { $literal: '$date' }, input: '$updatedAt' } },
+                to: 'date',
+                onError: '$$NOW',
+                onNull: '$$NOW'
+              }
+            },
+            '$updatedAt'
+          ]
+        }
+      }
+    }
+  ]
+);
+// Finds the SME or SMI with this id. Sends the error response itself and returns null when there is none.
+const findAssignable = async (req, res) => {
   if (!validId(req.params.id)) {
-    return res.status(404).json({ message: 'SME user not found' });
+    res.status(404).json({ message: 'User not found' });
+    return null;
   }
+  const userId = new mongoose.Types.ObjectId(req.params.id);
+  for (const entry of ASSIGNABLE) {
+    await repairTimestamps(entry.Model, userId);
+    const user = await entry.Model.findById(userId);
+    if (!user) continue;
+    if (String(user.role || '').toLowerCase() !== entry.role) {
+      res.status(403).json({ message: 'Companies and SOPs can only be assigned to SME and SMI users.' });
+      return null;
+    }
+    return { user, ...entry };
+  }
+  res.status(404).json({ message: 'User not found' });
+  return null;
+};
+router.put('/users/:id/companies', async (req, res) => {
   const ids = Array.isArray(req.body.companies)
     ? [...new Set(req.body.companies.map(String))]
     : null;
@@ -168,67 +234,11 @@ router.put('/users/:id/companies', async (req, res) => {
   if ((await Company.countDocuments({ _id: { $in: ids } })) !== ids.length) {
     return res.status(400).json({ message: 'One of the companies no longer exists' });
   }
-  const userId = new mongoose.Types.ObjectId(req.params.id);
-  await Sme.collection.updateOne(
-    {
-      _id: userId,
-      $or: [
-        { createdAt: { $type: 'object' } },
-        { updatedAt: { $type: 'object' } }
-      ]
-    },
-    [
-      {
-        $set: {
-          createdAt: {
-            $cond: [
-              { $eq: [{ $type: '$createdAt' }, 'object'] },
-              {
-                $convert: {
-                  input: {
-                    $getField: {
-                      field: { $literal: '$date' },
-                      input: '$createdAt'
-                    }
-                  },
-                  to: 'date',
-                  onError: '$$NOW',
-                  onNull: '$$NOW'
-                }
-              },
-              '$createdAt'
-            ]
-          },
-          updatedAt: {
-            $cond: [
-              { $eq: [{ $type: '$updatedAt' }, 'object'] },
-              {
-                $convert: {
-                  input: {
-                    $getField: {
-                      field: { $literal: '$date' },
-                      input: '$updatedAt'
-                    }
-                  },
-                  to: 'date',
-                  onError: '$$NOW',
-                  onNull: '$$NOW'
-                }
-              },
-              '$updatedAt'
-            ]
-          }
-        }
-      }
-    ]
-  );
-  const user = await Sme.findById(userId);
-  if (!user || String(user.role || '').toLowerCase() !== 'sme') {
-    return res.status(403).json({ message: 'Companies can only be assigned to SME users.' });
-  }
-  user.companies = ids;
-  await user.save();
-  res.json({ user: userView(user, 'smes') });
+  const found = await findAssignable(req, res);
+  if (!found) return;
+  found.user.companies = ids;
+  await found.user.save();
+  res.json({ user: userView(found.user, found.collection) });
 });
 router.delete('/users/:id', async (req, res) => {
   if (!validId(req.params.id)) return res.status(404).json({ message: 'User not found' });
@@ -322,6 +332,7 @@ router.delete('/companies/:id', async (req, res) => {
   const company = await Company.findById(req.params.id);
   if (!company) return res.status(404).json({ message: 'Company not found' });
   await Sme.updateMany({ companies: company._id }, { $pull: { companies: company._id } });
+  await Smi.updateMany({ companies: company._id }, { $pull: { companies: company._id } });
   await SopAssignment.deleteMany({ company: company._id });
   await SmiSopAssignment.deleteMany({ company: company._id });
   await Company.deleteOne({ _id: company._id });
@@ -333,22 +344,10 @@ router.delete('/companies/:id', async (req, res) => {
   res.json({ message: 'Company deleted' });
 });
 // ---------------- Manage SOPs (assigned to a user) ----------------
-const findUser = async (req, res) => {
-  if (!validId(req.params.id)) {
-    res.status(404).json({ message: 'User not found' });
-    return null;
-  }
-  const user = await Sme.findById(req.params.id);
-  if (!user) {
-    res.status(404).json({ message: 'User not found' });
-    return null;
-  }
-  if (String(user.role || '').toUpperCase() !== 'SME') {
-    res.status(403).json({ message: 'Companies and SOPs can only be assigned to SME users.' });
-    return null;
-  }
-  return user;
-};
+// SME SOPs live in SopAssignment (field "user"); SMI SOPs live in SmiSopAssignment (field "smi").
+const sopStoreFor = (found) => (found.role === 'smi'
+  ? { Model: SmiSopAssignment, field: 'smi' }
+  : { Model: SopAssignment, field: 'user' });
 // Returns an error message, or null when the body is fine for this user.
 const validateSop = (user, { company, type, text, date }) => {
   if (!company || !type || !String(text || '').trim() || !date) {
@@ -363,27 +362,35 @@ const validateSop = (user, { company, type, text, date }) => {
   return null;
 };
 router.get('/users/:id/sop-assignments', async (req, res) => {
-  const user = await findUser(req, res);
-  if (!user) return;
-  const list = await SopAssignment.find({ user: user._id }).sort({ date: -1, createdAt: -1 }).limit(300);
+  const found = await findAssignable(req, res);
+  if (!found) return;
+  const { Model, field } = sopStoreFor(found);
+  const filter = { [field]: found.user._id };
+  // For an SMI, only the SOPs the admin assigned are managed here (SME-assigned ones belong to that SME).
+  if (found.role === 'smi') filter.createdBy = { $ne: null };
+  const list = await Model.find(filter).sort({ date: -1, createdAt: -1 }).limit(300);
   res.json({ assignments: list.map(sopView) });
 });
 router.post('/users/:id/sop-assignments', async (req, res) => {
-  const user = await findUser(req, res);
-  if (!user) return;
-  const problem = validateSop(user, req.body);
+  const found = await findAssignable(req, res);
+  if (!found) return;
+  const problem = validateSop(found.user, req.body);
   if (problem) return res.status(400).json({ message: problem });
   const { company, type, text, date } = req.body;
-  const doc = await SopAssignment.create({ user: user._id, company, type, text, date, createdBy: req.user.id });
+  const { Model, field } = sopStoreFor(found);
+  const doc = await Model.create({ [field]: found.user._id, company, type, text, date, createdBy: req.user.id });
   res.status(201).json({ assignment: sopView(doc) });
 });
 router.put('/users/:id/sop-assignments/:sopId', async (req, res) => {
-  const user = await findUser(req, res);
-  if (!user) return;
+  const found = await findAssignable(req, res);
+  if (!found) return;
   if (!validId(req.params.sopId)) return res.status(404).json({ message: 'SOP not found' });
-  const doc = await SopAssignment.findOne({ _id: req.params.sopId, user: user._id });
+  const { Model, field } = sopStoreFor(found);
+  const filter = { _id: req.params.sopId, [field]: found.user._id };
+  if (found.role === 'smi') filter.createdBy = { $ne: null };
+  const doc = await Model.findOne(filter);
   if (!doc) return res.status(404).json({ message: 'SOP not found' });
-  const problem = validateSop(user, req.body);
+  const problem = validateSop(found.user, req.body);
   if (problem) return res.status(400).json({ message: problem });
   const { company, type, text, date } = req.body;
   Object.assign(doc, { company, type, text, date });
@@ -391,10 +398,13 @@ router.put('/users/:id/sop-assignments/:sopId', async (req, res) => {
   res.json({ assignment: sopView(doc) });
 });
 router.delete('/users/:id/sop-assignments/:sopId', async (req, res) => {
-  const user = await findUser(req, res);
-  if (!user) return;
+  const found = await findAssignable(req, res);
+  if (!found) return;
   if (!validId(req.params.sopId)) return res.status(404).json({ message: 'SOP not found' });
-  const doc = await SopAssignment.findOneAndDelete({ _id: req.params.sopId, user: user._id });
+  const { Model, field } = sopStoreFor(found);
+  const filter = { _id: req.params.sopId, [field]: found.user._id };
+  if (found.role === 'smi') filter.createdBy = { $ne: null };
+  const doc = await Model.findOneAndDelete(filter);
   if (!doc) return res.status(404).json({ message: 'SOP not found' });
   res.json({ message: 'SOP deleted' });
 });

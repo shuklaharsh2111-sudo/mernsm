@@ -94,7 +94,11 @@ const sopView = (a, today) => {
     completedBySme: Boolean(a.sourceSop?.completions?.some((c) => c.period === key)),
     completions: (a.completions || []).map((c) => ({ period: c.period, at: c.at })),
     company: a.company ? { id: a.company._id, name: a.company.name } : { id: '', name: 'Removed company' },
-    assignedBy: a.assignedBy ? { id: a.assignedBy._id, name: a.assignedBy.name } : { id: '', name: 'Removed SME' },
+    assignedBy: a.assignedBy
+      ? { id: a.assignedBy._id, name: a.assignedBy.name }
+      : a.createdBy
+        ? { id: String(a.createdBy), name: 'Admin' }
+        : { id: '', name: 'Removed SME' },
   };
 };
 const sopListFor = async (userId, today) => {
