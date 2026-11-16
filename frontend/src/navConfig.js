@@ -45,7 +45,7 @@ export const SME_NAV = [
   },
   {
     heading: 'Workflow', items: [
-      { title: 'Pending Creative', path: '/sme/pending-creatives', icon: Clock },
+      { title: 'Creatives', path: '/sme/pending-creatives', icon: Clock },
       { title: 'Records', path: '/sme/records', icon: FolderOpen },
       { title: 'Saved', path: '/sme/saved', icon: Bookmark }
     ]
