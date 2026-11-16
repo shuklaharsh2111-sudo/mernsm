@@ -70,3 +70,47 @@
   .aa-dates label { flex: 1; }
   .aa-dates input { flex: 1; min-width: 0; }
 }
+
+/* ---- department-wise grouping ---- */
+.aa-depts { display: flex; flex-direction: column; gap: 26px; }
+.aa-limit { margin: 0; font-size: 12.5px; }
+.aa-dept { display: flex; flex-direction: column; gap: 14px; }
+.aa-dept-head { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; text-align: left; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--orange); border-radius: var(--radius); font: inherit; cursor: pointer; transition: border-color .15s; }
+.aa-dept-head:hover { border-color: var(--orange); }
+.aa-dept-icon { display: grid; place-items: center; flex: none; width: 36px; height: 36px; color: var(--orange-light); background: var(--surface-3); border-radius: 10px; }
+.aa-dept-title { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.aa-dept-title strong { font-size: 16px; font-weight: 800; color: var(--ink); }
+.aa-dept-title small { font-size: 12.5px; color: var(--ink-3); }
+.aa-dept .aa-days { padding-left: 14px; gap: 18px; border-left: 2px solid var(--line); }
+.aa-day-head svg { color: var(--orange-light); flex: none; }
+.aa-day-head h2 { font-size: 14px; }
+.aa-user-select { max-width: 220px; }
+
+/* ---- picked user summary ---- */
+.aa-user-card { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 18px; padding: 14px 18px; background: var(--surface); border: 1px solid var(--orange); border-radius: var(--radius); }
+.aa-user-avatar { display: grid; place-items: center; flex: none; width: 46px; height: 46px; font-size: 19px; font-weight: 800; color: #fff; background: var(--grad); border-radius: 50%; }
+.aa-user-card-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 200px; }
+.aa-user-card-info b { font-size: 16px; color: var(--ink); }
+.aa-user-card-info small { font-size: 12.5px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; }
+.aa-user-card-stats { display: flex; gap: 22px; margin-left: auto; }
+.aa-user-card-stats div { display: flex; flex-direction: column; gap: 3px; }
+.aa-user-card-stats strong { font-size: 22px; line-height: 1; font-weight: 800; color: var(--ink); }
+.aa-user-card-stats span { font-size: 12px; color: var(--ink-3); }
+@media (max-width: 720px) { .aa-dept .aa-days { padding-left: 8px; } .aa-user-card-stats { margin-left: 0; width: 100%; } .aa-user-select { max-width: none; flex: 1 1 100%; } }
+
+/* ---- simplified layout ---- */
+.aa-row:first-child { justify-content: flex-start; }
+.aa-label { flex: none; min-width: 48px; font-size: 11.5px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; color: var(--ink-3); }
+.aa-dates { display: inline-flex; align-items: center; gap: 8px; margin-left: 4px; font-size: 12.5px; color: var(--ink-3); }
+.aa-dates input { padding: 8px 10px; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; font: inherit; font-size: 13.5px; outline: none; color-scheme: dark; }
+.aa-scope { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 2px 16px; font-size: 13.5px; color: var(--ink-2); }
+.aa-scope svg { color: var(--orange-light); }
+.aa-scope b { color: var(--ink); }
+.aa-scope span { color: var(--ink-3); }
+.aa-toggle { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.aa-toggle:hover { border-color: var(--orange); color: var(--ink); }
+.aa-sub { background: var(--surface-2); border-top: 1px dashed var(--line); }
+.aa-sub-row { padding-left: 34px; }
+.aa-sub-row .aa-user b { font-weight: 600; color: var(--ink-2); }
+.aa-sub-row + .aa-sub-row { border-top: 1px solid var(--line); }
+.aa-dept .aa-user-card { margin-bottom: 0; }
