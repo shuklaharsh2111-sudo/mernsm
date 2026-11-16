@@ -987,3 +987,31 @@ body .modal-card.cx-modal>.modal-body {
   height: 32px;
   border-radius: 9px;
 }
+
+/* ---------- Reference creative pop-up: picking a platform must not move the form ---------- */
+/* 1. The tick box is visually hidden but was absolutely positioned against the pop-up, so clicking a
+      platform made the browser scroll that hidden box into view and shoved the form up. Keep it inside its label. */
+.modal-card.cx-modal .creative-check {
+  position: relative;
+}
+
+.modal-card.cx-modal .creative-check input {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+/* 2. Each platform previews a different image shape (1:1, 4:5, 1.91:1, 16:9), so the preview used to
+      change height on every switch. Reserve the tallest shape's height so nothing below or beside it moves. */
+@media (min-width: 861px) {
+  .modal-card.cx-modal .creative-preview .pps-stage {
+    min-height: 580px;
+  }
+}
+
+/* keep the scroll position steady while the preview re-renders */
+.modal-card.cx-modal > .modal-body {
+  overflow-anchor: none;
+}
