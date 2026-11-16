@@ -193,4 +193,146 @@ router.post('/creatives/:id/design', (req, res) => {
     }
   });
 });
+
+const getMonthKey = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+};
+
+router.get('/monthly-reports', async (req, res) => {
+  try {
+    const month = String(req.query.month || '');
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+      return res.status(400).json({ success: false, message: 'Please select a valid month.' });
+    }
+
+    const creatives = await Creative.find({ assignedDesigner: req.user.id })
+      .populate('company', 'name logo')
+      .sort({ assignedAt: -1, createdAt: -1 })
+      .lean();
+
+    const inMonth = (value) => getMonthKey(value) === month;
+    const reportItems = [];
+    const weekly = [
+      { label: 'Week 1', submitted: 0, approved: 0, redo: 0 },
+      { label: 'Week 2', submitted: 0, approved: 0, redo: 0 },
+      { label: 'Week 3', submitted: 0, approved: 0, redo: 0 },
+      { label: 'Week 4', submitted: 0, approved: 0, redo: 0 },
+      { label: 'Week 5', submitted: 0, approved: 0, redo: 0 }
+    ];
+    const companyMap = new Map();
+
+    const stats = {
+      assigned: 0,
+      submitted: 0,
+      approved: 0,
+      redo: 0,
+      pending: 0,
+      totalVersions: 0,
+      totalRedoRequests: 0
+    };
+
+    const getWeekIndex = (value) => {
+      const day = new Date(value).getDate();
+      return Math.min(4, Math.floor((day - 1) / 7));
+    };
+
+    creatives.forEach((creative) => {
+      const design = creative.designOutput || null;
+      const assignedDate = creative.assignedAt || creative.createdAt;
+      const assignedThisMonth = inMonth(assignedDate);
+      const submittedThisMonth = inMonth(design?.uploadedAt);
+      const reviewedThisMonth = inMonth(design?.reviewedAt);
+      const approvedThisMonth = reviewedThisMonth && design?.status === 'approved';
+      const redoThisMonth = reviewedThisMonth && design?.status === 'redo';
+      const pendingThisMonth = assignedThisMonth && !design?.url;
+      const hasActivity = assignedThisMonth || submittedThisMonth || approvedThisMonth || redoThisMonth;
+
+      if (!hasActivity) return;
+
+      if (assignedThisMonth) stats.assigned += 1;
+      if (submittedThisMonth) stats.submitted += 1;
+      if (approvedThisMonth) stats.approved += 1;
+      if (redoThisMonth) stats.redo += 1;
+      if (pendingThisMonth) stats.pending += 1;
+
+      if (submittedThisMonth && design?.uploadedAt) {
+        weekly[getWeekIndex(design.uploadedAt)].submitted += 1;
+      }
+      if (approvedThisMonth && design?.reviewedAt) {
+        weekly[getWeekIndex(design.reviewedAt)].approved += 1;
+      }
+      if (redoThisMonth && design?.reviewedAt) {
+        weekly[getWeekIndex(design.reviewedAt)].redo += 1;
+      }
+
+      stats.totalVersions += submittedThisMonth ? (design?.version || 1) : 0;
+      stats.totalRedoRequests += redoThisMonth ? 1 : 0;
+
+      const companyId = String(creative.company?._id || 'unknown');
+      if (!companyMap.has(companyId)) {
+        companyMap.set(companyId, {
+          id: companyId,
+          name: creative.company?.name || 'Unknown Company',
+          logo: creative.company?.logo || '',
+          assigned: 0,
+          submitted: 0,
+          approved: 0,
+          redo: 0,
+          pending: 0
+        });
+      }
+
+      const company = companyMap.get(companyId);
+      if (assignedThisMonth) company.assigned += 1;
+      if (submittedThisMonth) company.submitted += 1;
+      if (approvedThisMonth) company.approved += 1;
+      if (redoThisMonth) company.redo += 1;
+      if (pendingThisMonth) company.pending += 1;
+
+      reportItems.push({
+        id: String(creative._id),
+        title: creative.contentPillar?.title || 'Untitled Creative',
+        company: creative.company?.name || 'Unknown Company',
+        companyLogo: creative.company?.logo || '',
+        scheduledDate: creative.date || '',
+        assignedAt: assignedDate || null,
+        uploadedAt: design?.uploadedAt || null,
+        reviewedAt: design?.reviewedAt || null,
+        status: !design?.url ? 'pending' : design.status || 'submitted',
+        version: design?.version || 0,
+        redoCount: design?.redoCount || 0,
+        reviewNote: design?.note || creative.reviewNote || '',
+        platform: creative.contentPillar?.platforms || []
+      });
+    });
+
+    const completionRate = stats.assigned
+      ? Math.round((stats.submitted / stats.assigned) * 100)
+      : 0;
+
+    return res.json({
+      success: true,
+      month,
+      stats: {
+        ...stats,
+        completionRate
+      },
+      weekly,
+      companies: [...companyMap.values()].sort((a, b) => b.assigned - a.assigned),
+      creatives: reportItems.sort((a, b) =>
+        new Date(b.uploadedAt || b.assignedAt || 0) - new Date(a.uploadedAt || a.assignedAt || 0)
+      )
+    });
+  } catch (error) {
+    console.error('DES monthly reports error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to generate monthly report.'
+    });
+  }
+});
+
 export default router;
