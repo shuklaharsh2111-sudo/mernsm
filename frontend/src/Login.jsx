@@ -2,10 +2,16 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, KeyRound, MapPin } from 'lucide-react';
 import { useAuth } from './AuthContext';
-import astronaut from './assets/images/astronaut-flowers.png';
 import LoginRibbons from './LoginRibbons';
 import DownloadManual from './DownloadManual';
 import './styles/login.css';
+import heroFlowers from './assets/images/login-hero-flowers.png';
+import heroProfile from './assets/images/login-hero-profile.png';
+
+// image shown in the left box: 'flowers' or 'profile'
+const HEROES = { flowers: heroFlowers, profile: heroProfile };
+const HERO = HEROES.flowers;
+
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -40,12 +46,12 @@ const Login = () => {
   return (
     <div className="nl-page">
       <div className="nl-card">
-        {/* LEFT: three.js neon ribbons + astronaut */}
+        {/* LEFT: three.js neon ribbons + workflow orbit */}
         <div className="nl-visual" aria-hidden="true">
           <LoginRibbons />
           <div className="nl-shade" />
           <span className="nl-glow" />
-          <img className="nl-astro" src={astronaut} alt="" draggable="false" />
+          <img className="nl-hero" src={HERO} alt="" draggable="false" />
         </div>
         {/* RIGHT: form */}
         <div className="nl-panel">
