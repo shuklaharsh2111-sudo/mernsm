@@ -50,7 +50,20 @@ export const designView = (d) => (d ? {
   note: d.note || '',
   reviewedAt: d.reviewedAt,
   version: d.version || 1,
-  redoCount: d.redoCount || 0
+  redoCount: d.redoCount || 0,
+  // earlier versions the SME sent back, newest first
+  history: (d.history || [])
+    .map((h) => ({
+      url: h.url,
+      originalName: h.originalName,
+      mimeType: h.mimeType,
+      size: h.size,
+      uploadedAt: h.uploadedAt,
+      note: h.note || '',
+      reviewedAt: h.reviewedAt,
+      version: h.version || 1
+    }))
+    .sort((a, b) => b.version - a.version)
 } : null);
 router.use(protect(['des']));
 router.get('/companies', async (req, res) => {
