@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Palette, Search, RefreshCw, CalendarDays, Building2,
   UserRound, ExternalLink, Image, Clock3, CheckCircle2,
-  XCircle, AlertCircle, LoaderCircle, Upload
+  XCircle, AlertCircle, LoaderCircle, Upload, Hourglass
 } from 'lucide-react';
 import api from '../api';
+import { WORKFLOW, workflowOf, byPriority, countByWorkflow } from './desWorkflow';
 import '../style.css';
 import '../styles/dashboard-glass.css';
 import '../styles/desdashboard.css';
@@ -137,7 +139,10 @@ const DesDashboard = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [activeStatus, setActiveStatus] = useState('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requested = searchParams.get('filter');
+  const activeStatus = ['all', 'todo', 'redo', 'review', 'approved'].includes(requested) ? requested : 'all';
+  const setActiveStatus = (value) => setSearchParams(value === 'all' ? {} : { filter: value }, { replace: true });
   const fetchCreatives = async (refresh = false) => {
     try {
       setError('');
@@ -159,30 +164,23 @@ const DesDashboard = () => {
     fetchCreatives();
   }, []);
   const filteredCreatives = useMemo(() => {
-    return creatives.filter((creative) => {
-      const status = creative.status || 'pending';
-      const companyName = creative.company?.name || '';
-      const title = creative.contentPillar?.title || '';
-      const platforms = creative.contentPillar?.platforms || [];
-      const matchesStatus =
-        activeStatus === 'all' || status === activeStatus;
-      const query = search.trim().toLowerCase();
-      const matchesSearch =
-        !query ||
-        title.toLowerCase().includes(query) ||
-        companyName.toLowerCase().includes(query) ||
-        platforms.some((platform) =>
-          platform.toLowerCase().includes(query)
-        );
-      return matchesStatus && matchesSearch;
-    });
+    const query = search.trim().toLowerCase();
+    return creatives
+      .filter((creative) => {
+        const companyName = creative.company?.name || '';
+        const title = creative.contentPillar?.title || '';
+        const platforms = creative.contentPillar?.platforms || [];
+        const matchesStatus = activeStatus === 'all' || workflowOf(creative).key === activeStatus;
+        const matchesSearch =
+          !query ||
+          title.toLowerCase().includes(query) ||
+          companyName.toLowerCase().includes(query) ||
+          platforms.some((platform) => platform.toLowerCase().includes(query));
+        return matchesStatus && matchesSearch;
+      })
+      .sort(byPriority);
   }, [creatives, activeStatus, search]);
-  const counts = useMemo(() => ({
-    all: creatives.length,
-    pending: creatives.filter((c) => c.status === 'pending').length,
-    approved: creatives.filter((c) => c.status === 'approved').length,
-    rejected: creatives.filter((c) => c.status === 'rejected').length
-  }), [creatives]);
+  const counts = useMemo(() => countByWorkflow(creatives), [creatives]);
   if (loading) {
     return (
       <div className="des-loading">
@@ -197,7 +195,7 @@ const DesDashboard = () => {
         <div>
           <span className="page-label">DESIGN WORKSPACE</span>
           <h1>My Creatives</h1>
-          <p>Manage and review creatives assigned to you.</p>
+          <p>Everything assigned to you, with redo requests and unfinished work shown first.</p>
         </div>
         <button
           className="des-refresh"
@@ -212,42 +210,27 @@ const DesDashboard = () => {
         </button>
       </div>
       <div className="des-stats">
-        <div className="des-stat-card">
-          <div className="des-stat-icon total">
-            <Palette size={21} />
-          </div>
-          <div>
-            <span>Total Assigned</span>
-            <h2>{counts.all}</h2>
-          </div>
-        </div>
-        <div className="des-stat-card">
-          <div className="des-stat-icon pending">
-            <Clock3 size={21} />
-          </div>
-          <div>
-            <span>Pending</span>
-            <h2>{counts.pending}</h2>
-          </div>
-        </div>
-        <div className="des-stat-card">
-          <div className="des-stat-icon approved">
-            <CheckCircle2 size={21} />
-          </div>
-          <div>
-            <span>Approved</span>
-            <h2>{counts.approved}</h2>
-          </div>
-        </div>
-        <div className="des-stat-card">
-          <div className="des-stat-icon rejected">
-            <AlertCircle size={21} />
-          </div>
-          <div>
-            <span>Changes Requested</span>
-            <h2>{counts.rejected}</h2>
-          </div>
-        </div>
+        {[
+          { key: 'todo', label: 'To do', icon: Clock3, tone: 'pending' },
+          { key: 'redo', label: 'Redo requested', icon: AlertCircle, tone: 'rejected' },
+          { key: 'review', label: 'Awaiting review', icon: Hourglass, tone: 'total' },
+          { key: 'approved', label: 'Approved', icon: CheckCircle2, tone: 'approved' }
+        ].map(({ key, label, icon: Icon, tone }) => (
+          <button
+            type="button"
+            key={key}
+            className={`des-stat-card des-stat-link ${activeStatus === key ? 'selected' : ''}`}
+            onClick={() => setActiveStatus(activeStatus === key ? 'all' : key)}
+          >
+            <div className={`des-stat-icon ${tone}`}>
+              <Icon size={21} />
+            </div>
+            <div>
+              <span>{label}</span>
+              <h2>{counts[key]}</h2>
+            </div>
+          </button>
+        ))}
       </div>
       <div className="des-toolbar">
         <div className="des-search">
@@ -262,9 +245,10 @@ const DesDashboard = () => {
         <div className="des-filters">
           {[
             { value: 'all', label: 'All' },
-            { value: 'pending', label: 'Pending' },
-            { value: 'approved', label: 'Approved' },
-            { value: 'rejected', label: 'Changes Requested' }
+            { value: 'todo', label: WORKFLOW.todo.label },
+            { value: 'redo', label: WORKFLOW.redo.label },
+            { value: 'review', label: WORKFLOW.review.label },
+            { value: 'approved', label: WORKFLOW.approved.label }
           ].map((filter) => (
             <button
               key={filter.value}
@@ -299,13 +283,14 @@ const DesDashboard = () => {
           <p>
             {creatives.length === 0
               ? 'Your assigned creatives will appear here once an SME assigns them to you.'
-              : 'Try changing your search or status filter.'}
+              : 'Try changing your search or stage filter.'}
           </p>
         </div>
       )}
       <div className="des-creative-grid">
         {filteredCreatives.map((creative) => {
           const pillar = creative.contentPillar || {};
+          const flow = workflowOf(creative);
 
           return (
             <div className="des-creative-card" key={creative._id}>
@@ -319,6 +304,7 @@ const DesDashboard = () => {
                     <span>{formatDate(creative.date)}</span>
                   </div>
                 </div>
+                <span className={`des-status ${flow.badge}`}>{flow.label}</span>
               </div>
               <div className="des-card-content">
                 <h3>{pillar.title || 'Untitled Creative'}</h3>
