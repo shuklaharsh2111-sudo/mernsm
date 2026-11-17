@@ -86,7 +86,13 @@ router.get('/companies', async (req, res) => {
   const ids = (me.companies || []).map(String);
   const found = await Company.find({ _id: { $in: ids } });
   const byId = Object.fromEntries(found.map((c) => [String(c._id), c]));
-  const companies = ids.filter((id) => byId[id]).map((id) => ({ id, name: byId[id].name }));
+  const companies = ids
+    .filter((id) => byId[id])
+    .map((id) => ({
+      id,
+      name: byId[id].name,
+      logo: byId[id].logo || ''
+    }));
   res.json({ companies });
 });
 const view = (a, today) => {
