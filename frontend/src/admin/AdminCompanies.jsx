@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Plus, Trash2, Building2, ImagePlus, X } from 'lucide-react';
 import api from '../api';
-import axios from 'axios';
 import { errMsg } from '../sopUtils';
+import '../styles/admincompanies.css';
 const AdminCompanies = () => {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,6 +12,7 @@ const AdminCompanies = () => {
   const [preview, setPreview] = useState('');
   const [busy, setBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const fileRef = useRef(null);
   const reload = () => setReloadKey((k) => k + 1);
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +37,10 @@ const AdminCompanies = () => {
     setPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [logo]);
+  const clearLogo = () => {
+    setLogo(null);
+    if (fileRef.current) fileRef.current.value = '';
+  };
   const handleLogo = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -65,11 +70,9 @@ const AdminCompanies = () => {
       const formData = new FormData();
       formData.append('name', name.trim());
       formData.append('logo', logo);
-      await axios.post('/api/admin/companies', formData, {
-        withCredentials: true
-      });
+      await api.post('/admin/companies', formData);
       setName('');
-      setLogo(null);
+      clearLogo();
       reload();
     } catch (err) {
       setError(errMsg(err));
@@ -96,47 +99,44 @@ const AdminCompanies = () => {
           <p>Add companies with their logos and assign them to SMEs from the Users page.</p>
         </div>
       </div>
-      <form className="glass-panel add-form inline" onSubmit={add}>
-        <label className="x-field grow">
-          <span>Company name *</span>
-          <input
-            value={name}
-            required
-            maxLength={60}
-            placeholder="e.g. Lumina Creative"
-            onChange={(e) => setName(e.target.value)}
-          />
-        </label>
-        <label className="x-field">
-          <span>Company logo *</span>
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            required
-            onChange={handleLogo}
-          />
-        </label>
-        {preview && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img
-              src={preview}
-              alt="Logo preview"
-              style={{ width: 54, height: 54, objectFit: 'contain', borderRadius: 10, background: '#fff', padding: 5 }}
-            />
-            <button
-              type="button"
-              className="btn-ghost danger"
-              onClick={() => setLogo(null)}
-              aria-label="Remove selected logo"
-            >
-              <X size={16} />
-            </button>
+      <form className="ac-form" onSubmit={add}>
+        <div className="ac-logo-pick">
+          <div className="ac-logo-preview">
+            {preview ? <img src={preview} alt="Logo preview" /> : <Building2 size={28} />}
           </div>
-        )}
-        <button className="btn-primary" disabled={busy}>
-          <Plus size={16} />
-          {busy ? 'Uploading…' : 'Add company'}
-        </button>
+          <label className="ac-upload">
+            <ImagePlus size={15} /> {logo ? 'Change logo' : 'Upload logo'}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={handleLogo}
+              hidden
+            />
+          </label>
+          <small>{logo ? logo.name : 'JPG, PNG or WEBP · max 10 MB'}</small>
+          {logo && (
+            <button type="button" className="ac-remove" onClick={clearLogo}>
+              <X size={13} /> Remove
+            </button>
+          )}
+        </div>
+        <div className="ac-fields">
+          <label className="x-field">
+            <span>Company name *</span>
+            <input
+              value={name}
+              required
+              maxLength={60}
+              placeholder="e.g. Lumina Creative"
+              onChange={(e) => setName(e.target.value)}
+            />
+          </label>
+          <button className="btn-primary" disabled={busy}>
+            <Plus size={16} />
+            {busy ? 'Uploading…' : 'Add company'}
+          </button>
+        </div>
       </form>
       {error && <p className="error-message" role="alert">{error}</p>}
       {loading ? (

@@ -56,6 +56,13 @@ app.get(/.*/, (req, res, next) => {
     res.sendFile(path.join(frontendPath, 'index.html'));
 });
 app.use((err, req, res, next) => {
+    if (err?.name === 'MulterError') {
+        const message = err.code === 'LIMIT_FILE_SIZE' ? 'Image size must be less than 10MB' : err.message;
+        return res.status(400).json({ message });
+    }
+    if (err?.message === 'Only JPG, PNG and WEBP images are allowed') {
+        return res.status(400).json({ message: err.message });
+    }
     console.error(err);
     res.status(500).json({
         message: 'Internal server error'

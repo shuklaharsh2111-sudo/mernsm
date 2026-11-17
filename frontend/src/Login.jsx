@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, KeyRound, MapPin } from 'lucide-react';
 import { useAuth } from './AuthContext';
-import astronaut from './assets/images/pre-final.png';
+import astronaut from './assets/images/astronaut-flowers.png';
 import LoginRibbons from './LoginRibbons';
 import DownloadManual from './DownloadManual';
 import './styles/login.css';
