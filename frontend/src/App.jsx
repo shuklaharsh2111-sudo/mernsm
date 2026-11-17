@@ -11,6 +11,8 @@ import AdminMeetings from './admin/AdminMeetings';
 import AdminCreatives from './admin/AdminCreatives';
 import AdminAttendance from './admin/AdminAttendance';
 import AdminCalendar from './admin/AdminCalendar';
+import RmDashboard from './rm/RmDashboard';
+import RmTeam from './rm/RmTeam';
 import SmeDashboard from './sme/SmeDashboard';
 import SmeSaved from './sme/SmeSaved';
 import SmeRecords from './sme/SmeRecords';
@@ -37,6 +39,7 @@ import MiniPlayer from './music/MiniPlayer';
 
 const getDashboardPath = (role) => {
   if (role === 'admin') return '/admin';
+  if (role === 'reporting_manager') return '/rm';
   if (role === 'sme') return '/sme';
   if (role === 'des') return '/des';
   if (role === 'smi') return '/smi';
@@ -104,6 +107,17 @@ const AppRoutes = () => {
           <Route path="/admin/calendar" element={<AdminCalendar />} />
           <Route path="/admin/playlist" element={<PlaylistPage workspace="ADMIN WORKSPACE" />} />
           <Route path="/admin/settings" element={<ProfileSettings workspace="ADMIN WORKSPACE" />} />
+        </Route>
+      </Route>
+      <Route element={<ProtectedRoute role="reporting_manager" />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/rm" element={<RmDashboard />} />
+          <Route path="/rm/team" element={<RmTeam />} />
+          <Route path="/rm/attendance" element={<AdminAttendance base="/rm" label="REPORTING MANAGER" />} />
+          <Route path="/rm/creatives" element={<AdminCreatives base="/rm" label="REPORTING MANAGER" scopeText="your team’s SMEs" />} />
+          <Route path="/rm/meetings" element={<AdminMeetings base="/rm" label="REPORTING MANAGER" scopeText="your team’s SMEs" />} />
+          <Route path="/rm/playlist" element={<PlaylistPage workspace="REPORTING MANAGER WORKSPACE" />} />
+          <Route path="/rm/settings" element={<ProfileSettings workspace="REPORTING MANAGER WORKSPACE" />} />
         </Route>
       </Route>
       <Route element={<ProtectedRoute role="sme" />}>

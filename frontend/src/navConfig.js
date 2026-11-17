@@ -4,6 +4,35 @@ import {
   ChartNoAxesCombined, FileBarChart, Clock, Building2, Receipt,
   CalendarCheck, Palette, UserCheck, Briefcase, Wifi, Music
 } from 'lucide-react';
+export const RM_NAV = [
+  {
+    heading: 'Overview', items: [
+      { title: 'Dashboard', path: '/rm', icon: LayoutDashboard }
+    ]
+  },
+  {
+    heading: 'My Team', items: [
+      { title: 'Team', path: '/rm/team', icon: Users },
+      { title: 'Attendance', path: '/rm/attendance', icon: UserCheck }
+    ]
+  },
+  {
+    heading: 'Approvals', items: [
+      { title: 'Creatives', path: '/rm/creatives', icon: Palette },
+      { title: 'Meetings', path: '/rm/meetings', icon: CalendarCheck }
+    ]
+  },
+  {
+    heading: 'Account', items: [
+      { title: 'Settings', path: '/rm/settings', icon: Settings }
+    ]
+  },
+  {
+    heading: 'Music', items: [
+      { title: 'Playlist', path: '/rm/playlist', icon: Music }
+    ]
+  }
+];
 export const ADMIN_NAV = [
   {
     heading: 'Overview', items: [
@@ -153,6 +182,7 @@ export const HR_NAV = [
 export const navFor = (role) => {
   switch (role) {
     case 'admin': return ADMIN_NAV;
+    case 'reporting_manager': return RM_NAV;
     case 'sme': return SME_NAV;
     case 'des': return DES_NAV;
     case 'smi': return SMI_NAV;

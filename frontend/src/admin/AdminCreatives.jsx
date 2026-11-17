@@ -46,7 +46,8 @@ const waiting = (iso) => {
   return { label, level: days >= 3 ? 'late' : days >= 1 ? 'warn' : 'ok' };
 };
 
-const AdminCreatives = () => {
+// Used by the admin (all SMEs) and by the reporting manager (only their team). `base` is the API prefix.
+const AdminCreatives = ({ base = '/admin', label = 'ADMINISTRATION', scopeText = 'your SMEs' }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -66,7 +67,7 @@ const AdminCreatives = () => {
 
   useEffect(() => {
     let cancelled = false;
-    api.get('/admin/creatives')
+    api.get(`${base}/creatives`)
       .then((r) => !cancelled && setItems(r.data.creatives))
       .catch((err) => !cancelled && setError(errMsg(err)))
       .finally(() => !cancelled && setLoading(false));
@@ -129,7 +130,7 @@ const AdminCreatives = () => {
     setError('');
     setSuccess('');
     try {
-      const res = await api.put(`/admin/creatives/${c.id}/${action}`, action === 'reject' ? { note } : {});
+      const res = await api.put(`${base}/creatives/${c.id}/${action}`, action === 'reject' ? { note } : {});
       setItems((list) => list.map((x) => (x.id === c.id ? res.data.creative : x)));
       setRejecting('');
       setNote('');
@@ -267,9 +268,9 @@ const AdminCreatives = () => {
     <div className="dashboard-content scrollable">
       <div className="page-header">
         <div>
-          <span className="page-label">ADMINISTRATION</span>
+          <span className="page-label">{label}</span>
           <h1>Creatives</h1>
-          <p>Review the reference creatives your SMEs submit. Approved ones are saved on the SME’s calendar.</p>
+          <p>Review the reference creatives {scopeText} submit. Approved ones are saved on the SME’s calendar.</p>
         </div>
       </div>
 

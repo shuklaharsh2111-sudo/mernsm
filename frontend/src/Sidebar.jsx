@@ -52,7 +52,7 @@ const Sidebar = ({ collapsed = false, onToggle, mobileOpen = false, onClose }) =
               <NavLink
                 key={path}
                 to={path}
-                end={['/admin', '/sme', '/des', '/smi', '/hr'].includes(path)}
+                end={['/admin', '/rm', '/sme', '/des', '/smi', '/hr'].includes(path)}
                 title={collapsed ? title : undefined}
                 className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}
               >
@@ -82,7 +82,7 @@ const Sidebar = ({ collapsed = false, onToggle, mobileOpen = false, onClose }) =
           <div className="side-user-info">
             <strong>{user?.name}</strong>
             <span>{user?.email}</span>
-            <em className={`side-role ${user?.role}`}>{user?.role?.toUpperCase()}</em>
+            <em className={`side-role ${user?.role}`}>{user?.role?.replace(/_/g, ' ').toUpperCase()}</em>
           </div>
         </div>
         {isSME && (

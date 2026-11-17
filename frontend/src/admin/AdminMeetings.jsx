@@ -22,7 +22,8 @@ const REASON = {
   reject: { title: 'Reason for rejecting *', hint: 'Rejecting is final. The SME cannot resubmit', confirm: 'Confirm Reject', busy: 'Rejecting…', icon: ThumbsDown, tone: 'danger' },
 };
 
-const AdminMeetings = () => {
+// Used by the admin (all SMEs) and by the reporting manager (only their team). `base` is the API prefix.
+const AdminMeetings = ({ base = '/admin', label = 'ADMINISTRATION', scopeText = 'your SMEs' }) => {
   const [moms, setMoms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -35,7 +36,7 @@ const AdminMeetings = () => {
   useEffect(() => {
     let cancelled = false;
     api
-      .get('/admin/moms')
+      .get(`${base}/moms`)
       .then((res) => !cancelled && setMoms(res.data.moms))
       .catch((err) => !cancelled && setError(errMsg(err)))
       .finally(() => !cancelled && setLoading(false));
@@ -61,7 +62,7 @@ const AdminMeetings = () => {
     setError('');
     setSuccess('');
     try {
-      const res = await api.put(`/admin/moms/${m.id}/${action}`, action === 'approve' ? {} : { note });
+      const res = await api.put(`${base}/moms/${m.id}/${action}`, action === 'approve' ? {} : { note });
       setMoms((list) => list.map((x) => (x.id === m.id ? res.data.mom : x)));
       closeReason();
       if (action === 'approve') {
@@ -84,9 +85,9 @@ const AdminMeetings = () => {
     <div className="dashboard-content scrollable">
       <div className="page-header">
         <div>
-          <span className="page-label">ADMINISTRATION</span>
+          <span className="page-label">{label}</span>
           <h1>Meetings</h1>
-          <p>Review the minutes of meeting submitted by your SMEs: approve them, or send them back for changes.</p>
+          <p>Review the minutes of meeting submitted by {scopeText}: approve them, or send them back for changes.</p>
         </div>
       </div>
 
