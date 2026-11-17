@@ -1,414 +1,262 @@
-import { useEffect, useMemo, useState } from 'react';
-import {
-  CalendarDays, ChevronLeft, ChevronRight, RefreshCw,
-  LoaderCircle, AlertCircle, Palette, Building2, Clock3,
-  CheckCircle2, XCircle, Layers
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight, Image as ImageIcon, Clock, Check, RotateCcw } from 'lucide-react';
 import api from '../api';
+import { CompanyBadge } from '../components/CompanyBadge';
+import CreativeViewModal from '../components/CreativeViewModal';
+import DayCreativesModal from '../components/DayCreativesModal';
 import { PLATFORMS } from '../components/creativePlatforms';
-import '../styles/descalendar.css';
-const getDateKey = (date) => {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+import { LinePlatformIcon } from '../components/SocialIcons';
+import { errMsg, todayStr } from '../sopUtils';
+import { workflowOf } from './desWorkflow';
+import '../style.css';
+import '../styles/smedashboard.css';
+import '../styles/calendar.css';
+import '../styles/calendar-layout.css';
+
+const MAX_CHIPS = 2; // creatives shown inside one day box; the rest collapse into "+N more"
+const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+const p2 = (n) => String(n).padStart(2, '0');
+const ymd = (d) => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+
+// 6 rows x 7 cols, weeks start on Monday.
+const buildGrid = (year, month) => {
+  const first = new Date(year, month, 1);
+  const offset = (first.getDay() + 6) % 7;
+  return Array.from({ length: 42 }, (_, i) => new Date(year, month, 1 - offset + i));
 };
-const getCompanyId = (creative) => {
-  const company = creative.company;
-  return String(company?._id || company?.id || company || '');
+
+// The designer's own status of a creative, drawn with the same pill + chip colours as the other calendars.
+// To do / In review share the amber "pending" look, Approved is green, Redo is red.
+const FLOW_VIEW = {
+  todo: { cls: 'pending', label: 'To do', icon: Clock },
+  review: { cls: 'pending', label: 'In review', icon: Clock },
+  approved: { cls: 'approved', label: 'Approved', icon: Check },
+  redo: { cls: 'rejected', label: 'Redo', icon: RotateCcw },
 };
-const formatDate = (date) => {
-  if (!date) return '';
-  const [year, month, day] = date.split('-').map(Number);
-  if (!year || !month || !day) return date;
-  return new Date(year, month - 1, day).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  });
-};
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-];
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const STATUS_CONFIG = {
-  submitted: {
-    label: 'Pending',
-    icon: Clock3,
-    className: 'pending'
+const flowOf = (c) => FLOW_VIEW[workflowOf(c).key];
+
+function FlowBadge({ creative, compact = false }) {
+  const f = flowOf(creative);
+  const Icon = f.icon;
+  return (
+    <span className={`cstatus ${f.cls} ${compact ? 'compact' : ''}`} title={`Design status: ${f.label}`}>
+      <Icon size={compact ? 10 : 13} aria-hidden="true" />
+      {f.label}
+    </span>
+  );
+}
+
+// The API sends raw records; the shared calendar pieces expect the SME/admin shape.
+const toView = (c) => ({
+  ...c,
+  id: String(c._id),
+  date: String(c.date || '').slice(0, 10),
+  uploads: (c.uploads || []).map((u) => ({ url: u.url, name: u.originalName || u.name || '' })),
+  referenceLinks: c.referenceLinks || [],
+  contentPillar: {
+    title: c.contentPillar?.title || 'Untitled creative',
+    caption: c.contentPillar?.caption || '',
+    hashtags: c.contentPillar?.hashtags || [],
+    keywords: c.contentPillar?.keywords || [],
+    platforms: c.contentPillar?.platforms || [],
   },
-  approved: {
-    label: 'Approved',
-    icon: CheckCircle2,
-    className: 'approved'
-  },
-  redo: {
-    label: 'Changes Requested',
-    icon: XCircle,
-    className: 'rejected'
-  }
-};
+});
+
+// Designer view of the same calendar the SMEs and the admin use: pick a brand you are assigned to,
+// pick a platform, see every creative scheduled on each day with where your design stands.
 const DesCalendar = () => {
   const [companies, setCompanies] = useState([]);
   const [creatives, setCreatives] = useState([]);
-  const [selectedCompany, setSelectedCompany] = useState('all');
-  const [activePlatform, setActivePlatform] = useState('all');
-  const [currentMonth, setCurrentMonth] = useState(() => {
-    const today = new Date();
-    return new Date(today.getFullYear(), today.getMonth(), 1);
-  });
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const fetchCalendarData = async (refresh = false) => {
-    try {
-      setError('');
-      if (refresh) setRefreshing(true);
-      else setLoading(true);
-      const [companyResponse, creativeResponse] = await Promise.all([
-        api.get('/des/companies'),
-        api.get('/des/creatives')
-      ]);
-      setCompanies(Array.isArray(companyResponse.data)
-        ? companyResponse.data
-        : companyResponse.data?.companies || []);
-      setCreatives(creativeResponse.data?.creatives || []);
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        'Unable to load your calendar. Please try again.'
-      );
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+  const [loading, setLoading] = useState(true);
+  const [activeId, setActiveId] = useState('');
+  const [platformByBrand, setPlatformByBrand] = useState({}); // remember the open platform per brand
+  const [viewing, setViewing] = useState(null); // creative open in the preview
+  const [dayOpen, setDayOpen] = useState(''); // day box clicked: lists that day's creatives
+  const now = new Date();
+  const [cursor, setCursor] = useState({ y: now.getFullYear(), m: now.getMonth() });
+
   useEffect(() => {
-    fetchCalendarData();
+    let cancelled = false;
+    Promise.all([api.get('/des/companies'), api.get('/des/creatives')])
+      .then(([c, cr]) => {
+        if (cancelled) return;
+        const list = (Array.isArray(c.data) ? c.data : c.data?.companies || []).map((co) => ({
+          ...co,
+          id: String(co.id || co._id),
+        }));
+        setCompanies(list);
+        setCreatives((cr.data?.creatives || []).map(toView));
+        setActiveId((id) => id || list[0]?.id || '');
+      })
+      .catch((err) => !cancelled && setError(errMsg(err)))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
   }, []);
-  const filteredCreatives = useMemo(() => {
-    return creatives.filter((creative) => {
-      const companyMatch =
-        selectedCompany === 'all' ||
-        getCompanyId(creative) === String(selectedCompany);
-      const platforms = (creative.contentPillar?.platforms || [])
-        .map((platform) => platform.toLowerCase());
-      const platformMatch =
-        activePlatform === 'all' ||
-        platforms.includes(activePlatform);
-      return companyMatch && platformMatch;
-    });
-  }, [creatives, selectedCompany, activePlatform]);
-  const calendarDays = useMemo(() => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const startDay = firstDay.getDay();
-    const totalDays = new Date(year, month + 1, 0).getDate();
-    const totalCells = Math.ceil((startDay + totalDays) / 7) * 7;
-    const todayKey = getDateKey(new Date());
-    const creativesByDate = filteredCreatives.reduce((acc, creative) => {
-      if (!creative.date) return acc;
-      if (!acc[creative.date]) acc[creative.date] = [];
-      acc[creative.date].push(creative);
-      return acc;
-    }, {});
-    return Array.from({ length: totalCells }, (_, index) => {
-      const date = new Date(year, month, index - startDay + 1);
-      const dateKey = getDateKey(date);
-      return {
-        date,
-        dateKey,
-        day: date.getDate(),
-        isCurrentMonth: date.getMonth() === month,
-        isToday: dateKey === todayKey,
-        creatives: creativesByDate[dateKey] || []
-      };
-    });
-  }, [currentMonth, filteredCreatives]);
-  const monthCreatives = useMemo(() => {
-    const month = currentMonth.getMonth();
-    const year = currentMonth.getFullYear();
-    return filteredCreatives.filter((creative) => {
-      if (!creative.date) return false;
-      const [y, m] = creative.date.split('-').map(Number);
-      return y === year && m === month + 1;
-    });
-  }, [filteredCreatives, currentMonth]);
-  const changeMonth = (amount) => {
-    setCurrentMonth((prev) =>
-      new Date(prev.getFullYear(), prev.getMonth() + amount, 1)
-    );
+
+  const active = companies.find((c) => c.id === activeId) || null;
+  const activePlatform = platformByBrand[activeId] || PLATFORMS[0].key;
+  const activePlatformMeta = PLATFORMS.find((p) => p.key === activePlatform) || PLATFORMS[0];
+  const brandIndex = Math.max(companies.findIndex((c) => c.id === activeId), 0);
+  const MetaIcon = activePlatformMeta.icon;
+
+  // creatives of the selected brand; each platform calendar only shows its own
+  const brandCreatives = creatives.filter((c) => String(c.company?._id || c.company?.id || c.company) === activeId);
+  const visibleCreatives = brandCreatives.filter((c) => c.contentPillar.platforms.includes(activePlatform));
+  const dayCreatives = (key) => visibleCreatives.filter((c) => c.date === key);
+  const countFor = (key) => brandCreatives.filter((c) => c.contentPillar.platforms.includes(key)).length;
+
+  const grid = buildGrid(cursor.y, cursor.m);
+  const today = todayStr();
+  const monthLabel = new Date(cursor.y, cursor.m, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthPrefix = `${cursor.y}-${p2(cursor.m + 1)}`;
+  const monthCreatives = visibleCreatives.filter((c) => c.date.startsWith(monthPrefix));
+  const stat = (cls) => monthCreatives.filter((c) => flowOf(c).cls === cls).length;
+  const shift = (delta) => {
+    const d = new Date(cursor.y, cursor.m + delta, 1);
+    setCursor({ y: d.getFullYear(), m: d.getMonth() });
   };
-  const selectToday = () => {
-    const today = new Date();
-    setCurrentMonth(new Date(today.getFullYear(), today.getMonth(), 1));
-  };
-  if (loading) {
-    return (
-      <div className="descal-loading">
-        <LoaderCircle size={34} className="descal-spin" />
-        <p>Loading your calendar...</p>
-      </div>
-    );
-  }
+
   return (
-    <div className="descal-page dashboard-content scrollable dash-glass">
-      <div className="descal-header">
-        <div>
-          <span className="descal-eyebrow">DESIGN WORKSPACE</span>
-          <h1>Creative Calendar</h1>
-          <p>Manage your assigned companies and scheduled creatives.</p>
-        </div>
-        <button
-          type="button"
-          className="descal-refresh"
-          onClick={() => fetchCalendarData(true)}
-          disabled={refreshing}
-        >
-          <RefreshCw
-            size={16}
-            className={refreshing ? 'descal-spin' : ''}
-          />
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </button>
-      </div>
-      {error && (
-        <div className="descal-error">
-          <AlertCircle size={18} />
-          <span>{error}</span>
-          <button type="button" onClick={() => fetchCalendarData()}>
-            Retry
-          </button>
-        </div>
-      )}
-      {/* ASSIGNED COMPANIES */}
-      <section className="descal-companies-section">
-        <div className="descal-section-heading">
-          <div>
-            <span className="descal-eyebrow">YOUR WORKSPACE</span>
-            <h2>Assigned Companies</h2>
-          </div>
-          <span className="descal-count">
-            {companies.length} Companies
-          </span>
-        </div>
-        {companies.length === 0 ? (
-          <div className="descal-no-companies">
-            <Building2 size={24} />
-            <span>No companies assigned yet.</span>
-          </div>
-        ) : (
-          <div className="descal-company-list">
-            <button
-              type="button"
-              className={`descal-company-item ${selectedCompany === 'all' ? 'active' : ''}`}
-              onClick={() => setSelectedCompany('all')}
-            >
-              <div className="descal-company-logo descal-all-logo">
-                <Layers size={25} />
-              </div>
-              <span className="descal-company-name">All Companies</span>
-              <span className="descal-company-number">
-                {creatives.length} Creatives
-              </span>
-            </button>
-            {companies.map((company) => {
-              const companyId = String(company._id || company.id);
-              const active = selectedCompany === companyId;
-              return (
-                <button
-                  type="button"
-                  key={companyId}
-                  className={`descal-company-item ${active ? 'active' : ''}`}
-                  onClick={() => setSelectedCompany(companyId)}
-                >
-                  <div className="descal-company-logo">
-                    {company.logo ? (
-                      <img
-                        src={company.logo}
-                        alt={company.name}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <Building2 size={25} />
-                    )}
-                  </div>
-                  <span className="descal-company-name">
-                    {company.name}
-                  </span>
-                  <span className="descal-company-number">
-                    {company.creativeCount || 0} Creatives
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </section>
-      {/* SOCIAL PLATFORM TABS */}
-      <section className="descal-platform-section">
-        <div className="descal-section-heading">
-          <div>
-            <span className="descal-eyebrow">FILTER YOUR CREATIVES</span>
-            <h2>Social Platforms</h2>
-          </div>
-        </div>
-        <div className="descal-platform-tabs">
-          <button
-            type="button"
-            className={`descal-platform-tab descal-all-tab ${activePlatform === 'all' ? 'active' : ''}`}
-            onClick={() => setActivePlatform('all')}
-          >
-            <Layers size={19} />
-            <span>All</span>
-          </button>
-          {PLATFORMS.map((platform) => {
-            const PlatformIcon = platform.icon;
+    <div className="dashboard-content scrollable cx">
+      {/* 1 · Brand selector (the companies assigned to this designer) */}
+      <header className="cx-toolbar">
+        <div className="cx-brands company-row cal-company-row" role="group" aria-label="Brands">
+          {companies.map((c) => {
+            const isActive = c.id === activeId;
             return (
-              <button
-                type="button"
-                key={platform.key}
-                className={`descal-platform-tab ${activePlatform === platform.key ? 'active' : ''}`}
-                onClick={() => setActivePlatform(platform.key)}
-              >
-                <PlatformIcon size={20} />
-                <span>{platform.label}</span>
-              </button>
+              <div key={c.id} className={`cal-brand ${isActive ? 'active' : ''}`}>
+                <button type="button" className="cal-brand-btn" onClick={() => setActiveId(c.id)} aria-pressed={isActive} title={`Show ${c.name}'s calendar`}>
+                  <CompanyBadge company={c} size={64} showName />
+                </button>
+              </div>
             );
           })}
         </div>
-      </section>
-      {/* CALENDAR */}
-      <section className="descal-calendar-section">
-        <div className="descal-calendar-toolbar">
-          <div className="descal-month-title">
-            <CalendarDays size={21} />
+      </header>
+
+      {error && <p className="error-message" role="alert">{error}</p>}
+
+      {/* 2 · Platform calendars of the selected brand */}
+      {active && (
+        <nav className="cx-platforms" role="tablist" aria-label={`${active.name} platform calendars`}>
+          {PLATFORMS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              data-platform={key}
+              aria-selected={activePlatform === key}
+              className={`cx-plat ${activePlatform === key ? 'active' : ''}`}
+              onClick={() => setPlatformByBrand((prev) => ({ ...prev, [activeId]: key }))}
+            >
+              <span className="cx-plat-icon"><LinePlatformIcon platform={key} size={18} /></span>
+              <span className="cx-plat-name">{label}</span>
+              <span className="cx-plat-count">{countFor(key)}</span>
+            </button>
+          ))}
+        </nav>
+      )}
+
+      {/* 3 · The calendar itself */}
+      <section className="cx-board" data-platform={activePlatform} style={{ '--brand-hue': (brandIndex * 57 + 225) % 360 }}>
+        <div className="cx-board-head">
+          <div className="cx-board-title">
+            <span className="cx-board-icon"><MetaIcon size={16} /></span>
             <div>
-              <h2>
-                {MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-              </h2>
-              <span>{monthCreatives.length} Scheduled Creatives</span>
+              <h2>{activePlatformMeta.label} calendar</h2>
+              <p>{active ? active.name : 'No brand selected'}</p>
             </div>
           </div>
-          <div className="descal-month-controls">
-            <button type="button" onClick={selectToday}>
-              Today
-            </button>
-            <button
-              type="button"
-              className="descal-month-arrow"
-              onClick={() => changeMonth(-1)}
-              aria-label="Previous month"
-            >
-              <ChevronLeft size={19} />
-            </button>
-            <button
-              type="button"
-              className="descal-month-arrow"
-              onClick={() => changeMonth(1)}
-              aria-label="Next month"
-            >
-              <ChevronRight size={19} />
-            </button>
+
+          <div className="cx-stats" aria-label={`${monthLabel} summary`}>
+            <span className="cx-stat pending"><b>{stat('pending')}</b> Pending</span>
+            <span className="cx-stat approved"><b>{stat('approved')}</b> Approved</span>
+            <span className="cx-stat rejected"><b>{stat('rejected')}</b> Redo</span>
+          </div>
+
+          <div className="cx-controls">
+            <div className="cal-nav">
+              <button type="button" onClick={() => shift(-1)} aria-label="Previous month"><ChevronLeft size={16} /></button>
+              <span className="cal-month">{monthLabel}</span>
+              <button type="button" onClick={() => shift(1)} aria-label="Next month"><ChevronRight size={16} /></button>
+              <button type="button" className="cx-today" onClick={() => setCursor({ y: now.getFullYear(), m: now.getMonth() })}>Today</button>
+            </div>
           </div>
         </div>
-        <div className="descal-calendar-grid">
-          {WEEKDAYS.map((day) => (
-            <div className="descal-weekday" key={day}>
-              {day}
-            </div>
-          ))}
-          {calendarDays.map((day) => (
-            <div
-              key={day.dateKey}
-              className={`descal-day ${!day.isCurrentMonth ? 'outside' : ''} ${day.isToday ? 'today' : ''} ${day.creatives.length ? 'has-creatives' : ''}`}
-            >
-              <div className="descal-day-number">
-                <span>{day.day}</span>
-                {day.creatives.length > 0 && (
-                  <span className="descal-day-count">
-                    {day.creatives.length}
-                  </span>
-                )}
-              </div>
-              <div className="descal-day-creatives">
-                {day.creatives.map((creative) => {
-                  const design = creative.designOutput;
-                  if (!design?.url) return null;
-                  const status = STATUS_CONFIG[design.status] || STATUS_CONFIG.submitted;
-                  const StatusIcon = status.icon;
-                  const mimeType = design.mimeType || '';
-                  return (
-                    <div
-                      key={creative._id}
-                      className={`descal-event descal-design-card ${status.className}`}
-                      title={`${creative.contentPillar?.title || 'Untitled Creative'} · ${creative.company?.name || 'Company'}`}
-                    >
-                      <div className="descal-design-preview">
-                        {mimeType.startsWith('image/') ? (
-                          <img
-                            src={design.url}
-                            alt={creative.contentPillar?.title || 'Uploaded design'}
-                            loading="lazy"
-                          />
-                        ) : mimeType.startsWith('video/') ? (
-                          <video
-                            src={design.url}
-                            controls
-                            preload="metadata"
-                          />
-                        ) : (
-                          <a
-                            href={design.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="descal-file-preview"
-                          >
-                            <Palette size={25} />
-                            <span>View Uploaded File</span>
-                          </a>
-                        )}
-                        <span className={`descal-design-status ${status.className}`}>
-                          <StatusIcon size={12} />
-                          {status.label}
-                        </span>
-                      </div>
-                      <div className="descal-design-info">
-                        <span className="descal-event-company">
-                          {creative.company?.name || 'Company'}
-                        </span>
-                        <span className="descal-event-title">
-                          {creative.contentPillar?.title || 'Untitled Creative'}
-                        </span>
-                      </div>
+
+        <div className="cx-board-body">
+          {loading ? (
+            <p className="muted">Loading…</p>
+          ) : companies.length === 0 && !error ? (
+            <p className="muted">No companies are assigned to you yet.</p>
+          ) : (
+            <div className="cal-grid" data-platform={activePlatform}>
+              {WEEKDAYS.map((d) => (
+                <div key={d} className="cal-dow">{d}</div>
+              ))}
+              {grid.map((d) => {
+                const key = ymd(d);
+                const list = dayCreatives(key);
+                return (
+                  <div
+                    key={key}
+                    className={`cal-cell clickable ${d.getMonth() !== cursor.m ? 'other' : ''} ${key === today ? 'today' : ''}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Open ${key}`}
+                    onClick={() => setDayOpen(key)}
+                    onKeyDown={(e) => e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setDayOpen(key))}
+                  >
+                    <div className="cal-cell-top">
+                      <span className="cal-day">{d.getDate()}</span>
                     </div>
-                  );
-                })}
-              </div>
+                    {list.slice(0, MAX_CHIPS).map((c) => (
+                      <div key={c.id} className={`cal-creative ${flowOf(c).cls}`} title={`${c.contentPillar.title} · ${flowOf(c).label}`}>
+                        <span className="cal-creative-open">
+                          <span className="cal-creative-thumb">
+                            {c.uploads[0] ? <img src={c.uploads[0].url} alt="" /> : <ImageIcon size={14} />}
+                          </span>
+                          <span className="cal-creative-text">
+                            <span className="cal-creative-title">{c.contentPillar.title}</span>
+                            <span className="cal-creative-meta">
+                              <FlowBadge creative={c} compact />
+                            </span>
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                    {list.length > MAX_CHIPS && <span className="cal-more">+{list.length - MAX_CHIPS} more</span>}
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
-        {monthCreatives.length === 0 && (
-          <div className="descal-empty">
-            <div className="descal-empty-icon">
-              <Palette size={30} />
-            </div>
-            <h3>No Creatives Scheduled</h3>
-            <p>
-              No creatives found for the selected company and platform
-              in this month.
-            </p>
-          </div>
-        )}
-        <div className="descal-legend">
-          <span><i className="pending"></i> Pending</span>
-          <span><i className="approved"></i> Approved</span>
-          <span><i className="rejected"></i> Changes Requested</span>
+          )}
         </div>
       </section>
+
+      {dayOpen && active && (
+        <DayCreativesModal
+          company={active}
+          platformLabel={activePlatformMeta.label}
+          date={dayOpen}
+          creatives={dayCreatives(dayOpen)}
+          platforms={PLATFORMS}
+          paused={!!viewing}
+          onOpen={setViewing}
+          onClose={() => setDayOpen('')}
+          renderStatus={(c) => <FlowBadge creative={c} />}
+          itemClass={(c) => flowOf(c).cls}
+        />
+      )}
+
+      {viewing && (
+        <CreativeViewModal creative={viewing} company={active} platforms={PLATFORMS} onClose={() => setViewing(null)} />
+      )}
     </div>
   );
 };
+
 export default DesCalendar;
