@@ -301,3 +301,6 @@ export const OverviewCharts = ({ social }) => {
         </div>
     );
 };
+
+// building blocks, reused by the designer monthly report
+export { Donut, GroupedBars, StackedRows, Legend, Card, Empty, C };
