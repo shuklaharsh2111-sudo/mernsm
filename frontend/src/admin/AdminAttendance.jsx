@@ -85,7 +85,8 @@ const DayCells = ({ g }) => {
   );
 };
 
-const AdminAttendance = () => {
+// Used by the admin (everyone) and by the reporting manager (only their team). `base` is the API prefix.
+const AdminAttendance = ({ base = '/admin', label = 'ADMINISTRATION' }) => {
   const [records, setRecords] = useState([]);
   const [office, setOffice] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -105,19 +106,19 @@ const AdminAttendance = () => {
   useEffect(() => {
     let cancelled = false;
     api
-      .get('/admin/users')
+      .get(`${base}/users`)
       .then((res) => !cancelled && setUsers(res.data.users.map((u) => ({ ...u, role: String(u.role || '').toLowerCase() }))))
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [base]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     api
-      .get('/admin/attendance', { params: { from: range.from, to: range.to, userId: userId || undefined, limit: 2000 } })
+      .get(`${base}/attendance`, { params: { from: range.from, to: range.to, userId: userId || undefined, limit: 2000 } })
       .then((res) => {
         if (cancelled) return;
         setRecords(res.data.records);
@@ -129,7 +130,7 @@ const AdminAttendance = () => {
     return () => {
       cancelled = true;
     };
-  }, [range, userId, reloadKey]);
+  }, [base, range, userId, reloadKey]);
 
   const activeQuick = QUICK.find((q) => {
     const [f, t] = q.get();
@@ -209,7 +210,7 @@ const AdminAttendance = () => {
     <div className="dashboard-content scrollable">
       <div className="page-header">
         <div>
-          <span className="page-label">ADMINISTRATION</span>
+          <span className="page-label">{label}</span>
           <h1>Attendance</h1>
           <p>
             Pick a period and, if you like, one person. Only the first login and last logout of each day are shown.

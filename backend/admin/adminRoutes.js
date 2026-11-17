@@ -11,9 +11,7 @@ import SopAssignment, { SOP_TYPE_VALUES } from '../sop/SopAssignment.js';
 import SmiSopAssignment from '../sop/SmiSopAssignment.js';
 import { isRealDate } from '../sop/period.js';
 import Meeting from '../meeting/Meeting.js';
-import { momView, recordingView } from '../meeting/momHelpers.js';
-import { createMeetingLink } from '../meeting/googleCalendar.js';
-import { resolveAccount } from '../meeting/accounts.js';
+import { momItemView, creativeItemView, reviewMom, reviewCreative } from '../review/reviewCore.js';
 import { mountIntegrationRoutes } from '../meeting/integrationRoutes.js';
 import Creative from '../sme/Creative.js';
 import Attendance from '../attendance/Attendance.js';
@@ -409,16 +407,7 @@ router.delete('/users/:id/sop-assignments/:sopId', async (req, res) => {
   res.json({ message: 'SOP deleted' });
 });
 // ---------------- MOM approvals ----------------
-const momItemView = (m) => ({
-  id: m._id,
-  subject: m.subject,
-  date: m.date,
-  time: m.time,
-  company: m.company ? { id: m.company._id, name: m.company.name } : { id: '', name: 'Removed company' },
-  sme: m.user ? { id: m.user._id, name: m.user.name || m.user.fullname || m.user.email, email: m.user.email } : { id: '', name: 'Removed user', email: '' },
-  mom: momView(m.mom),
-  recording: recordingView(m.recording),
-});
+// The review logic is shared with the reporting manager panel (review/reviewCore.js).
 // Every MOM an SME has submitted, newest first.
 router.get('/moms', async (req, res) => {
   const list = await Meeting.find({ 'mom.submittedAt': { $exists: true } })
@@ -428,108 +417,10 @@ router.get('/moms', async (req, res) => {
     .populate('user', 'name fullname email');
   res.json({ moms: list.map(momItemView) });
 });
-// action: 'approve' | 'send-back' | 'reject'. Send back / reject need a reason.
-const REVIEW = {
-  approve: { status: 'approved', needsNote: false },
-  'send-back': { status: 'sent_back', needsNote: true },
-  reject: { status: 'rejected', needsNote: true },
-};
-const reviewMom = async (req, res, action) => {
-  const { status, needsNote } = REVIEW[action];
-  if (!validId(req.params.id)) return res.status(404).json({ message: 'MOM not found' });
-  const meeting = await Meeting.findOne({ _id: req.params.id, 'mom.submittedAt': { $exists: true } })
-    .populate('company', 'name')
-    .populate('user', 'name fullname email');
-  if (!meeting) return res.status(404).json({ message: 'MOM not found' });
-  if (meeting.mom.status !== 'pending') {
-    return res.status(400).json({ message: `This MOM is not waiting for review (it is ${meeting.mom.status.replace('_', ' ')})` });
-  }
-  const note = String(req.body?.note || '').trim();
-  if (needsNote && note.length < 3) {
-    return res.status(400).json({ message: 'Give a reason (at least 3 characters)' });
-  }
-  // Approving schedules the next meeting for the SME, so it shows up active on their dashboard.
-  let nextScheduled = false;
-  if (status === 'approved' && meeting.company && meeting.user && meeting.mom.nextMeeting) {
-    if (!(await Meeting.exists({ fromMeeting: meeting._id }))) {
-      const nm = meeting.mom.nextMeeting;
-      // The follow-up belongs to the SME, so it goes on the SME's calendar (their Grain records it).
-      const smeAccount = await resolveAccount(meeting.user._id, 'sme');
-      const auto = await createMeetingLink({ subject: String(nm.agenda).slice(0, 200), date: nm.date, time: nm.time, attendees: meeting.attendees, refreshToken: smeAccount.googleRefreshToken });
-      await Meeting.create({
-        user: meeting.user._id,
-        company: meeting.company._id,
-        subject: String(nm.agenda).slice(0, 200),
-        date: nm.date,
-        time: nm.time,
-        link: auto.link,
-        calendar: auto.calendar,
-        attendees: meeting.attendees.map((a) => ({ name: a.name, designation: a.designation })),
-        priority: nm.priority,
-        fromMeeting: meeting._id,
-      });
-    }
-    nextScheduled = true;
-  }
-  meeting.mom.status = status;
-  meeting.mom.reviewedAt = new Date();
-  meeting.mom.reviewNote = needsNote ? note : '';
-  await meeting.save();
-  res.json({ mom: momItemView(meeting), nextScheduled });
-};
 router.put('/moms/:id/approve', (req, res) => reviewMom(req, res, 'approve'));
 router.put('/moms/:id/send-back', (req, res) => reviewMom(req, res, 'send-back'));
 router.put('/moms/:id/reject', (req, res) => reviewMom(req, res, 'reject'));
 // ---------------- Creative approvals ----------------
-// What the designer delivered for an approved creative, and where the SME's review of it stands
-// (submitted / approved / redo). Read-only for the admin.
-const designOutputView = (d) => (d ? {
-  url: d.url,
-  name: d.originalName,
-  mimeType: d.mimeType,
-  size: d.size,
-  uploadedAt: d.uploadedAt,
-  status: d.status,
-  note: d.note || '',
-  reviewedAt: d.reviewedAt,
-  version: d.version || 1,
-  redoCount: d.redoCount || 0,
-  history: [...(d.history || [])].reverse().map((h) => ({
-    url: h.url,
-    name: h.originalName,
-    mimeType: h.mimeType,
-    size: h.size,
-    uploadedAt: h.uploadedAt,
-    note: h.note || '',
-    reviewedAt: h.reviewedAt,
-    version: h.version || 1,
-  })),
-} : null);
-const creativeItemView = (c) => ({
-  id: c._id,
-  status: c.status,
-  reviewNote: c.reviewNote || '',
-  reviewedAt: c.reviewedAt,
-  submittedAt: c.createdAt,
-  date: c.date,
-  referenceLinks: c.referenceLinks || [],
-  uploads: (c.uploads || []).map((u) => ({ url: u.url, name: u.originalName })),
-  // Only an approved creative can have a designer, so these stay empty for pending / rejected ones.
-  assignedDesigner: c.status === 'approved' && c.assignedDesigner && c.assignedDesigner._id
-    ? { id: String(c.assignedDesigner._id), name: c.assignedDesigner.name, email: c.assignedDesigner.email }
-    : null,
-  assignedAt: c.status === 'approved' ? c.assignedAt || null : null,
-  designOutput: c.status === 'approved' ? designOutputView(c.designOutput) : null,
-  contentPillar: {
-    title: c.contentPillar?.title || '',
-    caption: c.contentPillar?.caption || '',
-    hashtags: c.contentPillar?.hashtags || [],
-    keywords: c.contentPillar?.keywords || [],
-    platforms: c.contentPillar?.platforms || [],
-  },
-  company: c.company ? { id: c.company._id, name: c.company.name } : { id: '', name: 'Removed company' },
-  sme: c.user ? { id: c.user._id, name: c.user.name || c.user.fullname || c.user.email, email: c.user.email } : { id: '', name: 'Removed user', email: '' },
-});
 // Every creative an SME has submitted, newest first.
 router.get('/creatives', async (req, res) => {
   const list = await Creative.find({})
@@ -540,28 +431,6 @@ router.get('/creatives', async (req, res) => {
     .populate('assignedDesigner', 'name email');
   res.json({ creatives: list.map(creativeItemView) });
 });
-// Approve -> it appears on the SME's calendar. Reject needs a reason.
-const reviewCreative = async (req, res, action) => {
-  if (!validId(req.params.id)) return res.status(404).json({ message: 'Creative not found' });
-  const creative = await Creative.findById(req.params.id)
-    .populate('company', 'name')
-    .populate('user', 'name fullname email')
-    .populate('assignedDesigner', 'name email');
-  if (!creative) return res.status(404).json({ message: 'Creative not found' });
-  if (creative.status !== 'pending') {
-    return res.status(400).json({ message: `This creative is not waiting for review (it is ${creative.status})` });
-  }
-  const note = String(req.body?.note || '').trim();
-  if (action === 'reject' && note.length < 3) {
-    return res.status(400).json({ message: 'Give a reason (at least 3 characters)' });
-  }
-  creative.status = action === 'approve' ? 'approved' : 'rejected';
-  creative.reviewNote = action === 'reject' ? note.slice(0, 500) : '';
-  creative.reviewedAt = new Date();
-  if (action === 'reject') creative.rejectionCount = (creative.rejectionCount || 0) + 1;
-  await creative.save();
-  res.json({ creative: creativeItemView(creative) });
-};
 router.put('/creatives/:id/approve', (req, res) => reviewCreative(req, res, 'approve'));
 router.put('/creatives/:id/reject', (req, res) => reviewCreative(req, res, 'reject'));
 export default router;
