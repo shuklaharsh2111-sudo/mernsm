@@ -10,6 +10,26 @@ router.use(protect(['admin', 'sme']));
 
 const roundAmount = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// whole days between two dates (time of day ignored)
+const daysBetween = (from, to) => {
+    const a = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
+    const b = Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate());
+    return Math.round((b - a) / DAY_MS);
+};
+
+// simple interest: principal x rate x (days / 365)  or  (days / 30) for a monthly rate
+const calcLateInterest = (principal, ratePercent, ratePeriod, days) => {
+    const basis = ratePeriod === 'month' ? 30 : 365;
+    return roundAmount(principal * (ratePercent / 100) * (days / basis));
+};
+
+const fmtInr = (n) => Number(n).toLocaleString('en-IN', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
+});
+const fmtDate = (d) => d.toISOString().slice(0, 10).split('-').reverse().join('/');
+
 // CREATE INVOICE
 router.post('/', async (req, res) => {
     try {
@@ -97,6 +117,127 @@ router.post('/', async (req, res) => {
     } catch (error) {
         console.error('Create Invoice Error:', error);
         return res.status(500).json({ message: 'Failed to create invoice' });
+    }
+});
+
+// CREATE LATE INTEREST INVOICE (against an existing PFI / Tax invoice)
+router.post('/late-interest', async (req, res) => {
+    try {
+        const { refInvoiceId, ratePercent, ratePeriod, principal, toDate, addGst, notes } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(refInvoiceId)) {
+            return res.status(400).json({ message: 'Select the invoice the interest is charged on' });
+        }
+
+        const ref = await Invoice.findOne({
+            _id: refInvoiceId,
+            createdBy: req.user.id,
+            createdByRole: req.user.role,
+            invoiceType: { $in: ['PFI', 'TAX'] }
+        });
+
+        if (!ref) {
+            return res.status(404).json({ message: 'Original invoice not found' });
+        }
+
+        if (!ref.dueDate) {
+            return res.status(400).json({ message: `${ref.invoiceNumber} has no due date, so interest cannot be calculated` });
+        }
+
+        const rate = Number(ratePercent);
+        const period = ratePeriod === 'month' ? 'month' : 'year';
+
+        if (!Number.isFinite(rate) || rate <= 0 || rate > 100) {
+            return res.status(400).json({ message: 'Interest rate must be between 0 and 100' });
+        }
+
+        const base = principal === undefined || principal === '' || principal === null
+            ? ref.totalAmount
+            : Number(principal);
+
+        if (!Number.isFinite(base) || base <= 0 || base > ref.totalAmount) {
+            return res.status(400).json({
+                message: `Amount overdue must be more than 0 and at most ${fmtInr(ref.totalAmount)}`
+            });
+        }
+
+        const from = new Date(ref.dueDate);
+        const to = toDate ? new Date(toDate) : new Date();
+
+        if (Number.isNaN(to.getTime())) {
+            return res.status(400).json({ message: 'Invalid interest-till date' });
+        }
+
+        const days = daysBetween(from, to);
+
+        if (days <= 0) {
+            return res.status(400).json({
+                message: `${ref.invoiceNumber} is not overdue on ${fmtDate(to)}`
+            });
+        }
+
+        const interest = calcLateInterest(base, rate, period, days);
+
+        if (interest <= 0) {
+            return res.status(400).json({ message: 'Calculated interest is zero' });
+        }
+
+        const gstRate = addGst ? 18 : 0;
+        const gstAmount = roundAmount(interest * gstRate / 100);
+        const totalAmount = roundAmount(interest + gstAmount);
+
+        const counter = await InvoiceCounter.findOneAndUpdate(
+            { key: `${req.user.role}:${req.user.id}:INT` },
+            { $inc: { sequence: 1 } },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
+        );
+
+        const invoice = await Invoice.create({
+            invoiceNumber: `LI-${String(counter.sequence).padStart(4, '0')}`,
+            invoiceType: 'INT',
+            billTo: ref.billTo,
+            primaryPerson: ref.primaryPerson,
+            contact: ref.contact,
+            billGstin: ref.billGstin,
+            companyPan: ref.companyPan,
+            shipTo: ref.shipTo,
+            shipGstin: ref.shipGstin,
+            sameGstin: ref.sameGstin,
+            issueDate: new Date(),
+            terms: 'Due on Receipt',
+            dueDate: null,
+            notes: notes || '',
+            items: [{
+                item: 'Late payment interest',
+                description: `On ${ref.invoiceNumber}: Rs ${fmtInr(base)} @ ${rate}% per ${period} for ${days} days (${fmtDate(from)} to ${fmtDate(to)})`,
+                amount: interest
+            }],
+            lateInterest: {
+                refInvoiceId: ref._id,
+                refInvoiceNumber: ref.invoiceNumber,
+                principal: base,
+                ratePercent: rate,
+                ratePeriod: period,
+                fromDate: from,
+                toDate: to,
+                days,
+                interestAmount: interest
+            },
+            subtotal: interest,
+            gstRate,
+            gstAmount,
+            totalAmount,
+            createdBy: req.user.id,
+            createdByRole: req.user.role
+        });
+
+        return res.status(201).json({
+            message: 'Late interest invoice created successfully',
+            invoice
+        });
+    } catch (error) {
+        console.error('Create Late Interest Error:', error);
+        return res.status(500).json({ message: 'Failed to create late interest invoice' });
     }
 });
 

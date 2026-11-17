@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   FileText, Receipt, Plus, Trash2, ChevronDown,
   X, Save, ArrowLeft, Building2, CalendarDays,
-  FilePlus2, Eye
+  FilePlus2, Eye, Percent, CalendarClock
 } from 'lucide-react';
 import api from '../api';
 import '../styles/invoice.css';
@@ -56,6 +56,34 @@ const normalizeInvoice = (invoice) => ({
     : '-'
 });
 
+const initialLateForm = () => ({
+  refId: '',
+  ratePercent: '18',
+  ratePeriod: 'year',
+  principal: '',
+  toDate: getToday(),
+  addGst: false,
+  notes: ''
+});
+
+// whole days from `from` to `to` (both YYYY-MM-DD strings)
+const daysBetween = (from, to) => {
+  if (!from || !to || from === '-' || to === '-') return 0;
+  const a = Date.parse(`${from}T00:00:00Z`);
+  const b = Date.parse(`${to}T00:00:00Z`);
+  if (Number.isNaN(a) || Number.isNaN(b)) return 0;
+  return Math.round((b - a) / 86400000);
+};
+
+// same formula as the backend: simple interest, 365-day year or 30-day month
+const calcInterest = (principal, ratePercent, ratePeriod, days) => {
+  const basis = ratePeriod === 'month' ? 30 : 365;
+  const value = principal * (Number(ratePercent) / 100) * (days / basis);
+  return Number.isFinite(value) && value > 0
+    ? Math.round((value + Number.EPSILON) * 100) / 100
+    : 0;
+};
+
 const Invoice = () => {
   const [activeTab, setActiveTab] = useState('PFI');
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -64,6 +92,7 @@ const Invoice = () => {
   const [invoiceType, setInvoiceType] = useState('');
   const [invoices, setInvoices] = useState([]);
   const [form, setForm] = useState(initialForm);
+  const [lateForm, setLateForm] = useState(initialLateForm);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -76,6 +105,21 @@ const Invoice = () => {
   const gstRate = invoiceType === 'TAX' ? 18 : 0;
   const gstAmount = Number((subtotal * gstRate / 100).toFixed(2));
   const total = Number((subtotal + gstAmount).toFixed(2));
+
+  // ---- late interest calculator (live preview, backend recalculates on save) ----
+  const sourceInvoices = invoices.filter(
+    inv => (inv.type === 'PFI' || inv.type === 'TAX') && inv.dueDate !== '-'
+  );
+  const refInvoice = sourceInvoices.find(inv => inv.id === lateForm.refId) || null;
+  const lateBase = lateForm.principal !== ''
+    ? Number(lateForm.principal)
+    : (refInvoice ? Number(refInvoice.total) : 0);
+  const lateDays = refInvoice ? daysBetween(refInvoice.dueDate, lateForm.toDate) : 0;
+  const lateInterest = refInvoice
+    ? calcInterest(lateBase, lateForm.ratePercent, lateForm.ratePeriod, lateDays)
+    : 0;
+  const lateGst = lateForm.addGst ? Number((lateInterest * 0.18).toFixed(2)) : 0;
+  const lateTotal = Number((lateInterest + lateGst).toFixed(2));
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -247,6 +291,90 @@ const Invoice = () => {
     }
   };
 
+  const openLateForm = (refId = '') => {
+    setInvoiceType('INT');
+    setLateForm({ ...initialLateForm(), refId });
+    setShowDropdown(false);
+    setError('');
+  };
+
+  const updateLate = (field, value) => {
+    setLateForm(prev => ({
+      ...prev,
+      [field]: value,
+      // a different invoice means a different amount: go back to its full total
+      ...(field === 'refId' ? { principal: '' } : {})
+    }));
+  };
+
+  const saveLateInterest = async (e) => {
+    e.preventDefault();
+
+    if (saving) return;
+
+    if (!refInvoice) {
+      alert('Please select the invoice the interest is charged on.');
+      return;
+    }
+
+    if (lateDays <= 0) {
+      alert(`${refInvoice.number} is not overdue on the selected date.`);
+      return;
+    }
+
+    if (!(lateBase > 0) || lateBase > Number(refInvoice.total)) {
+      alert(`Amount overdue must be more than 0 and at most ${formatAmount(refInvoice.total)}.`);
+      return;
+    }
+
+    if (!(Number(lateForm.ratePercent) > 0)) {
+      alert('Please enter the interest rate.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+
+    try {
+      const response = await api.post('/invoices/late-interest', {
+        refInvoiceId: refInvoice.id,
+        ratePercent: Number(lateForm.ratePercent),
+        ratePeriod: lateForm.ratePeriod,
+        principal: lateBase,
+        toDate: lateForm.toDate,
+        addGst: lateForm.addGst,
+        notes: lateForm.notes
+      });
+
+      if (!response.data?.invoice) {
+        throw new Error('Invoice was not returned by the server.');
+      }
+
+      const saved = normalizeInvoice(response.data.invoice);
+
+      setInvoices(prev => [saved, ...prev.filter(item => item.id !== saved.id)]);
+      setActiveTab('INT');
+      setInvoiceType('');
+      setLateForm(initialLateForm());
+
+      alert(response.data.message || `Invoice ${saved.number} saved successfully!`);
+    } catch (err) {
+      console.error('Save late interest error:', err);
+
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        'Unable to save late interest invoice.';
+
+      setError(message);
+      alert(message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const today = getToday();
+
   const filteredInvoices = invoices.filter(
     invoice => invoice.type === activeTab
   );
@@ -263,7 +391,7 @@ if (selectedInvoice) {
       <div className="invoice-header">
         <div>
           <h1>Invoice Management</h1>
-          <p>Manage your proforma and tax invoices.</p>
+          <p>Manage your proforma, tax and late interest invoices.</p>
         </div>
 
         <div className="invoice-add-wrapper">
@@ -286,6 +414,10 @@ if (selectedInvoice) {
               <button type="button" onClick={() => openForm('TAX')}>
                 <Receipt size={17} />
                 Tax Invoice
+              </button>
+              <button type="button" onClick={() => openLateForm()}>
+                <Percent size={17} />
+                Late Interest
               </button>
             </div>
           )}
@@ -318,6 +450,19 @@ if (selectedInvoice) {
           Tax Invoice
           <span>{invoices.filter(i => i.type === 'TAX').length}</span>
         </button>
+
+        <button
+          type="button"
+          className={activeTab === 'INT' ? 'active' : ''}
+          onClick={() => {
+            setActiveTab('INT');
+            setInvoiceType('');
+          }}
+        >
+          <Percent size={18} />
+          Late Interest
+          <span>{invoices.filter(i => i.type === 'INT').length}</span>
+        </button>
       </div>
 
       {error && (
@@ -326,7 +471,213 @@ if (selectedInvoice) {
         </div>
       )}
 
-      {invoiceType ? (
+      {invoiceType === 'INT' ? (
+        <form className="invoice-form" onSubmit={saveLateInterest}>
+          <div className="invoice-form-header">
+            <div>
+              <button
+                type="button"
+                className="invoice-back-btn"
+                onClick={() => setInvoiceType('')}
+              >
+                <ArrowLeft size={17} /> Back to Invoices
+              </button>
+
+              <h2>Late Interest Invoice</h2>
+
+              <p>Charge interest on an invoice that was paid late or is still unpaid.</p>
+            </div>
+
+            <span className="invoice-type-badge int">LATE INTEREST</span>
+          </div>
+
+          <section className="invoice-section">
+            <h3><FileText size={19} /> Original Invoice</h3>
+
+            <div className="invoice-grid">
+              <div className="invoice-field full-width">
+                <label>Invoice *</label>
+                <select
+                  value={lateForm.refId}
+                  onChange={e => updateLate('refId', e.target.value)}
+                  required
+                >
+                  <option value="">Select an invoice</option>
+                  {sourceInvoices.map(inv => (
+                    <option key={inv.id} value={inv.id}>
+                      {inv.number} · {inv.billTo} · due {inv.dueDate} · {formatAmount(inv.total)}
+                    </option>
+                  ))}
+                </select>
+                {sourceInvoices.length === 0 && (
+                  <small className="invoice-hint">
+                    No invoice with a due date yet. Interest runs from an invoice's due date.
+                  </small>
+                )}
+              </div>
+
+              {refInvoice && (
+                <>
+                  <div className="invoice-field">
+                    <label>Bill To</label>
+                    <input value={refInvoice.billTo} disabled />
+                  </div>
+
+                  <div className="invoice-field">
+                    <label>Due Date</label>
+                    <input value={refInvoice.dueDate} disabled />
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+
+          <section className="invoice-section">
+            <h3><Percent size={19} /> Interest Details</h3>
+
+            <div className="invoice-grid">
+              <div className="invoice-field">
+                <label>Interest Rate (%) *</label>
+                <input
+                  type="number"
+                  min="0.01"
+                  max="100"
+                  step="0.01"
+                  value={lateForm.ratePercent}
+                  onChange={e => updateLate('ratePercent', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="invoice-field">
+                <label>Rate Charged</label>
+                <select
+                  value={lateForm.ratePeriod}
+                  onChange={e => updateLate('ratePeriod', e.target.value)}
+                >
+                  <option value="year">Per year</option>
+                  <option value="month">Per month</option>
+                </select>
+              </div>
+
+              <div className="invoice-field">
+                <label>Amount Overdue (₹)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder={refInvoice ? String(refInvoice.total) : 'Select an invoice'}
+                  value={lateForm.principal}
+                  onChange={e => updateLate('principal', e.target.value)}
+                  disabled={!refInvoice}
+                />
+                <small className="invoice-hint">
+                  Leave empty for the full invoice amount. Enter less if part was paid.
+                </small>
+              </div>
+
+              <div className="invoice-field">
+                <label>Interest Till *</label>
+                <input
+                  type="date"
+                  value={lateForm.toDate}
+                  onChange={e => updateLate('toDate', e.target.value)}
+                  required
+                />
+                <small className="invoice-hint">
+                  The date the payment was made, or today if still unpaid.
+                </small>
+              </div>
+
+              <div className="invoice-field full-width">
+                <label className="invoice-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={lateForm.addGst}
+                    onChange={e => updateLate('addGst', e.target.checked)}
+                  />
+                  Add GST (18%) on the interest
+                </label>
+              </div>
+
+              <div className="invoice-field full-width">
+                <label>Notes</label>
+                <textarea
+                  rows={3}
+                  value={lateForm.notes}
+                  onChange={e => updateLate('notes', e.target.value)}
+                  placeholder="Add any additional notes..."
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="invoice-section">
+            <h3><CalendarClock size={19} /> Interest Calculation</h3>
+
+            {!refInvoice ? (
+              <p className="invoice-hint">Select an invoice to see the interest.</p>
+            ) : lateDays <= 0 ? (
+              <p className="invoice-warning">
+                {refInvoice.number} was due on {refInvoice.dueDate}, so it is not overdue on{' '}
+                {lateForm.toDate || 'the selected date'}. Choose a later "Interest Till" date.
+              </p>
+            ) : (
+              <>
+                <p className="invoice-hint">
+                  {formatAmount(lateBase)} × {Number(lateForm.ratePercent) || 0}% per{' '}
+                  {lateForm.ratePeriod} × {lateDays} days ÷{' '}
+                  {lateForm.ratePeriod === 'month' ? '30' : '365'}
+                </p>
+
+                <div className="invoice-total-breakdown">
+                  <div>
+                    <span>Days overdue</span>
+                    <strong>{lateDays}</strong>
+                  </div>
+
+                  <div>
+                    <span>Interest</span>
+                    <strong>{formatAmount(lateInterest)}</strong>
+                  </div>
+
+                  {lateForm.addGst && (
+                    <div>
+                      <span>GST (18%)</span>
+                      <strong>{formatAmount(lateGst)}</strong>
+                    </div>
+                  )}
+
+                  <div className="invoice-grand-total">
+                    <span>Total Amount</span>
+                    <strong>{formatAmount(lateTotal)}</strong>
+                  </div>
+                </div>
+              </>
+            )}
+          </section>
+
+          <div className="invoice-form-actions">
+            <button
+              type="button"
+              className="invoice-cancel-btn"
+              onClick={() => setInvoiceType('')}
+              disabled={saving}
+            >
+              <X size={17} /> Cancel
+            </button>
+
+            <button
+              type="submit"
+              className="invoice-save-btn"
+              disabled={saving || !refInvoice || lateDays <= 0 || lateInterest <= 0}
+            >
+              <Save size={18} />
+              {saving ? 'Saving Invoice...' : 'Save Invoice'}
+            </button>
+          </div>
+        </form>
+      ) : invoiceType ? (
         <form className="invoice-form" onSubmit={saveInvoice}>
           <div className="invoice-form-header">
             <div>
@@ -605,7 +956,9 @@ if (selectedInvoice) {
               <h2>
                 {activeTab === 'PFI'
                   ? 'Proforma Invoices'
-                  : 'Tax Invoices'}
+                  : activeTab === 'TAX'
+                    ? 'Tax Invoices'
+                    : 'Late Interest Invoices'}
               </h2>
               <p>View and manage your saved invoices.</p>
             </div>
@@ -625,7 +978,9 @@ if (selectedInvoice) {
               <div className="invoice-empty-icon">
                 {activeTab === 'PFI'
                   ? <FileText size={32} />
-                  : <Receipt size={32} />}
+                  : activeTab === 'TAX'
+                    ? <Receipt size={32} />
+                    : <Percent size={32} />}
               </div>
 
               <h3>No Invoices Yet</h3>
@@ -633,13 +988,15 @@ if (selectedInvoice) {
               <p>
                 You haven't created any {activeTab === 'PFI'
                   ? 'proforma'
-                  : 'tax'} invoices yet.
+                  : activeTab === 'TAX'
+                    ? 'tax'
+                    : 'late interest'} invoices yet.
               </p>
 
               <button
                 type="button"
                 className="invoice-add-btn"
-                onClick={() => openForm(activeTab)}
+                onClick={() => (activeTab === 'INT' ? openLateForm() : openForm(activeTab))}
               >
                 <Plus size={18} /> Create Invoice
               </button>
@@ -651,8 +1008,19 @@ if (selectedInvoice) {
                   <tr>
                     <th>Invoice No.</th>
                     <th>Bill To</th>
-                    <th>Issue Date</th>
-                    <th>Due Date</th>
+                    {activeTab === 'INT' ? (
+                      <>
+                        <th>Against</th>
+                        <th>Days Late</th>
+                        <th>Rate</th>
+                        <th>Interest</th>
+                      </>
+                    ) : (
+                      <>
+                        <th>Issue Date</th>
+                        <th>Due Date</th>
+                      </>
+                    )}
                     <th>Total Amount</th>
                     <th>Status</th>
                     <th>Action</th>
@@ -664,8 +1032,28 @@ if (selectedInvoice) {
                     <tr key={inv.id}>
                       <td><strong>{inv.number}</strong></td>
                       <td>{inv.billTo}</td>
-                      <td>{inv.issueDate || '-'}</td>
-                      <td>{inv.dueDate || '-'}</td>
+                      {activeTab === 'INT' ? (
+                        <>
+                          <td>{inv.lateInterest?.refInvoiceNumber || '-'}</td>
+                          <td>{inv.lateInterest?.days ?? '-'}</td>
+                          <td>
+                            {inv.lateInterest
+                              ? `${inv.lateInterest.ratePercent}% / ${inv.lateInterest.ratePeriod === 'month' ? 'month' : 'year'}`
+                              : '-'}
+                          </td>
+                          <td>{formatAmount(inv.lateInterest?.interestAmount)}</td>
+                        </>
+                      ) : (
+                        <>
+                          <td>{inv.issueDate || '-'}</td>
+                          <td>
+                            {inv.dueDate || '-'}
+                            {inv.dueDate !== '-' && inv.dueDate < today && (
+                              <span className="invoice-overdue-tag">Past due</span>
+                            )}
+                          </td>
+                        </>
+                      )}
                       <td><strong>{formatAmount(inv.total)}</strong></td>
                       <td>
                         <span className="invoice-saved-tag">
@@ -682,6 +1070,18 @@ if (selectedInvoice) {
                           <Eye size={16} />
                           {viewingId === inv.id ? 'Loading...' : 'View'}
                         </button>
+
+                        {activeTab !== 'INT' && inv.dueDate !== '-' && inv.dueDate < today && (
+                          <button
+                            type="button"
+                            className="invoice-view-btn invoice-interest-btn"
+                            onClick={() => openLateForm(inv.id)}
+                            title="Create a late interest invoice for this invoice"
+                          >
+                            <Percent size={16} />
+                            Late Interest
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

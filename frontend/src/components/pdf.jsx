@@ -73,7 +73,12 @@ const numberToWords = (amount) => {
 const Pdf = ({ invoice, onClose }) => {
     if (!invoice) return null;
     const isTaxInvoice = invoice.invoiceType === 'TAX';
-    const invoiceTitle = isTaxInvoice ? 'Tax Invoice' : 'Proforma Invoice';
+    const isInterestInvoice = invoice.invoiceType === 'INT';
+    const lateInterest = isInterestInvoice ? invoice.lateInterest : null;
+    const invoiceTitle = isInterestInvoice
+        ? 'Late Interest Invoice'
+        : isTaxInvoice ? 'Tax Invoice' : 'Proforma Invoice';
+    const showGst = isTaxInvoice || (isInterestInvoice && Number(invoice.gstRate) > 0);
     const invoiceNumber = invoice.invoiceNumber || invoice.number || '-';
     const subtotal = Number(invoice.subtotal || 0);
     const gstAmount = Number(invoice.gstAmount || 0);
@@ -168,12 +173,34 @@ const Pdf = ({ invoice, onClose }) => {
                         ))}
                     </tbody>
                 </table>
+                {lateInterest && (
+                    <table className="pdf-date-table pdf-interest-table">
+                        <thead>
+                            <tr>
+                                <th>Against Invoice</th>
+                                <th>Amount Overdue (₹)</th>
+                                <th>Rate</th>
+                                <th>Period</th>
+                                <th>Days</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>{lateInterest.refInvoiceNumber || '-'}</td>
+                                <td>{formatAmount(lateInterest.principal)}</td>
+                                <td>{lateInterest.ratePercent}% per {lateInterest.ratePeriod === 'month' ? 'month' : 'year'}</td>
+                                <td>{formatDate(lateInterest.fromDate)} to {formatDate(lateInterest.toDate)}</td>
+                                <td>{lateInterest.days}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                )}
                 <div className="pdf-total-section">
                     <div className="pdf-total-row">
-                        <span>Subtotal</span>
+                        <span>{isInterestInvoice ? 'Interest' : 'Subtotal'}</span>
                         <strong>₹{formatAmount(subtotal)}</strong>
                     </div>
-                    {isTaxInvoice && (
+                    {showGst && (
                         <div className="pdf-total-row">
                             <span>GST ({invoice.gstRate || 18}%)</span>
                             <strong>₹{formatAmount(gstAmount)}</strong>
@@ -221,8 +248,12 @@ const Pdf = ({ invoice, onClose }) => {
                         the applicable statutory timeline shall attract compound interest
                         with monthly rests at three times the bank rate notified by the
                         Reserve Bank of India, wherever applicable. This document is a
-                        {isTaxInvoice ? ' Tax Invoice' : ' Proforma Invoice (PI)'} and the
-                        applicable document shall be issued in accordance with applicable GST laws.
+                        {isInterestInvoice
+                            ? ' Late Interest Invoice raised for delayed payment of the invoice mentioned above.'
+                            : <>
+                                {isTaxInvoice ? ' Tax Invoice' : ' Proforma Invoice (PI)'} and the
+                                applicable document shall be issued in accordance with applicable GST laws.
+                            </>}
                     </p>
                 </div>
             </div>

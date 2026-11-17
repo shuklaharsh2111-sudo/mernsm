@@ -7,9 +7,22 @@ const invoiceItemSchema = new mongoose.Schema({
     amount: { type: Number, required: true, min: 0 }
 }, { _id: true });
 
+// Only filled for invoiceType 'INT' (late payment interest invoice)
+const lateInterestSchema = new mongoose.Schema({
+    refInvoiceId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    refInvoiceNumber: { type: String, default: '', trim: true },
+    principal: { type: Number, min: 0, default: 0 },
+    ratePercent: { type: Number, min: 0, default: 0 },
+    ratePeriod: { type: String, enum: ['year', 'month'], default: 'year' },
+    fromDate: { type: Date, default: null },
+    toDate: { type: Date, default: null },
+    days: { type: Number, min: 0, default: 0 },
+    interestAmount: { type: Number, min: 0, default: 0 }
+}, { _id: false });
+
 const invoiceSchema = new mongoose.Schema({
     invoiceNumber: { type: String, required: true },
-    invoiceType: { type: String, enum: ['PFI', 'TAX'], required: true },
+    invoiceType: { type: String, enum: ['PFI', 'TAX', 'INT'], required: true },
     billTo: { type: String, required: true, trim: true },
     primaryPerson: { type: String, default: '', trim: true },
     contact: { type: String, default: '', trim: true },
@@ -23,6 +36,7 @@ const invoiceSchema = new mongoose.Schema({
     dueDate: { type: Date, default: null },
     notes: { type: String, default: '' },
     items: { type: [invoiceItemSchema], required: true },
+    lateInterest: { type: lateInterestSchema, default: undefined },
     subtotal: { type: Number, required: true },
     gstRate: { type: Number, default: 0 },
     gstAmount: { type: Number, default: 0 },
