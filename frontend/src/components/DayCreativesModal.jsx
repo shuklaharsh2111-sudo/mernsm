@@ -6,7 +6,7 @@ import { fmtDay } from '../sopUtils';
 
 // Opens when a calendar day box is clicked: every creative planned that day.
 // Click one to see its full details (onOpen). `paused` while the detail window is on top of this one.
-export default function DayCreativesModal({ company, platformLabel, date, creatives, platforms, paused, onOpen, onEdit, onAdd, onDelete, onClose }) {
+export default function DayCreativesModal({ company, platformLabel, date, creatives, platforms, paused, onOpen, onEdit, onAdd, onDelete, onClose, renderStatus, itemClass }) {
   useEffect(() => {
     if (paused) return undefined;
     const onKey = (e) => e.key === 'Escape' && onClose();
@@ -38,7 +38,7 @@ export default function DayCreativesModal({ company, platformLabel, date, creati
               {creatives.map((c) => {
                 const { title, platforms: keys } = c.contentPillar;
                 return (
-                  <li key={c.id} className={`day-item ${c.status}`}>
+                  <li key={c.id} className={`day-item ${itemClass ? itemClass(c) : c.status}`}>
                     <button type="button" className="day-item-open" onClick={() => onOpen(c)} title="View details">
                       <span className="day-item-thumb">
                         {c.uploads[0] ? <img src={c.uploads[0].url} alt="" /> : <ImageIcon size={20} />}
@@ -46,7 +46,7 @@ export default function DayCreativesModal({ company, platformLabel, date, creati
                       <span className="day-item-text">
                         <b>{title}</b>
                         <span className="day-item-meta">
-                          <CreativeStatusBadge status={c.status} />
+                          {renderStatus ? renderStatus(c) : <CreativeStatusBadge status={c.status} />}
                           {keys.map((pk) => {
                             const P = platforms.find((p) => p.key === pk);
                             return P ? <P.icon key={pk} size={14} /> : null;

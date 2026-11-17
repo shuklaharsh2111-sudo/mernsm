@@ -921,3 +921,174 @@
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* ---------- creatives as wide horizontal cards ---------- */
+.des-creative-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.des-creative-card {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.4fr);
+    align-items: start;
+    gap: 26px;
+}
+.des-creative-card:hover {
+    transform: none;
+}
+.des-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+}
+.des-card-delivery {
+    min-width: 0;
+    padding-left: 26px;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+@media (max-width: 960px) {
+    .des-creative-card {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+    }
+    .des-card-delivery {
+        padding-left: 0;
+        padding-top: 18px;
+        border-left: 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+}
+
+/* ---------- left side of the horizontal card: fills the column ---------- */
+.des-creative-card {
+    align-items: stretch;
+}
+.des-company-icon {
+    overflow: hidden;
+}
+.des-company-icon img {
+    width: 100%;
+    height: 100%;
+    padding: 5px;
+    object-fit: contain;
+    background: #fff;
+}
+.des-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.des-block-label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    color: var(--ink-3);
+}
+.des-caption.full {
+    display: block;
+    max-height: 190px;
+    padding: 12px 14px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    -webkit-line-clamp: unset;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+}
+.des-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.des-tags span {
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--orange-light);
+    background: rgba(242, 107, 15, 0.1);
+    border: 1px solid rgba(242, 107, 15, 0.28);
+    border-radius: 999px;
+}
+.des-tags.plain span {
+    color: var(--ink-2);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+.des-details {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+}
+.des-details dt {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: var(--ink-3);
+}
+.des-details dd {
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+}
+.des-ref-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+    gap: 10px;
+}
+.des-ref-thumb {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+    text-decoration: none;
+    color: var(--ink-2);
+}
+.des-ref-media {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    overflow: hidden;
+    color: var(--ink-3);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    transition: border-color .2s;
+}
+.des-ref-media img,
+.des-ref-media video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.des-ref-thumb:hover .des-ref-media {
+    border-color: var(--orange);
+}
+.des-ref-thumb small {
+    font-size: 10.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* the footer sits at the bottom of the column, next to the end of the upload section */
+.des-card-info .des-card-footer {
+    margin-top: auto;
+}
+@media (max-width: 560px) {
+    .des-details {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
