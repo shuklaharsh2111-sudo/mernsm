@@ -1767,3 +1767,15 @@ textarea,
 optgroup {
   font-family: inherit;
 }
+/* Poppins everywhere: form controls do not inherit the page font by default */
+html,
+body,
+#root,
+button,
+input,
+select,
+textarea,
+optgroup,
+option {
+  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
