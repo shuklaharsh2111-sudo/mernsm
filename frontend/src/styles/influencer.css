@@ -20,7 +20,7 @@
 .inf-clear { padding: 8px 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; background: transparent; color: #f27b36; cursor: pointer; }
 
 .inf-table-wrap { overflow-x: auto; border: 1px solid rgba(255,255,255,.08); border-radius: 16px; background: linear-gradient(145deg, #15100e, #100c0a); }
-.inf-table { width: 100%; min-width: 980px; border-collapse: collapse; font-size: 13px; }
+.inf-table { width: 100%; min-width: 1180px; border-collapse: collapse; font-size: 13px; }
 .inf-table th { text-align: left; padding: 12px 14px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: #b9a899; border-bottom: 1px solid rgba(255,255,255,.08); white-space: nowrap; }
 .inf-table th button { display: inline-flex; align-items: center; gap: 4px; border: 0; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
 .inf-table th button.sorted { color: #f27b36; }
@@ -50,3 +50,10 @@ a.inf-chan:hover { filter: brightness(1.25); }
 .inf-more:hover { background: #f27b36; }
 
 @media (max-width: 900px) { .inf-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.inf-yt-stats { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: #b9a899; line-height: 1.35; }
+.inf-yt-stats em { font-style: normal; color: #ff8a80; }
+.inf-collab { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.inf-collab.paid { background: rgba(80,200,120,.16); color: #7fe0a0; }
+.inf-collab.unpaid { background: rgba(255,255,255,.08); color: #d9cbbf; }
+.inf-price { display: flex; align-items: center; gap: 2px; margin-top: 4px; font-size: 12px; color: #f0b66b; }
