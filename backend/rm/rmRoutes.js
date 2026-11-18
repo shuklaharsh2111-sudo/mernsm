@@ -120,6 +120,13 @@ router.get('/overview', async (req, res) => {
       tasksInProgress: tk['in-progress'] || 0,
       tasksCompleted: tk.completed || 0,
     },
+    team: team.map((u) => ({
+      id: String(u._id),
+      name: u.name || u.fullname || u.email,
+      email: u.email,
+      role: String(u.role || u._role).toUpperCase(),
+      profileImage: u.profileImage || u.avatar || '',
+    })),
     pendingCreatives: recentCreatives.map(creativeItemView),
     pendingMoms: recentMoms.map(momItemView),
   });

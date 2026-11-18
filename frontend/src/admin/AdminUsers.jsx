@@ -214,6 +214,10 @@ const AdminUsers = () => {
           {shown.map((u) => {
             const assigned = (u.companies || []).map((id) => byId[id?._id || id]).filter(Boolean);
             const manager = managerById[u.reportingManagerId];
+            // For a reporting manager: the people who report to them, with their roles.
+            const reports = String(u.role).toUpperCase() === 'REPORTING_MANAGER'
+              ? users.filter((x) => String(x.reportingManagerId || '') === String(u.id))
+              : [];
             // Admin can assign companies and SOPs to Social Media Executives (SME) and Social Media Interns (SMI).
             const canAssign = u.collection === 'smes' || u.collection === 'smis';
             const isMe = String(u.id) === String(me?.id); // your own account can't be deleted
@@ -239,6 +243,22 @@ const AdminUsers = () => {
                   <div><dt><UserCheck size={14} /> Reporting Manager</dt><dd>{manager ? manager.name : '—'}</dd></div>
                   <div><dt><CalendarDays size={14} /> Joined</dt><dd>{fmtJoined(u.createdAt)}</dd></div>
                 </dl>
+                {String(u.role).toUpperCase() === 'REPORTING_MANAGER' && (
+                  <div className="au-companies">
+                    <span>Team ({reports.length})</span>
+                    <div>
+                      {reports.length === 0 ? (
+                        <em>No one reports to this manager</em>
+                      ) : (
+                        reports.map((r) => (
+                          <span key={`${r.collection}-${r.id}`} className="au-chip" title={`${r.name} (${r.email})`}>
+                            {r.name} · {roleLabel(r.role)}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
                 {canAssign && (
                   <div className="au-card-actions">
                     <button type="button" className="btn-ghost" onClick={() => setAssignUser(u)}>
