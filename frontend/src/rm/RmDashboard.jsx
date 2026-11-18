@@ -5,8 +5,12 @@ import {
 } from 'lucide-react';
 import api from '../api';
 import { errMsg, fmtDay } from '../sopUtils';
+import { roleName } from '../roleNames';
 import '../style.css';
 import '../styles/dashboard-glass.css';
+import '../styles/rmteam.css';
+
+const initialsOf = (name = '') => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || 'U';
 
 const QUICK = [
   { title: 'Team', text: 'People who report to you', path: '/rm/team', icon: Users },
@@ -68,6 +72,35 @@ const RmDashboard = () => {
           <strong className="kpi-value">{loading ? '–' : `${c.tasksCompleted || 0}/${tasksTotal}`}</strong>
           <span className="kpi-sub">{loading ? 'Completed' : `${c.tasksInProgress || 0} in progress · ${c.tasksNew || 0} new`}</span>
         </div>
+      </div>
+
+      <div className="dash-section-title">My team</div>
+      <div className="glass-panel rm-team-panel">
+        {loading ? <p className="muted">Loading…</p> : data.team.length === 0 ? (
+          <p className="muted">Nobody reports to you yet. The admin can set you as the Reporting Manager when adding a user.</p>
+        ) : (
+          <>
+            <div className="rm-team-summary">
+              {Object.entries(data.team.reduce((acc, m) => ({ ...acc, [m.role]: (acc[m.role] || 0) + 1 }), {})).map(([role, n]) => (
+                <span key={role} className="rm-team-count">{n} {roleName(role)}{n === 1 ? '' : 's'}</span>
+              ))}
+            </div>
+            <div className="rm-team-list">
+              {data.team.map((m) => (
+                <Link to="/rm/team" className="rm-team-member" key={`${m.role}-${m.id}`} title={m.email}>
+                  <span className="rm-team-avatar">
+                    {m.profileImage ? <img src={m.profileImage} alt="" /> : initialsOf(m.name)}
+                  </span>
+                  <span className="rm-team-text">
+                    <strong>{m.name}</strong>
+                    <small className={`rm-team-role ${m.role.toLowerCase()}`}>{roleName(m.role)}</small>
+                  </span>
+                </Link>
+              ))}
+            </div>
+            <Link to="/rm/team" className="dash-btn" style={{ marginTop: 14 }}>Open team <ArrowRight size={15} /></Link>
+          </>
+        )}
       </div>
 
       <div className="dash-section-title">Waiting for you</div>
