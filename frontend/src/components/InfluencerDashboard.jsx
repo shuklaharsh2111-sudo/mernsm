@@ -160,7 +160,6 @@ const InfluencerDashboard = ({ role = 'sme' }) => {
                 <tr>
                   <th>Influencer</th>
                   <th>Channels</th>
-                  <th>Location</th>
                   {COLUMNS.map((c) => (
                     <th key={c.key} className="num">
                       <button type="button" className={sort.key === c.key ? 'sorted' : ''} onClick={() => toggleSort(c.key)}>
@@ -169,24 +168,24 @@ const InfluencerDashboard = ({ role = 'sme' }) => {
                       </button>
                     </th>
                   ))}
-                  <th>Contact</th>
-                  <th>Agency</th>
+                  <th>Contact &amp; agency</th>
                   <th>Collaboration</th>
                 </tr>
               </thead>
               <tbody>
                 {shown.slice(0, visible).map((i) => (
                   <tr key={i.id}>
-                    <td>
+                    <td data-label="Influencer">
                       <div className="inf-person">
                         <span className="inf-avatar" aria-hidden="true">{initials(i.name)}</span>
                         <div>
                           <strong>{i.name}</strong>
                           <span className="inf-pill">{i.category}</span>
+                          <span className="inf-loc"><MapPin size={12} /> {i.location}</span>
                         </div>
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Channels">
                       <div className="inf-channels">
                         {i.channels.includes('youtube') && (safeUrl(i.youtubeLink)
                           ? <a className="inf-chan yt" href={safeUrl(i.youtubeLink)} target="_blank" rel="noopener noreferrer" title="Open YouTube"><YoutubeIcon size={14} /> YouTube</a>
@@ -203,18 +202,17 @@ const InfluencerDashboard = ({ role = 'sme' }) => {
                           : <span className="inf-chan ig"><InstagramIcon size={14} /> Instagram</span>)}
                       </div>
                     </td>
-                    <td><span className="inf-loc"><MapPin size={13} /> {i.location}</span></td>
-                    <td className="num"><b>{compact(i.followers)}</b></td>
-                    <td className="num">{compact(i.avgReelViews)}</td>
-                    <td className="num">{i.engagement}%</td>
-                    <td>
+                    <td className="num" data-label="Followers"><b>{compact(i.followers)}</b></td>
+                    <td className="num" data-label="Avg reel views">{compact(i.avgReelViews)}</td>
+                    <td className="num" data-label="Engagement">{i.engagement}%</td>
+                    <td data-label="Contact">
                       <div className="inf-contact">
                         <span><Phone size={12} /> {i.contact}</span>
                         <a href={`mailto:${i.email}`}><Mail size={12} /> {i.email}</a>
+                        {i.managementAgency && <span className="inf-agency"><Building2 size={12} /> {i.managementAgency}</span>}
                       </div>
                     </td>
-                    <td><span className="inf-agency"><Building2 size={13} /> {i.managementAgency || '—'}</span></td>
-                    <td>
+                    <td data-label="Collaboration">
                       <span className={`inf-collab ${i.collaborationType}`}>{i.collaborationType === 'paid' ? 'Paid' : 'Unpaid'}</span>
                       {i.collaborationType === 'paid' && <span className="inf-price"><IndianRupee size={12} />{money(i.collaborationPrice).replace('₹','')}</span>}
                     </td>
