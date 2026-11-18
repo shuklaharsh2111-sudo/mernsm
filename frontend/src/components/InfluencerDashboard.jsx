@@ -4,7 +4,7 @@ import { errMsg } from '../sopUtils';
 import '../styles/influencer.css';
 import {
   Megaphone, Users, Eye, TrendingUp, Search, X,
-  Mail, Phone, MapPin, Building2, ArrowUp, ArrowDown
+  Mail, Phone, MapPin, Building2, ArrowUp, ArrowDown, IndianRupee
 } from 'lucide-react';
 import { YoutubeIcon, InstagramIcon } from './SocialIcons';
 
@@ -19,6 +19,8 @@ const initials = (name = '') => name.trim().split(/\s+/).slice(0, 2).map((w) => 
 // only open real web links
 const safeUrl = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
 
+const money = (n) => (n == null ? '—' : `₹${new Intl.NumberFormat('en-IN').format(n)}`);
+
 const COLUMNS = [
   { key: 'followers', label: 'Followers' },
   { key: 'avgReelViews', label: 'Avg reel views' },
@@ -32,6 +34,7 @@ const InfluencerDashboard = ({ role = 'sme' }) => {
   const [channel, setChannel] = useState('all');
   const [category, setCategory] = useState('all');
   const [location, setLocation] = useState('all');
+  const [collab, setCollab] = useState('all');
   const [sort, setSort] = useState({ key: 'followers', dir: 'desc' });
   const [visible, setVisible] = useState(PAGE);
 
@@ -58,13 +61,14 @@ const InfluencerDashboard = ({ role = 'sme' }) => {
       if (channel !== 'all' && !i.channels.includes(channel)) return false;
       if (category !== 'all' && i.category !== category) return false;
       if (location !== 'all' && i.location !== location) return false;
+      if (collab !== 'all' && i.collaborationType !== collab) return false;
       if (!q) return true;
-      return [i.name, i.category, i.location, i.managementAgency, i.email, i.contact]
+      return [i.name, i.category, i.location, i.managementAgency, i.email, i.contact, i.youtubeStats?.handle, i.youtubeStats?.title]
         .some((v) => (v || '').toLowerCase().includes(q));
     });
     const sign = sort.dir === 'asc' ? 1 : -1;
     return [...items].sort((a, b) => sign * ((a[sort.key] || 0) - (b[sort.key] || 0)));
-  }, [list, query, channel, category, location, sort]);
+  }, [list, query, channel, category, location, collab, sort]);
 
   // numbers for whatever is currently filtered
   const stats = useMemo(() => {
@@ -78,12 +82,13 @@ const InfluencerDashboard = ({ role = 'sme' }) => {
     };
   }, [shown]);
 
-  const filtered = query || channel !== 'all' || category !== 'all' || location !== 'all';
+  const filtered = query || channel !== 'all' || category !== 'all' || location !== 'all' || collab !== 'all';
   const clearFilters = () => {
     setQuery('');
     setChannel('all');
     setCategory('all');
     setLocation('all');
+    setCollab('all');
   };
   const toggleSort = (key) => {
     setSort((s) => (s.key === key ? { key, dir: s.dir === 'desc' ? 'asc' : 'desc' } : { key, dir: 'desc' }));
@@ -132,6 +137,11 @@ const InfluencerDashboard = ({ role = 'sme' }) => {
             <option value="all">All locations</option>
             {locations.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
+          <select value={collab} onChange={resetPage(setCollab)} aria-label="Filter by collaboration type">
+            <option value="all">Paid &amp; unpaid</option>
+            <option value="paid">Paid</option>
+            <option value="unpaid">Unpaid</option>
+          </select>
           {filtered && <button type="button" className="inf-clear" onClick={clearFilters}>Clear</button>}
         </div>
       </div>
@@ -150,7 +160,6 @@ const InfluencerDashboard = ({ role = 'sme' }) => {
                 <tr>
                   <th>Influencer</th>
                   <th>Channels</th>
-                  <th>Location</th>
                   {COLUMNS.map((c) => (
                     <th key={c.key} className="num">
                       <button type="button" className={sort.key === c.key ? 'sorted' : ''} onClick={() => toggleSort(c.key)}>
@@ -159,43 +168,54 @@ const InfluencerDashboard = ({ role = 'sme' }) => {
                       </button>
                     </th>
                   ))}
-                  <th>Contact</th>
-                  <th>Agency</th>
+                  <th>Contact &amp; agency</th>
+                  <th>Collaboration</th>
                 </tr>
               </thead>
               <tbody>
                 {shown.slice(0, visible).map((i) => (
                   <tr key={i.id}>
-                    <td>
+                    <td data-label="Influencer">
                       <div className="inf-person">
                         <span className="inf-avatar" aria-hidden="true">{initials(i.name)}</span>
                         <div>
                           <strong>{i.name}</strong>
                           <span className="inf-pill">{i.category}</span>
+                          <span className="inf-loc"><MapPin size={12} /> {i.location}</span>
                         </div>
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Channels">
                       <div className="inf-channels">
                         {i.channels.includes('youtube') && (safeUrl(i.youtubeLink)
                           ? <a className="inf-chan yt" href={safeUrl(i.youtubeLink)} target="_blank" rel="noopener noreferrer" title="Open YouTube"><YoutubeIcon size={14} /> YouTube</a>
                           : <span className="inf-chan yt"><YoutubeIcon size={14} /> YouTube</span>)}
+                        {i.channels.includes('youtube') && i.youtubeStats?.channelId && (
+                          <span className="inf-yt-stats" title={i.youtubeStats.title}>
+                            {i.youtubeStats.handle && <em>{i.youtubeStats.handle}</em>}
+                            <span>{i.youtubeStats.subscribers == null ? 'Subs hidden' : `${compact(i.youtubeStats.subscribers)} subs`} · {compact(i.youtubeStats.avgViews)} avg views</span>
+                            <span>{compact(i.youtubeStats.totalViews)} total views · {i.youtubeStats.videoCount} videos · {i.youtubeStats.engagement}% eng.</span>
+                          </span>
+                        )}
                         {i.channels.includes('instagram') && (safeUrl(i.instagramLink)
                           ? <a className="inf-chan ig" href={safeUrl(i.instagramLink)} target="_blank" rel="noopener noreferrer" title="Open Instagram"><InstagramIcon size={14} /> Instagram</a>
                           : <span className="inf-chan ig"><InstagramIcon size={14} /> Instagram</span>)}
                       </div>
                     </td>
-                    <td><span className="inf-loc"><MapPin size={13} /> {i.location}</span></td>
-                    <td className="num"><b>{compact(i.followers)}</b></td>
-                    <td className="num">{compact(i.avgReelViews)}</td>
-                    <td className="num">{i.engagement}%</td>
-                    <td>
+                    <td className="num" data-label="Followers"><b>{compact(i.followers)}</b></td>
+                    <td className="num" data-label="Avg reel views">{compact(i.avgReelViews)}</td>
+                    <td className="num" data-label="Engagement">{i.engagement}%</td>
+                    <td data-label="Contact">
                       <div className="inf-contact">
                         <span><Phone size={12} /> {i.contact}</span>
                         <a href={`mailto:${i.email}`}><Mail size={12} /> {i.email}</a>
+                        {i.managementAgency && <span className="inf-agency"><Building2 size={12} /> {i.managementAgency}</span>}
                       </div>
                     </td>
-                    <td><span className="inf-agency"><Building2 size={13} /> {i.managementAgency}</span></td>
+                    <td data-label="Collaboration">
+                      <span className={`inf-collab ${i.collaborationType}`}>{i.collaborationType === 'paid' ? 'Paid' : 'Unpaid'}</span>
+                      {i.collaborationType === 'paid' && <span className="inf-price"><IndianRupee size={12} />{money(i.collaborationPrice).replace('₹','')}</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -8,6 +8,18 @@ const view = (i) => ({
   channels: i.channels || [],
   youtubeLink: i.youtubeLink || '',
   instagramLink: i.instagramLink || '',
+  youtubeStats: {
+    channelId: i.youtubeStats?.channelId || '',
+    title: i.youtubeStats?.title || '',
+    handle: i.youtubeStats?.handle || '',
+    thumbnail: i.youtubeStats?.thumbnail || '',
+    subscribers: i.youtubeStats?.subscribers ?? null,
+    totalViews: i.youtubeStats?.totalViews || 0,
+    videoCount: i.youtubeStats?.videoCount || 0,
+    avgViews: i.youtubeStats?.avgViews || 0,
+    engagement: i.youtubeStats?.engagement || 0,
+    fetchedAt: i.youtubeStats?.fetchedAt || null
+  },
   category: i.category,
   location: i.location,
   followers: i.followers || 0,
@@ -15,7 +27,9 @@ const view = (i) => ({
   engagement: i.engagement || 0,
   contact: i.contact,
   email: i.email,
-  managementAgency: i.managementAgency,
+  managementAgency: i.managementAgency || '',
+  collaborationType: i.collaborationType || 'unpaid',
+  collaborationPrice: i.collaborationPrice ?? null,
   createdAt: i.createdAt
 });
 
