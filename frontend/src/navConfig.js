@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Settings, CalendarDays, FolderOpen, Bookmark,
   ChartNoAxesCombined, FileBarChart, Clock, Building2, Receipt,
-  CalendarCheck, Palette, UserCheck, Briefcase, Wifi, Music
+  CalendarCheck, Palette, UserCheck, Briefcase, Wifi, Music, Megaphone
 } from 'lucide-react';
 export const RM_NAV = [
   {
@@ -76,7 +76,8 @@ export const SME_NAV = [
     heading: 'Workflow', items: [
       { title: 'Pending Creative', path: '/sme/pending-creatives', icon: Clock },
       { title: 'Records', path: '/sme/records', icon: FolderOpen },
-      { title: 'Saved', path: '/sme/saved', icon: Bookmark }
+      { title: 'Saved', path: '/sme/saved', icon: Bookmark },
+      { title: 'Influencers', path: '/sme/influencers', icon: Megaphone }
     ]
   },
   {
@@ -138,7 +139,8 @@ export const SMI_NAV = [
   {
     heading: 'Workflow',
     items: [
-      { title: 'Saved', path: '/smi/saved', icon: Bookmark }
+      { title: 'Saved', path: '/smi/saved', icon: Bookmark },
+      { title: 'Influencers', path: '/smi/influencers', icon: Megaphone }
     ]
   },
   {

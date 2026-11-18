@@ -9,6 +9,7 @@ import authRoutes, { protect } from './auth.js';
 import adminRoutes from './admin/adminRoutes.js';
 import smeRoutes from './sme/smeRoutes.js';
 import smiRoutes from './smi/smiRoutes.js';
+import { buildInfluencerRouter } from './influencer/influencerRoutes.js';
 import invoiceRoutes from './invoices/invoiceRoutes.js';
 import desRoutes from './des/desRoutes.js';
 import hrRoutes from './hr/hrRoutes.js';
@@ -36,6 +37,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.get('/api/integrations/google/callback', googleCallback);
 app.use('/api/admin', adminRoutes);
+app.use('/api/sme/influencers', buildInfluencerRouter('sme'));
+app.use('/api/smi/influencers', buildInfluencerRouter('smi'));
 app.use('/api/sme', smeRoutes);
 app.use('/api/smi', smiRoutes);
 app.use('/api/invoices', invoiceRoutes);

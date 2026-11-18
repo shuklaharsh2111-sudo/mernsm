@@ -32,6 +32,7 @@ import DesCalendar from './des/DesCalendar';
 import HrEmployees from './hr/HrEmployees';
 import HrOnline from './hr/HrOnline';
 import HrRecruitment from './hr/HrRecruitment';
+import InfluencerPage from './components/InfluencerPage';
 import PlaylistPage from './music/PlaylistPage';
 import { MusicProvider } from './music/MusicContext';
 import MiniPlayer from './music/MiniPlayer';
@@ -130,6 +131,7 @@ const AppRoutes = () => {
           <Route path="/sme/settings" element={<SmeSettings />} />
           <Route path="/sme/analytics" element={<SmeAnalytics />} />
           <Route path="/sme/monthly-reports" element={<SmeMonthlyReports />} />
+          <Route path="/sme/influencers" element={<InfluencerPage role="sme" />} />
           <Route path="/sme/playlist" element={<PlaylistPage workspace="SME WORKSPACE" />} />
         </Route>
       </Route>
@@ -147,6 +149,7 @@ const AppRoutes = () => {
         <Route element={<DashboardLayout />}>
           <Route path="/smi" element={<SmiDashboard />} />
           <Route path="/smi/saved" element={<SmiSaved />} />
+          <Route path="/smi/influencers" element={<InfluencerPage role="smi" />} />
           <Route path="/smi/playlist" element={<PlaylistPage workspace="SMI WORKSPACE" />} />
           <Route path="/smi/settings" element={<ProfileSettings workspace="SMI WORKSPACE" />} />
         </Route>
