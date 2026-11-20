@@ -32,6 +32,7 @@ import DesCalendar from './des/DesCalendar';
 import HrEmployees from './hr/HrEmployees';
 import HrOnline from './hr/HrOnline';
 import HrRecruitment from './hr/HrRecruitment';
+import HrBaseSkills from './hr/HrBaseSkills';
 import InfluencerPage from './components/InfluencerPage';
 import PlaylistPage from './music/PlaylistPage';
 import { MusicProvider } from './music/MusicContext';
@@ -158,6 +159,7 @@ const AppRoutes = () => {
         <Route element={<DashboardLayout />}>
           <Route path="/hr" element={<Navigate to="/hr/recruitment" replace />} />
           <Route path="/hr/recruitment" element={<HrRecruitment />} />
+          <Route path="/hr/base-skills" element={<HrBaseSkills />} />
           <Route path="/hr/employees" element={<HrEmployees />} />
           <Route path="/hr/online" element={<HrOnline />} />
           <Route path="/hr/playlist" element={<PlaylistPage workspace="HR WORKSPACE" />} />

@@ -935,7 +935,8 @@ def main(argv):
                     if not fields[k] and extra[k]:
                         fields[k] = extra[k]
         missing = [k for k in ("name", "mobile", "email", "position") if not fields[k]]
-        print(json.dumps({"ok": True, "engine": "python", "fields": fields, "missing": missing}, ensure_ascii=False))
+        # the raw text is returned too so the server can read the skills from it
+        print(json.dumps({"ok": True, "engine": "python", "fields": fields, "missing": missing, "text": data["text"][:30000]}, ensure_ascii=False))
         return 0
     except ReadError as exc:
         print(json.dumps({"ok": False, "error": str(exc), "code": exc.code}, ensure_ascii=False))
