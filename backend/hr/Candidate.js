@@ -1,5 +1,9 @@
 import mongoose from 'mongoose';
 
+// Dropdown choices for the recruitment sheet (kept here so the API can validate them)
+export const REMARK_STATUSES = ['Shortlisted', 'HOLD', 'Absconded', 'Rejected by Candidate', 'Unanswered', 'Telephonic Rejected', 'Out of Mumbai'];
+export const INTERVIEW_STATUSES = ['Selected', 'HOLD', 'Absconded', 'Rejected 1st Round', 'Rejected 2nd Round', 'Rejected'];
+
 const candidateSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true, maxlength: 80 },
@@ -17,6 +21,8 @@ const candidateSchema = new mongoose.Schema(
     interviewAt: { type: Date, default: null },       // interview schedule
     remark: { type: String, default: '', maxlength: 1000 }, // last remark / note
     remarkAt: { type: Date, default: null },
+    remarkStatus: { type: String, default: '', enum: ['', ...REMARK_STATUSES] },        // "Remark" dropdown
+    interviewStatus: { type: String, default: '', enum: ['', ...INTERVIEW_STATUSES] },  // "Interview Status" dropdown
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Hr' }
   },
   { timestamps: true, collection: 'candidates' }
