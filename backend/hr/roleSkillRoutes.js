@@ -1,7 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import RoleSkill from './RoleSkill.js';
-import { splitSkills } from './skillMatch.js';
+import { splitSkills, refreshAllMatches } from './skillMatch.js';
 
 const router = express.Router();
 const validId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -26,6 +26,7 @@ const cleanMin = (v) => {
   const n = Math.round(Number(v));
   return Number.isFinite(n) ? Math.min(100, Math.max(10, n)) : 60;
 };
+const refresh = () => refreshAllMatches().catch((err) => console.error('Match refresh failed:', err.message));
 const sameRole = (a, b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
 
 router.get('/', async (req, res) => {
@@ -46,6 +47,7 @@ router.post('/', async (req, res) => {
     autoShortlist: req.body.autoShortlist !== false,
     createdBy: req.user.id
   });
+  await refresh();
   res.status(201).json({ role: view(doc) });
 });
 
@@ -69,6 +71,7 @@ router.put('/:id', async (req, res) => {
   if ('minMatch' in b) doc.minMatch = cleanMin(b.minMatch);
   if ('autoShortlist' in b) doc.autoShortlist = !!b.autoShortlist;
   await doc.save();
+  await refresh();
   res.json({ role: view(doc) });
 });
 
@@ -76,6 +79,7 @@ router.delete('/:id', async (req, res) => {
   if (!validId(req.params.id)) return res.status(404).json({ message: 'Role not found.' });
   const doc = await RoleSkill.findByIdAndDelete(req.params.id);
   if (!doc) return res.status(404).json({ message: 'Role not found.' });
+  await refresh();
   res.json({ message: 'Role removed.' });
 });
 
