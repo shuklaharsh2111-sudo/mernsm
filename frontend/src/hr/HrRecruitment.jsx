@@ -14,6 +14,9 @@ const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 
 const emptyFields = { name: '', mobile: '', email: '', position: '', skills: '' };
 const FIELD_LABELS = { name: 'name', mobile: 'mobile number', email: 'email', position: 'position' };
+const MAX_BULK = 30;
+const RESUME_RE = /\.(pdf|docx?|txt|rtf|jpe?g|png|webp)$/i;
+const BULK_LABELS = { queued: 'Waiting', reading: 'Reading…', adding: 'Adding…', added: 'Added', review: 'Needs your check', error: 'Not added' };
 // ISO -> value for <input type="datetime-local"> (local time)
 const toLocalInput = (iso) => {
   if (!iso) return '';
@@ -190,6 +193,8 @@ const HrRecruitment = () => {
   const [dragging, setDragging] = useState(false);
   const [formError, setFormError] = useState('');
   const [missing, setMissing] = useState([]); // details the resume did not contain
+  const [bulk, setBulk] = useState([]); // files of a multi-file upload, with the result for each
+  const [bulkRunning, setBulkRunning] = useState(false);
   const [review, setReview] = useState(false); // false = add straight to the table once details are found
   useEffect(() => {
     let cancelled = false;
@@ -238,12 +243,71 @@ const HrRecruitment = () => {
       setParsing(false);
     }
   };
-  const submit = async (f, data) => {
+  const postCandidate = async (f, data) => {
     const body = new FormData();
     Object.entries(data).forEach(([k, v]) => body.append(k, v));
     if (f) body.append('resume', f);
     const res = await api.post('/hr/recruitment', body);
     setCandidates((list) => [res.data.candidate, ...list]);
+    return res;
+  };
+  const patchBulk = (id, patch) => setBulk((list) => list.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+  // Several resumes at once: read and add them one after another; the ones that need a human are listed
+  const pickFiles = async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    if (files.length === 1) return pickFile(files[0]);
+    if (bulkRunning) return undefined;
+    setNotice(''); setError(''); setFormError('');
+    const stamp = Date.now();
+    const items = files.slice(0, MAX_BULK).map((f, i) => {
+      let status = 'queued';
+      let message = '';
+      if (!RESUME_RE.test(f.name)) { status = 'error'; message = 'Unsupported file type.'; }
+      else if (f.size > 8 * 1024 * 1024) { status = 'error'; message = 'Larger than 8MB.'; }
+      return { id: `${stamp}-${i}`, file: f, name: f.name, status, message };
+    });
+    if (files.length > MAX_BULK) setError(`Only the first ${MAX_BULK} files were taken. Upload the rest as another batch.`);
+    setBulk(items);
+    setBulkRunning(true);
+    const reviewFirst = review;
+    for (const it of items) {
+      if (it.status !== 'queued') continue;
+      patchBulk(it.id, { status: 'reading' });
+      try {
+        const body = new FormData();
+        body.append('resume', it.file);
+        const res = await api.post('/hr/recruitment/parse', body);
+        const found = { ...emptyFields, ...res.data.fields };
+        const missingNow = res.data.missing || ['name', 'mobile', 'email', 'position'].filter((k) => !found[k]);
+        const complete = found.name && found.position && (found.email || found.mobile);
+        if (reviewFirst || !complete) {
+          patchBulk(it.id, {
+            status: 'review', fields: found, missing: missingNow, name: found.name || it.name,
+            message: complete ? 'Ready for you to check.' : `Couldn't find: ${missingNow.map((k) => FIELD_LABELS[k]).join(', ')}.`,
+          });
+          continue;
+        }
+        patchBulk(it.id, { status: 'adding', name: found.name });
+        const saved = await postCandidate(it.file, found);
+        const cand = saved.data.candidate;
+        const m = cand.match;
+        const note = !m ? '' : cand.shortlisted && m.auto ? `${m.score}% skill match · CV shortlisted` : `${m.score}% skill match (needs ${m.needed}%)`;
+        patchBulk(it.id, { status: 'added', name: cand.name, message: [note, saved.data.warning].filter(Boolean).join(' · ') });
+      } catch (err) {
+        patchBulk(it.id, { status: 'error', message: err.response?.data?.message || errMsg(err) });
+      }
+    }
+    setBulkRunning(false);
+    return undefined;
+  };
+  // Open one unfinished file in the normal form to complete it
+  const completeBulk = (it) => {
+    setBulk((list) => list.filter((b) => b.id !== it.id));
+    setFile(it.file); setFields(it.fields || emptyFields); setMissing(it.missing || []); setFormError('');
+  };
+  const submit = async (f, data) => {
+    const res = await postCandidate(f, data);
     const cand = res.data.candidate;
     const m = cand.match;
     const matchNote = !m ? '' : cand.shortlisted && m.auto
@@ -385,7 +449,7 @@ const HrRecruitment = () => {
       </div>
       {/* ---------- Upload resume ---------- */}
       <section className="hr-card">
-        <div className="hr-card-head"><h3>Add candidate from resume</h3><small>PDF, Word, TXT or image (JPG, PNG) · max 8MB</small></div>
+        <div className="hr-card-head"><h3>Add candidate from resume</h3><small>PDF, Word, TXT or image (JPG, PNG) · max 8MB each · up to 30 files at once</small></div>
         <label className="hr-review-toggle">
           <input type="checkbox" checked={review} onChange={(e) => setReview(e.target.checked)} />
           Review the details before adding
@@ -395,12 +459,12 @@ const HrRecruitment = () => {
             className={`hr-drop ${dragging ? 'drag' : ''}`}
             onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
-            onDrop={(e) => { e.preventDefault(); setDragging(false); pickFile(e.dataTransfer.files?.[0]); }}
+            onDrop={(e) => { e.preventDefault(); setDragging(false); pickFiles(e.dataTransfer.files); }}
           >
             <UploadCloud size={28} />
-            <strong>Click to upload or drop a resume here</strong>
-            <span>We'll read the name, mobile, email, position and skills</span>
-            <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.txt,.rtf,.jpg,.jpeg,.png,.webp" hidden onChange={(e) => pickFile(e.target.files?.[0])} />
+            <strong>Click to upload or drop resumes here</strong>
+            <span>Select several files at once to add them in bulk · we'll read the name, mobile, email, position and skills</span>
+            <input ref={fileRef} type="file" multiple disabled={bulkRunning} accept=".pdf,.doc,.docx,.txt,.rtf,.jpg,.jpeg,.png,.webp" hidden onChange={(e) => { const chosen = Array.from(e.target.files || []); e.target.value = ''; pickFiles(chosen); }} />
             {formError && <em className="hr-drop-error">{formError}</em>}
           </label>
         ) : (
@@ -437,6 +501,41 @@ const HrRecruitment = () => {
           </form>
         )}
       </section>
+      {bulk.length > 0 && (
+        <section className="hr-card hr-bulk">
+          <div className="hr-card-head">
+            <h3>Bulk upload</h3>
+            <small>
+              {bulk.filter((b) => !['queued', 'reading', 'adding'].includes(b.status)).length}/{bulk.length} done
+              {' · '}{bulk.filter((b) => b.status === 'added').length} added
+              {bulk.some((b) => b.status === 'review') && ` · ${bulk.filter((b) => b.status === 'review').length} need a check`}
+              {bulk.some((b) => b.status === 'error') && ` · ${bulk.filter((b) => b.status === 'error').length} not added`}
+            </small>
+          </div>
+          <ul className="hr-bulk-list">
+            {bulk.map((it) => (
+              <li key={it.id} className={`hr-bulk-item ${it.status}`}>
+                <FileText size={15} />
+                <div className="hr-bulk-main">
+                  <strong>{it.name}</strong>
+                  {it.name !== it.file.name && <em>{it.file.name}</em>}
+                  {it.message && <small>{it.message}</small>}
+                </div>
+                <span className="hr-bulk-status">
+                  {(it.status === 'reading' || it.status === 'adding') && <LoaderCircle size={13} className="hr-spin" />}
+                  {BULK_LABELS[it.status]}
+                </span>
+                {it.status === 'review' && (
+                  <button type="button" className="btn-ghost" disabled={!!file} title={file ? 'Finish the open form first' : ''} onClick={() => completeBulk(it)}>Complete</button>
+                )}
+              </li>
+            ))}
+          </ul>
+          {!bulkRunning && (
+            <div className="hr-form-actions"><button type="button" className="btn-ghost" onClick={() => setBulk([])}>Clear list</button></div>
+          )}
+        </section>
+      )}
       {/* ---------- Candidates ---------- */}
       <div className="hr-toolbar">
         <div className="hr-search">
