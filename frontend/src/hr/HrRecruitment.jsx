@@ -12,7 +12,7 @@ import '../styles/hr.css';
 
 const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 
-const emptyFields = { name: '', mobile: '', email: '', position: '' };
+const emptyFields = { name: '', mobile: '', email: '', position: '', skills: '' };
 const FIELD_LABELS = { name: 'name', mobile: 'mobile number', email: 'email', position: 'position' };
 // ISO -> value for <input type="datetime-local"> (local time)
 const toLocalInput = (iso) => {
@@ -26,6 +26,7 @@ const FILTERS = [
   { id: 'all', label: 'All', test: () => true },
   { id: 'shortlisted', label: 'Shortlisted', test: (c) => c.shortlisted },
   { id: 'not', label: 'Not shortlisted', test: (c) => !c.shortlisted },
+  { id: 'auto', label: 'Auto-shortlisted', test: (c) => !!c.match?.auto && c.shortlisted },
   { id: 'callPending', label: 'Call pending', test: (c) => c.shortlisted && !c.callDone },
   { id: 'interview', label: 'Interview scheduled', test: (c) => !!c.interviewAt },
 ];
@@ -106,6 +107,32 @@ const StatusSelect = ({ value, options, onChange, label, disabled = false, disab
         document.body
       )}
     </>
+  );
+};
+// Skills box: comma separated, saves when you click away
+const SkillsCell = ({ value, onSave, label, match }) => {
+  const [text, setText] = useState(value);
+  return (
+    <div className="hr-skills-cell">
+    <textarea
+      className="hr-skills"
+      rows={2}
+      maxLength={500}
+      value={text}
+      placeholder="Add skills (comma separated)"
+      aria-label={label}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => text.trim() !== value && onSave(text.trim())}
+    />
+    {match && (
+      <span
+        className={`hr-match ${match.auto ? 'pass' : match.score >= match.needed ? 'ok' : 'low'}`}
+        title={`Role: ${match.role}${match.missing.length ? `\nMissing: ${match.missing.join(', ')}` : ''}`}
+      >
+        {match.score}% match{match.auto ? ' · auto-shortlisted' : ` · needs ${match.needed}%`}
+      </span>
+    )}
+    </div>
   );
 };
 // Remark box: edits locally, saves when you click away
@@ -217,7 +244,12 @@ const HrRecruitment = () => {
     if (f) body.append('resume', f);
     const res = await api.post('/hr/recruitment', body);
     setCandidates((list) => [res.data.candidate, ...list]);
-    setNotice(res.data.warning || `${res.data.candidate.name} was added automatically. Click any detail in the table to correct it.`);
+    const cand = res.data.candidate;
+    const m = cand.match;
+    const matchNote = !m ? '' : cand.shortlisted && m.auto
+      ? ` Skills match ${m.score}% for ${m.role} — CV shortlisted automatically.`
+      : ` Skills match ${m.score}% for ${m.role} (needs ${m.needed}%) — not shortlisted.`;
+    setNotice(res.data.warning || `${cand.name} was added automatically.${matchNote} Click any detail in the table to correct it.`);
     resetUpload();
   };
   const saveCandidate = async (e) => {
@@ -264,7 +296,7 @@ const HrRecruitment = () => {
     const q = query.trim().toLowerCase();
     const test = FILTERS.find((f) => f.id === filter).test;
     return candidates.filter((c) =>
-      test(c) && (!q || [c.name, c.email, c.mobile, c.position].some((v) => String(v || '').toLowerCase().includes(q)))
+      test(c) && (!q || [c.name, c.email, c.mobile, c.position, c.skills].some((v) => String(v || '').toLowerCase().includes(q)))
     );
   }, [candidates, query, filter]);
   const setField = (k) => (e) => {
@@ -279,6 +311,8 @@ const HrRecruitment = () => {
       'Email',
       'Mobile',
       'Position',
+      'Skills',
+      'Skill Match %',
       'CV Shortlisted',
       'Call Done',
       'Interview Schedule',
@@ -295,6 +329,8 @@ const HrRecruitment = () => {
       c.email || '',
       c.mobile || '',
       c.position || '',
+      c.skills || '',
+      c.match ? c.match.score : '',
       c.shortlisted ? 'Yes' : 'No',
       c.callDone ? 'Yes' : 'No',
       fmtDateTime(c.interviewAt),
@@ -363,7 +399,7 @@ const HrRecruitment = () => {
           >
             <UploadCloud size={28} />
             <strong>Click to upload or drop a resume here</strong>
-            <span>We'll read the name, mobile, email and position</span>
+            <span>We'll read the name, mobile, email, position and skills</span>
             <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.txt,.rtf,.jpg,.jpeg,.png,.webp" hidden onChange={(e) => pickFile(e.target.files?.[0])} />
             {formError && <em className="hr-drop-error">{formError}</em>}
           </label>
@@ -382,7 +418,7 @@ const HrRecruitment = () => {
                     ? 'Adding candidate…'
                     : missing.length
                       ? `Fetched from the resume — couldn't find: ${missing.map((k) => FIELD_LABELS[k]).join(', ')}. Please fill ${missing.length > 1 ? 'these' : 'this'} in.`
-                      : 'Name, mobile, email and position were fetched from the resume — check them and save.'}
+                      : 'Name, mobile, email, position and skills were fetched from the resume — check them and save.'}
                 </p>
                 {formError && <p className="error-message" role="alert">{formError}</p>}
                 <div className="hr-form-grid">
@@ -390,6 +426,7 @@ const HrRecruitment = () => {
                   <label className={`x-field${missing.includes('mobile') ? ' hr-missing' : ''}`}><span>Mobile</span><input value={fields.mobile} onChange={setField('mobile')} inputMode="tel" /></label>
                   <label className={`x-field${missing.includes('email') ? ' hr-missing' : ''}`}><span>Email</span><input type="email" value={fields.email} onChange={setField('email')} /></label>
                   <label className={`x-field${missing.includes('position') ? ' hr-missing' : ''}`}><span>Position</span><input value={fields.position} onChange={setField('position')} maxLength={80} /></label>
+                  <label className="x-field hr-wide"><span>Skills</span><input value={fields.skills} onChange={setField('skills')} maxLength={500} placeholder="Read from the resume — comma separated" /></label>
                 </div>
                 <div className="hr-form-actions">
                   <button type="button" className="btn-ghost" onClick={resetUpload} disabled={saving}>Cancel</button>
@@ -404,7 +441,7 @@ const HrRecruitment = () => {
       <div className="hr-toolbar">
         <div className="hr-search">
           <Search size={15} />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, email, mobile or position" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, email, mobile, position or skill" />
         </div>
         <div className="hr-toolbar-actions">
           {shown.length !== candidates.length ? (
@@ -458,14 +495,14 @@ const HrRecruitment = () => {
           <table className="hr-table hr-recruit-table">
             <thead>
               <tr>
-                <th>Candidate</th><th>Mobile</th><th>Position</th><th>Resume</th>
+                <th>Candidate</th><th>Mobile</th><th>Position</th><th>Skills</th><th>Resume</th>
                 <th className="center">CV shortlisted</th><th className="center">Call done</th>
                 <th>Interview schedule</th><th>Remark</th><th>Interview Status</th><th>Last remark</th><th />
               </tr>
             </thead>
             <tbody>
               {shown.length === 0 && (
-                <tr><td colSpan={11}><p className="hr-empty">{candidates.length ? 'No candidates match.' : 'No candidates yet. Upload a resume above to add the first one.'}</p></td></tr>
+                <tr><td colSpan={12}><p className="hr-empty">{candidates.length ? 'No candidates match.' : 'No candidates yet. Upload a resume above to add the first one.'}</p></td></tr>
               )}
               {shown.map((c) => (
                 <tr key={c.id}>
@@ -475,6 +512,7 @@ const HrRecruitment = () => {
                   </td>
                   <td><EditCell key={`m-${c.id}-${c.mobile}`} value={c.mobile} placeholder="Add mobile" label={`Mobile of ${c.name}`} onSave={(v) => update(c.id, { mobile: v })} /></td>
                   <td><EditCell key={`p-${c.id}-${c.position}`} value={c.position} placeholder="Add position" label={`Position of ${c.name}`} onSave={(v) => update(c.id, { position: v })} /></td>
+                  <td><SkillsCell key={`s-${c.id}-${c.skills}`} value={c.skills} label={`Skills of ${c.name}`} match={c.match} onSave={(v) => update(c.id, { skills: v })} /></td>
                   <td>{c.resume ? <a className="hr-link" href={c.resume.url} target="_blank" rel="noreferrer"><FileText size={14} /> View</a> : '—'}</td>
                   <td className="center">
                     <input type="checkbox" className="hr-check" checked={c.shortlisted} onChange={(e) => update(c.id, { shortlisted: e.target.checked })} aria-label={`CV shortlisted: ${c.name}`} />

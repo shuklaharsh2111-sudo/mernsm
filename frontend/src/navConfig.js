@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Settings, CalendarDays, FolderOpen, Bookmark,
   ChartNoAxesCombined, FileBarChart, Clock, Building2, Receipt,
-  CalendarCheck, Palette, UserCheck, Briefcase, Wifi, Music, Megaphone
+  CalendarCheck, Palette, UserCheck, Briefcase, Wifi, Music, Megaphone, ListChecks
 } from 'lucide-react';
 export const RM_NAV = [
   {
@@ -159,7 +159,8 @@ export const HR_NAV = [
   {
     heading: 'Hiring',
     items: [
-      { title: 'Recruitment', path: '/hr/recruitment', icon: Briefcase }
+      { title: 'Recruitment', path: '/hr/recruitment', icon: Briefcase },
+      { title: 'Base Skills', path: '/hr/base-skills', icon: ListChecks }
     ]
   },
   {

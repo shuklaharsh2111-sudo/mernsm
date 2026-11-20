@@ -5,10 +5,12 @@ import { roleModels } from '../admin/UserModels.js';
 import Attendance from '../attendance/Attendance.js';
 import { getOfficeConfig } from '../attendance/geo.js';
 import recruitmentRoutes from './recruitmentRoutes.js';
+import roleSkillRoutes from './roleSkillRoutes.js';
 
 const router = express.Router();
 router.use(protect(['hr']));
 router.use('/recruitment', recruitmentRoutes);
+router.use('/role-skills', roleSkillRoutes);
 
 // Roles HR manages. Admins and clients are not employees, so they never show up here.
 const EMPLOYEE_ROLES = ['reporting_manager', 'sme', 'smi', 'des', 'hr'];

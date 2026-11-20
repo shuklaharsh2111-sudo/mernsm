@@ -21,6 +21,14 @@ const candidateSchema = new mongoose.Schema(
     interviewAt: { type: Date, default: null },       // interview schedule
     remark: { type: String, default: '', maxlength: 1000 }, // last remark / note
     remarkAt: { type: Date, default: null },
+    skills: { type: String, trim: true, default: '', maxlength: 500 },  // comma separated, read from the resume
+    // result of comparing the resume's skills with the role's base skills
+    matchRole: { type: String, default: '' },
+    matchScore: { type: Number, default: null },
+    matchNeeded: { type: Number, default: null },
+    matchedSkills: { type: [String], default: [] },
+    missingSkills: { type: [String], default: [] },
+    autoShortlisted: { type: Boolean, default: false },
     remarkStatus: { type: String, default: '', enum: ['', ...REMARK_STATUSES] },        // "Remark" dropdown
     interviewStatus: { type: String, default: '', enum: ['', ...INTERVIEW_STATUSES] },  // "Interview Status" dropdown
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Hr' }

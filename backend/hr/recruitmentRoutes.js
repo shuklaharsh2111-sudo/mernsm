@@ -5,6 +5,8 @@ import cloudinary from '../config/cloudinary.js';
 import Candidate, { REMARK_STATUSES, INTERVIEW_STATUSES } from './Candidate.js';
 import { extractResume, parseResumeText, RESUME_EXTS, IMAGE_EXTS, extOf } from './resumeParser.js';
 import { parseWithPython } from './pythonParser.js';
+import { findSkills, cleanSkills } from './skills.js';
+import { evaluateMatch } from './skillMatch.js';
 
 const router = express.Router();
 const validId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -53,12 +55,33 @@ const view = (c) => ({
   shortlisted: !!c.shortlisted,
   callDone: !!c.callDone,
   interviewAt: c.interviewAt || null,
+  skills: c.skills || '',
+  match: c.matchScore == null ? null : {
+    role: c.matchRole || '',
+    score: c.matchScore,
+    needed: c.matchNeeded,
+    matched: c.matchedSkills || [],
+    missing: c.missingSkills || [],
+    auto: !!c.autoShortlisted
+  },
   remark: c.remark || '',
   remarkAt: c.remarkAt || null,
   remarkStatus: c.remarkStatus || '',
   interviewStatus: c.interviewStatus || '',
   createdAt: c.createdAt
 });
+
+// Compare skills with the role's base skills and store the result on the candidate (no shortlisting here)
+const applyMatch = async (c) => {
+  const m = await evaluateMatch(c.position, c.skills);
+  c.matchRole = m ? m.role : '';
+  c.matchScore = m ? m.score : null;
+  c.matchNeeded = m ? m.needed : null;
+  c.matchedSkills = m ? m.matched : [];
+  c.missingSkills = m ? m.missing : [];
+  if (!m) c.autoShortlisted = false;
+  return m;
+};
 
 const cleanMobile = (v) => String(v || '').replace(/[^\d+]/g, '').slice(0, 16);
 
@@ -84,7 +107,12 @@ router.post('/parse', withUpload(async (req, res) => {
         console.warn('JS reader (second opinion) failed:', err.message);
       }
     }
-    return res.json({ fields: py.fields, missing: py.missing, engine: 'python' });
+    // Skills: read from the text the Python reader returned (or ask the JS reader if it gave none)
+    let skills = findSkills(py.text || '');
+    if (!skills && !py.text) {
+      try { skills = findSkills((await extractResume(req.file)).text); } catch { /* skills are optional */ }
+    }
+    return res.json({ fields: { ...py.fields, skills }, missing: py.missing, engine: 'python' });
   }
   if (py.code === 'no_python' || py.code === 'missing_dependency' || py.code === 'crashed') {
     console.warn(`Python resume reader unavailable (${py.error}) - using the JavaScript reader. Run "pip install -r requirements.txt" in backend/hr/python.`);
@@ -102,6 +130,7 @@ router.post('/parse', withUpload(async (req, res) => {
   }
   const fields = parseResumeText(read.text, req.file.originalname, read.hints);
   const missing = ['name', 'mobile', 'email', 'position'].filter((k) => !fields[k]);
+  fields.skills = findSkills(read.text);
   res.json({ fields, missing, engine: 'js' });
 }));
 
@@ -120,6 +149,8 @@ router.get('/export-csv', async (req, res) => {
       'Email',
       'Mobile',
       'Position',
+      'Skills',
+      'Skill Match %',
       'CV Shortlisted',
       'Call Done',
       'Interview Schedule',
@@ -136,6 +167,8 @@ router.get('/export-csv', async (req, res) => {
       c.email || '',
       c.mobile || '',
       c.position || '',
+      c.skills || '',
+      c.matchScore == null ? '' : c.matchScore,
       c.shortlisted ? 'Yes' : 'No',
       c.callDone ? 'Yes' : 'No',
       c.interviewAt ? new Date(c.interviewAt).toISOString() : '',
@@ -162,6 +195,7 @@ router.post('/', withUpload(async (req, res) => {
   const email = String(req.body.email || '').trim().toLowerCase();
   const mobile = cleanMobile(req.body.mobile);
   const position = String(req.body.position || '').trim();
+  const skills = cleanSkills(req.body.skills);
   if (!name) return res.status(400).json({ message: 'Candidate name is required.' });
   if (email && !EMAIL_RE.test(email)) return res.status(400).json({ message: 'Enter a valid email address.' });
   if (!email && !mobile) return res.status(400).json({ message: 'Add an email or a mobile number.' });
@@ -179,7 +213,10 @@ router.post('/', withUpload(async (req, res) => {
       warning = 'Candidate saved, but the resume file could not be uploaded.';
     }
   }
-  const candidate = await Candidate.create({ name, email, mobile, position, resume, createdBy: req.user.id });
+  const candidate = new Candidate({ name, email, mobile, position, skills, resume, createdBy: req.user.id });
+  const m = await applyMatch(candidate);
+  if (m && m.pass && m.autoShortlist) { candidate.shortlisted = true; candidate.autoShortlisted = true; }
+  await candidate.save();
   res.status(201).json({ candidate: view(candidate), warning });
 }));
 
@@ -202,6 +239,7 @@ router.put('/:id', async (req, res) => {
   }
   if ('mobile' in b) c.mobile = cleanMobile(b.mobile);
   if ('position' in b) c.position = String(b.position || '').trim().slice(0, 80);
+  if ('skills' in b) c.skills = cleanSkills(b.skills);
   if ('shortlisted' in b) c.shortlisted = !!b.shortlisted;
   if ('callDone' in b) c.callDone = !!b.callDone;
   if ('interviewAt' in b) {
@@ -226,6 +264,8 @@ router.put('/:id', async (req, res) => {
     const remark = String(b.remark || '').trim().slice(0, 1000);
     if (remark !== c.remark) { c.remark = remark; c.remarkAt = remark ? new Date() : null; }
   }
+  if ('skills' in b || 'position' in b) await applyMatch(c);
+  if ('shortlisted' in b && c.autoShortlisted && !c.shortlisted) c.autoShortlisted = false; // HR overrode the automatic choice
   await c.save();
   res.json({ candidate: view(c) });
 });
