@@ -173,19 +173,12 @@ td .hr-edit + .hr-edit { font-size: 11px; color: var(--ink-3); }
 .hr-match.low { background: rgba(224, 161, 0, .16); color: #f0c24a; }
 
 /* Base Skills page */
-.hr-role-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; margin-top: 14px; }
-.hr-role { display: flex; flex-direction: column; gap: 12px; }
-.hr-role-head { display: flex; align-items: center; gap: 8px; }
-.hr-role-name { font-size: 15px; font-weight: 700; }
 .hr-chipbox { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
 .hr-skill-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; border-radius: 999px; background: rgba(242, 107, 15, .16); color: var(--orange-light); font-size: 12px; font-weight: 600; }
 .hr-skill-chip button { display: grid; place-items: center; width: 16px; height: 16px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .1); color: inherit; cursor: pointer; }
 .hr-skill-chip button:disabled { opacity: .35; cursor: not-allowed; }
 .hr-chip-input { flex: 1; min-width: 140px; padding: 4px 6px; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 12px; }
 .hr-chip-input:focus { outline: none; }
-.hr-role-rules { display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--ink-2); }
-.hr-role-rules label { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.hr-role-rules input[type="number"] { width: 64px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-2); color: var(--ink); font: inherit; font-size: 12px; }
 .hr-empty { display: flex; align-items: center; gap: 8px; }
 
 div.x-field .hr-chipbox { min-height: 44px; }
@@ -262,3 +255,47 @@ div.x-field .hr-chipbox { min-height: 44px; }
 .hr-resume-btn.off { color: var(--ink-3); border-style: dashed; cursor: default; }
 .hr-cand-tools .btn-ghost { width: 32px; padding: 0; }
 @media (max-width: 720px) { .hr-cand-tools { width: 100%; margin-left: 0; justify-content: flex-start; flex-wrap: wrap; } }
+
+/* ---------- Base Skills page ---------- */
+.hr-role-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); gap: 14px; align-items: start; }
+.hr-role { display: flex; flex-direction: column; border: 1px solid var(--line); border-left: 3px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; min-width: 0; }
+.hr-role.is-auto { border-left-color: #2ea064; }
+.hr-role-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line-soft, var(--line)); }
+.hr-role-icon { flex-shrink: 0; width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; color: #fff; font-size: 14px; font-weight: 700; letter-spacing: .02em; }
+.hr-role-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.hr-role-title .hr-edit { min-width: 0; }
+.hr-role-name { font-size: 16px; font-weight: 700; padding: 3px 6px; }
+.hr-role-title small { padding-left: 6px; font-size: 11.5px; color: var(--ink-3); }
+.hr-role-sec { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
+.hr-role-sec h4 { margin: 0; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.hr-role-foot { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; padding: 14px 16px; border-top: 1px solid var(--line-soft, var(--line)); background: rgba(255, 255, 255, .02); }
+.hr-rule { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.hr-rule-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.hr-rule-val { font-size: 15px; color: var(--orange-light); }
+.hr-rule-hint { font-size: 11.5px; line-height: 1.4; color: var(--ink-3); }
+.hr-rule-hint b { color: var(--ink); }
+
+.hr-range { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 999px; outline: none; cursor: pointer; background: linear-gradient(to right, var(--orange) var(--fill, 50%), rgba(255, 255, 255, .14) var(--fill, 50%)); }
+.hr-range::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 3px solid var(--orange); box-shadow: 0 1px 4px rgba(0, 0, 0, .4); }
+.hr-range::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 3px solid var(--orange); }
+.hr-range:focus-visible { outline: 2px solid var(--orange); outline-offset: 4px; }
+
+.hr-newrole { margin: 0; }
+.hr-newrole-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 18px; }
+.hr-newrole-wide { grid-column: 1 / -1; }
+.hr-newrole-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-soft, var(--line)); }
+.hr-newrole-foot .hr-form-actions { margin: 0; }
+
+.hr-empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 44px 20px; border: 1px dashed var(--line); border-radius: 14px; text-align: center; }
+.hr-empty-state h3 { margin: 0; font-size: 16px; color: var(--ink); }
+.hr-empty-state p { max-width: 420px; margin: 0 0 6px; font-size: 13px; line-height: 1.5; color: var(--ink-3); }
+.hr-empty-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: rgba(242, 107, 15, .14); color: var(--orange-light); }
+
+@media (max-width: 560px) { .hr-role-foot { grid-template-columns: 1fr; } }
+
+/* inputs inside .x-field forms must not inherit the boxed text-input look */
+.x-field input.hr-range, .hr-newrole input.hr-range { height: 6px; padding: 0; border: 0; border-radius: 999px; background: linear-gradient(to right, var(--orange) var(--fill, 50%), rgba(255, 255, 255, .14) var(--fill, 50%)); box-shadow: none; }
+.x-field input.hr-chip-input, .hr-newrole input.hr-chip-input { padding: 4px 6px; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.x-field .hr-chipbox { gap: 6px; }
+.x-field .hr-switch-row input.hr-switch, .hr-newrole input.hr-switch { padding: 0; border: 0; background-color: rgba(255, 255, 255, .16); }
+.x-field .hr-switch-row input.hr-switch:checked, .hr-newrole input.hr-switch:checked { background-color: #2ea064; }
