@@ -6,11 +6,8 @@ import { errMsg, todayStr } from '../sopUtils';
 import { buildXlsx, downloadBlob } from './xlsxExport';
 import { fmtDate } from './hrUtils';
 import '../style.css';
-
-
 import '../styles/dashboard-glass.css';
 import '../styles/hr.css';
-
 const emptyFields = { name: '', mobile: '', email: '', position: '', skills: '' };
 const FIELD_LABELS = { name: 'name', mobile: 'mobile number', email: 'email', position: 'position' };
 const MAX_BULK = 30;
@@ -32,6 +29,41 @@ const FILTERS = [
   { id: 'callPending', label: 'Call pending', test: (c) => c.shortlisted && !c.callDone },
   { id: 'interview', label: 'Interview scheduled', test: (c) => !!c.interviewAt },
 ];
+const getPeriodRange = (period) => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const monday = new Date(today);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const nextMonday = new Date(monday);
+  nextMonday.setDate(nextMonday.getDate() + 7);
+  const previousMonday = new Date(monday);
+  previousMonday.setDate(previousMonday.getDate() - 7);
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+  const previousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const yearStart = new Date(today.getFullYear(), 0, 1);
+  const nextYear = new Date(today.getFullYear() + 1, 0, 1);
+  const ranges = {
+    today: [today, tomorrow],
+    yesterday: [new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1), today],
+    thisWeek: [monday, tomorrow],
+    previousWeek: [previousMonday, monday],
+    thisMonth: [monthStart, nextMonth],
+    previousMonth: [previousMonth, monthStart],
+    thisYear: [yearStart, nextYear],
+    overall: [null, null]
+  };
+  return ranges[period] || ranges.overall;
+};
+const isDateInRange = (value, range) => {
+  if (!value) return false;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  const [start, end] = range;
+  return (!start || date >= start) && (!end || date < end);
+};
 // Dropdown choices (colours follow the recruitment sheet)
 const REMARK_OPTIONS = [
   { value: 'Shortlisted', bg: '#cfe3f5', fg: '#1f5f99' },
@@ -116,24 +148,24 @@ const SkillsCell = ({ value, onSave, label, match }) => {
   const [text, setText] = useState(value);
   return (
     <div className="hr-skills-cell">
-    <textarea
-      className="hr-skills"
-      rows={2}
-      maxLength={500}
-      value={text}
-      placeholder="Add skills (comma separated)"
-      aria-label={label}
-      onChange={(e) => setText(e.target.value)}
-      onBlur={() => text.trim() !== value && onSave(text.trim())}
-    />
-    {match && (
-      <span
-        className={`hr-match ${match.auto ? 'pass' : match.score >= match.needed ? 'ok' : 'low'}`}
-        title={`Role: ${match.role}${match.missing.length ? `\nMissing: ${match.missing.join(', ')}` : ''}`}
-      >
-        {match.score}% match{match.auto ? ' · auto-shortlisted' : ` · needs ${match.needed}%`}
-      </span>
-    )}
+      <textarea
+        className="hr-skills"
+        rows={2}
+        maxLength={500}
+        value={text}
+        placeholder="Add skills (comma separated)"
+        aria-label={label}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={() => text.trim() !== value && onSave(text.trim())}
+      />
+      {match && (
+        <span
+          className={`hr-match ${match.auto ? 'pass' : match.score >= match.needed ? 'ok' : 'low'}`}
+          title={`Role: ${match.role}${match.missing.length ? `\nMissing: ${match.missing.join(', ')}` : ''}`}
+        >
+          {match.score}% match{match.auto ? ' · auto-shortlisted' : ` · needs ${match.needed}%`}
+        </span>
+      )}
     </div>
   );
 };
@@ -195,6 +227,7 @@ const HrRecruitment = () => {
   const [bulk, setBulk] = useState([]); // files of a multi-file upload, with the result for each
   const [bulkRunning, setBulkRunning] = useState(false);
   const [review, setReview] = useState(false); // false = add straight to the table once details are found
+  const [period, setPeriod] = useState('today');
   useEffect(() => {
     let cancelled = false;
     api.get('/hr/recruitment')
@@ -349,24 +382,40 @@ const HrRecruitment = () => {
       setError(err.response?.data?.message || errMsg(err));
     }
   };
-  const stats = useMemo(() => ({
-    total: candidates.length,
-    shortlisted: candidates.filter((c) => c.shortlisted).length,
-    called: candidates.filter((c) => c.callDone).length,
-    interviews: candidates.filter((c) => c.interviewAt && new Date(c.interviewAt) >= new Date()).length,
-  }), [candidates]);
+  const periodRange = useMemo(() => getPeriodRange(period), [period]);
+  const periodCandidates = useMemo(
+    () => candidates.filter((c) => isDateInRange(c.createdAt, periodRange)),
+    [candidates, periodRange]
+  );
+  const stats = useMemo(() => {
+    const now = new Date();
+    return {
+      total: periodCandidates.length,
+      shortlisted: periodCandidates.filter((c) => c.shortlisted).length,
+      called: periodCandidates.filter((c) => c.callDone).length,
+      interviews: candidates.filter((c) => {
+        if (!c.interviewAt) return false;
+        const interviewDate = new Date(c.interviewAt);
+        return interviewDate >= now && isDateInRange(c.interviewAt, periodRange);
+      }).length
+    };
+  }, [periodCandidates, candidates, periodRange]);
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const test = FILTERS.find((f) => f.id === filter).test;
-    return candidates.filter((c) =>
-      test(c) && (!q || [c.name, c.email, c.mobile, c.position, c.skills].some((v) => String(v || '').toLowerCase().includes(q)))
-    );
-  }, [candidates, query, filter]);
+    return periodCandidates.filter((c) => {
+      const selectedFilter = FILTERS.find((f) => f.id === filter);
+      const matchesFilter = selectedFilter ? selectedFilter.test(c) : true;
+      const matchesSearch =
+        !q ||
+        [c.name, c.mobile, c.email, c.position, c.skills]
+          .some((value) => String(value || '').toLowerCase().includes(q));
+      return matchesFilter && matchesSearch;
+    });
+  }, [periodCandidates, filter, query]);
   const setField = (k) => (e) => {
     setFields((f) => ({ ...f, [k]: e.target.value }));
     setMissing((m) => m.filter((x) => x !== k)); // typed in -> no longer "missing"
   };
-
   // Styled Excel file: coloured header, widths, status colours, real dates, clickable resume links
   const exportExcel = (listToExport = candidates) => {
     if (!listToExport || !listToExport.length) return;
@@ -430,7 +479,6 @@ const HrRecruitment = () => {
     const filterTag = isFiltered && filter !== 'all' ? `-${filter}` : isFiltered ? '-filtered' : '';
     downloadBlob(blob, `candidates${filterTag}-${todayStr()}.xlsx`);
   };
-
   return (
     <div className="dashboard-content scrollable dash-glass hr-page">
       <div className="page-header">
@@ -553,8 +601,23 @@ const HrRecruitment = () => {
           <Search size={15} />
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, email, mobile, position or skill" />
         </div>
+        <select
+          className="hr-period-select"
+          value={period}
+          onChange={(e) => setPeriod(e.target.value)}
+          aria-label="Filter recruitment by period"
+        >
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
+          <option value="thisWeek">This Week</option>
+          <option value="previousWeek">Previous Week</option>
+          <option value="thisMonth">This Month</option>
+          <option value="previousMonth">Previous Month</option>
+          <option value="thisYear">This Year</option>
+          <option value="overall">Overall</option>
+        </select>
         <div className="hr-toolbar-actions">
-          {shown.length !== candidates.length ? (
+          {shown.length !== periodCandidates.length || periodCandidates.length !== candidates.length ? (
             <>
               <button
                 type="button"
@@ -594,7 +657,7 @@ const HrRecruitment = () => {
       <div className="hr-chips">
         {FILTERS.map((f) => (
           <button key={f.id} type="button" className={filter === f.id ? 'active' : ''} onClick={() => setFilter(f.id)}>
-            {f.label}<em>{candidates.filter(f.test).length}</em>
+            {f.label}<em>{periodCandidates.filter(f.test).length}</em>
           </button>
         ))}
       </div>
