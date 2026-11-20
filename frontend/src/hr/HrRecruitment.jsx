@@ -487,16 +487,7 @@ const HrRecruitment = () => {
           <h1>Recruitment</h1>
           <p>Upload a resume and the candidate's details are filled in for you. Then track shortlisting, calls and interviews.</p>
         </div>
-        <button
-          type="button"
-          className="hr-export-btn"
-          onClick={() => exportExcel(candidates)}
-          disabled={!candidates.length}
-          title="Export all candidates to a formatted Excel file"
-        >
-          <Download size={15} />
-          <span>Export Excel</span>
-        </button>
+
       </div>
       {error && <p className="error-message" role="alert">{error}</p>}
       {notice && <p className="success-message" role="status">{notice}</p>}
