@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { UploadCloud, FileText, Search, Trash2, X, LoaderCircle, Users, UserCheck, PhoneCall, CalendarClock, Download } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { UploadCloud, FileText, Search, Trash2, X, LoaderCircle, Users, UserCheck, PhoneCall, CalendarClock, Download, ChevronDown } from 'lucide-react';
 import api from '../api';
 import { errMsg, fmtDateTime, todayStr } from '../sopUtils';
 import { fmtDate } from './hrUtils';
@@ -28,6 +29,85 @@ const FILTERS = [
   { id: 'callPending', label: 'Call pending', test: (c) => c.shortlisted && !c.callDone },
   { id: 'interview', label: 'Interview scheduled', test: (c) => !!c.interviewAt },
 ];
+// Dropdown choices (colours follow the recruitment sheet)
+const REMARK_OPTIONS = [
+  { value: 'Shortlisted', bg: '#cfe3f5', fg: '#1f5f99' },
+  { value: 'HOLD', bg: '#111111', fg: '#ffd84d' },
+  { value: 'Absconded', bg: '#9b1c1c', fg: '#ffe3e3' },
+  { value: 'Rejected by Candidate', bg: '#f6cfc7', fg: '#a3402c' },
+  { value: 'Unanswered', bg: '#f3dc8f', fg: '#7a5a00' },
+  { value: 'Telephonic Rejected', bg: '#2b2160', fg: '#ffffff' },
+  { value: 'Out of Mumbai', bg: '#d3e1ea', fg: '#2c6b7a' },
+];
+const INTERVIEW_OPTIONS = [
+  { value: 'Selected', bg: '#cfe3f5', fg: '#1f6a8a' },
+  { value: 'HOLD', bg: '#111111', fg: '#ffd84d' },
+  { value: 'Absconded', bg: '#9b1c1c', fg: '#ffe3e3' },
+  { value: 'Rejected 1st Round', bg: '#1c1c1c', fg: '#ffffff' },
+  { value: 'Rejected 2nd Round', bg: '#1f5666', fg: '#ffffff' },
+  { value: 'Rejected', bg: '#c0392b', fg: '#ffffff' },
+];
+// Coloured pill dropdown (the menu opens in a portal so the scrolling table never clips it)
+const StatusSelect = ({ value, options, onChange, label, disabled = false, disabledHint = '' }) => {
+  const [pos, setPos] = useState(null);
+  const btnRef = useRef(null);
+  const current = options.find((o) => o.value === value);
+  useEffect(() => {
+    if (!pos) return undefined;
+    const close = () => setPos(null);
+    const onKey = (e) => e.key === 'Escape' && close();
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [pos]);
+  const toggle = () => {
+    if (disabled) return undefined;
+    if (pos) return setPos(null);
+    const r = btnRef.current.getBoundingClientRect();
+    const menuH = (options.length + 1) * 38 + 16;
+    const top = r.bottom + menuH > window.innerHeight ? Math.max(8, r.top - menuH - 4) : r.bottom + 4;
+    setPos({ top, left: r.left, width: Math.max(r.width, 190) });
+  };
+  const pick = (v) => { setPos(null); if (v !== value) onChange(v); };
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        className={`hr-status-btn${current ? '' : ' empty'}`}
+        style={current ? { background: current.bg, color: current.fg } : undefined}
+        onClick={toggle}
+        disabled={disabled}
+        title={disabled ? disabledHint : ''}
+        aria-label={label}
+        aria-haspopup="listbox"
+        aria-expanded={!!pos}
+      >
+        <span>{current ? current.value : 'Select'}</span>
+        <ChevronDown size={13} />
+      </button>
+      {pos && createPortal(
+        <>
+          <div className="hr-status-backdrop" onClick={() => setPos(null)} />
+          <div className="hr-status-menu" role="listbox" style={{ top: pos.top, left: pos.left, minWidth: pos.width }}>
+            {options.map((o) => (
+              <button key={o.value} type="button" role="option" aria-selected={o.value === value} className="hr-status-opt" onClick={() => pick(o.value)}>
+                <span className="hr-status-pill" style={{ background: o.bg, color: o.fg }}>{o.value}</span>
+              </button>
+            ))}
+            {value && <button type="button" className="hr-status-clear" onClick={() => pick('')}>Clear</button>}
+          </div>
+        </>,
+        document.body
+      )}
+    </>
+  );
+};
 // Remark box: edits locally, saves when you click away
 const RemarkCell = ({ value, at, onSave }) => {
   const [text, setText] = useState(value);
@@ -202,6 +282,8 @@ const HrRecruitment = () => {
       'CV Shortlisted',
       'Call Done',
       'Interview Schedule',
+      'Remark',
+      'Interview Status',
       'Last Remark',
       'Remark Date',
       'Resume URL',
@@ -216,6 +298,8 @@ const HrRecruitment = () => {
       c.shortlisted ? 'Yes' : 'No',
       c.callDone ? 'Yes' : 'No',
       fmtDateTime(c.interviewAt),
+      c.remarkStatus || '',
+      c.interviewStatus || '',
       c.remark || '',
       fmtDateTime(c.remarkAt),
       c.resume?.url || '',
@@ -376,12 +460,12 @@ const HrRecruitment = () => {
               <tr>
                 <th>Candidate</th><th>Mobile</th><th>Position</th><th>Resume</th>
                 <th className="center">CV shortlisted</th><th className="center">Call done</th>
-                <th>Interview schedule</th><th>Last remark</th><th />
+                <th>Interview schedule</th><th>Remark</th><th>Interview Status</th><th>Last remark</th><th />
               </tr>
             </thead>
             <tbody>
               {shown.length === 0 && (
-                <tr><td colSpan={9}><p className="hr-empty">{candidates.length ? 'No candidates match.' : 'No candidates yet. Upload a resume above to add the first one.'}</p></td></tr>
+                <tr><td colSpan={11}><p className="hr-empty">{candidates.length ? 'No candidates match.' : 'No candidates yet. Upload a resume above to add the first one.'}</p></td></tr>
               )}
               {shown.map((c) => (
                 <tr key={c.id}>
@@ -408,6 +492,8 @@ const HrRecruitment = () => {
                       onChange={(e) => update(c.id, { interviewAt: e.target.value ? new Date(e.target.value).toISOString() : null })}
                     />
                   </td>
+                  <td><StatusSelect value={c.remarkStatus} options={REMARK_OPTIONS} label={`Remark for ${c.name}`} disabled={!c.shortlisted} disabledHint="Shortlist the CV first" onChange={(v) => update(c.id, { remarkStatus: v })} /></td>
+                  <td><StatusSelect value={c.interviewStatus} options={INTERVIEW_OPTIONS} label={`Interview status for ${c.name}`} disabled={!c.shortlisted} disabledHint="Shortlist the CV first" onChange={(v) => update(c.id, { interviewStatus: v })} /></td>
                   <td><RemarkCell key={`${c.id}-${c.remark}`} value={c.remark} at={c.remarkAt} onSave={(remark) => update(c.id, { remark })} /></td>
                   <td><button type="button" className="btn-ghost danger" onClick={() => remove(c)} aria-label={`Remove ${c.name}`}><Trash2 size={15} /></button></td>
                 </tr>

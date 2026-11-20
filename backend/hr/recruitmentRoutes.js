@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import mongoose from 'mongoose';
 import cloudinary from '../config/cloudinary.js';
-import Candidate from './Candidate.js';
+import Candidate, { REMARK_STATUSES, INTERVIEW_STATUSES } from './Candidate.js';
 import { extractResume, parseResumeText, RESUME_EXTS, IMAGE_EXTS, extOf } from './resumeParser.js';
 import { parseWithPython } from './pythonParser.js';
 
@@ -55,6 +55,8 @@ const view = (c) => ({
   interviewAt: c.interviewAt || null,
   remark: c.remark || '',
   remarkAt: c.remarkAt || null,
+  remarkStatus: c.remarkStatus || '',
+  interviewStatus: c.interviewStatus || '',
   createdAt: c.createdAt
 });
 
@@ -121,6 +123,8 @@ router.get('/export-csv', async (req, res) => {
       'CV Shortlisted',
       'Call Done',
       'Interview Schedule',
+      'Remark',
+      'Interview Status',
       'Last Remark',
       'Remark Date',
       'Resume URL',
@@ -135,6 +139,8 @@ router.get('/export-csv', async (req, res) => {
       c.shortlisted ? 'Yes' : 'No',
       c.callDone ? 'Yes' : 'No',
       c.interviewAt ? new Date(c.interviewAt).toISOString() : '',
+      c.remarkStatus || '',
+      c.interviewStatus || '',
       c.remark || '',
       c.remarkAt ? new Date(c.remarkAt).toISOString() : '',
       c.resume?.url || '',
@@ -205,6 +211,16 @@ router.put('/:id', async (req, res) => {
       if (Number.isNaN(d.getTime())) return res.status(400).json({ message: 'Enter a valid interview date and time.' });
       c.interviewAt = d;
     }
+  }
+  if ('remarkStatus' in b) {
+    const v = String(b.remarkStatus || '').trim();
+    if (v && !REMARK_STATUSES.includes(v)) return res.status(400).json({ message: 'Choose a valid remark option.' });
+    c.remarkStatus = v;
+  }
+  if ('interviewStatus' in b) {
+    const v = String(b.interviewStatus || '').trim();
+    if (v && !INTERVIEW_STATUSES.includes(v)) return res.status(400).json({ message: 'Choose a valid interview status.' });
+    c.interviewStatus = v;
   }
   if ('remark' in b) {
     const remark = String(b.remark || '').trim().slice(0, 1000);
