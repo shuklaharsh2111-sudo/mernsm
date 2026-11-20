@@ -2,15 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { UploadCloud, FileText, Search, Trash2, X, LoaderCircle, Users, UserCheck, PhoneCall, CalendarClock, Download, ChevronDown } from 'lucide-react';
 import api from '../api';
-import { errMsg, fmtDateTime, todayStr } from '../sopUtils';
+import { errMsg, todayStr } from '../sopUtils';
+import { buildXlsx, downloadBlob } from './xlsxExport';
 import { fmtDate } from './hrUtils';
 import '../style.css';
 
 
 import '../styles/dashboard-glass.css';
 import '../styles/hr.css';
-
-const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 
 const emptyFields = { name: '', mobile: '', email: '', position: '', skills: '' };
 const FIELD_LABELS = { name: 'name', mobile: 'mobile number', email: 'email', position: 'position' };
@@ -368,56 +367,68 @@ const HrRecruitment = () => {
     setMissing((m) => m.filter((x) => x !== k)); // typed in -> no longer "missing"
   };
 
-  const exportCsv = (listToExport = candidates) => {
+  // Styled Excel file: coloured header, widths, status colours, real dates, clickable resume links
+  const exportExcel = (listToExport = candidates) => {
     if (!listToExport || !listToExport.length) return;
-    const header = [
-      'Candidate Name',
-      'Email',
-      'Mobile',
-      'Position',
-      'Skills',
-      'Skill Match %',
-      'CV Shortlisted',
-      'Call Done',
-      'Interview Schedule',
-      'Remark',
-      'Interview Status',
-      'Last Remark',
-      'Remark Date',
-      'Resume URL',
-      'Resume Name',
-      'Date Added'
+    const pill = (list, value) => {
+      const o = list.find((x) => x.value === value);
+      return o ? { v: value, fill: o.bg.replace('#', ''), color: o.fg.replace('#', ''), bold: true, align: 'center' } : '';
+    };
+    const yesNo = (on) => (on
+      ? { v: 'Yes', fill: 'D6F0E0', color: '1E7A4A', bold: true, align: 'center' }
+      : { v: 'No', color: '8A8F94', align: 'center' });
+    const matchCell = (m) => {
+      if (!m) return '';
+      const good = m.auto || m.score >= m.needed;
+      return { v: m.score, type: 'num', fmt: '0"%"', fill: good ? 'D6F0E0' : 'FBEFC5', color: good ? '1E7A4A' : '8A6100', bold: true, align: 'center' };
+    };
+    const columns = [
+      { header: '#', width: 5, align: 'center' },
+      { header: 'Candidate Name', width: 24 },
+      { header: 'Email', width: 30 },
+      { header: 'Mobile', width: 16 },
+      { header: 'Position', width: 24 },
+      { header: 'Skills', width: 40 },
+      { header: 'Skill Match', width: 12, align: 'center' },
+      { header: 'CV Shortlisted', width: 14, align: 'center' },
+      { header: 'Call Done', width: 11, align: 'center' },
+      { header: 'Interview Schedule', width: 24, align: 'center' },
+      { header: 'Remark', width: 24 },
+      { header: 'Interview Status', width: 24 },
+      { header: 'Last Remark', width: 38 },
+      { header: 'Remark Date', width: 16, align: 'center' },
+      { header: 'Resume', width: 14, align: 'center' },
+      { header: 'Date Added', width: 16, align: 'center' },
     ];
-    const rows = listToExport.map((c) => [
-      c.name || '',
+    const rows = listToExport.map((c, i) => [
+      i + 1,
+      { v: c.name || '', bold: true },
       c.email || '',
       c.mobile || '',
       c.position || '',
-      c.skills || '',
-      c.match ? c.match.score : '',
-      c.shortlisted ? 'Yes' : 'No',
-      c.callDone ? 'Yes' : 'No',
-      fmtDateTime(c.interviewAt),
-      c.remarkStatus || '',
-      c.interviewStatus || '',
-      c.remark || '',
-      fmtDateTime(c.remarkAt),
-      c.resume?.url || '',
-      c.resume?.name || '',
-      fmtDateTime(c.createdAt)
+      { v: c.skills || '', wrap: true },
+      matchCell(c.match),
+      yesNo(c.shortlisted),
+      yesNo(c.callDone),
+      c.interviewAt ? { v: c.interviewAt, type: 'datetime' } : '',
+      pill(REMARK_OPTIONS, c.remarkStatus),
+      pill(INTERVIEW_OPTIONS, c.interviewStatus),
+      { v: c.remark || '', wrap: true },
+      c.remark && c.remarkAt ? { v: c.remarkAt, type: 'date' } : '',
+      c.resume?.url ? { v: 'View resume', type: 'link', url: c.resume.url, align: 'center' } : '',
+      c.createdAt ? { v: c.createdAt, type: 'date' } : '',
     ]);
-    const csvContent = [header, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n');
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
     const isFiltered = listToExport.length !== candidates.length;
+    const filterLabel = FILTERS.find((f) => f.id === filter)?.label;
+    const blob = buildXlsx({
+      sheetName: 'Candidates',
+      title: 'Recruitment — Candidates',
+      subtitle: `Exported on ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} · ${listToExport.length} candidate${listToExport.length === 1 ? '' : 's'}${isFiltered ? ` (filtered${filter !== 'all' ? `: ${filterLabel}` : ''})` : ''}`,
+      columns,
+      rows,
+    });
     const filterTag = isFiltered && filter !== 'all' ? `-${filter}` : isFiltered ? '-filtered' : '';
-    link.download = `candidates${filterTag}-${todayStr()}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, `candidates${filterTag}-${todayStr()}.xlsx`);
   };
 
   return (
@@ -431,12 +442,12 @@ const HrRecruitment = () => {
         <button
           type="button"
           className="hr-export-btn"
-          onClick={() => exportCsv(candidates)}
+          onClick={() => exportExcel(candidates)}
           disabled={!candidates.length}
-          title="Export all candidates to CSV"
+          title="Export all candidates to a formatted Excel file"
         >
           <Download size={15} />
-          <span>Export CSV</span>
+          <span>Export Excel</span>
         </button>
       </div>
       {error && <p className="error-message" role="alert">{error}</p>}
@@ -548,9 +559,9 @@ const HrRecruitment = () => {
               <button
                 type="button"
                 className="hr-export-btn"
-                onClick={() => exportCsv(shown)}
+                onClick={() => exportExcel(shown)}
                 disabled={!shown.length}
-                title="Export currently filtered candidates to CSV"
+                title="Export the filtered candidates to a formatted Excel file"
               >
                 <Download size={15} />
                 <span>Export Filtered ({shown.length})</span>
@@ -558,9 +569,9 @@ const HrRecruitment = () => {
               <button
                 type="button"
                 className="hr-export-btn ghost"
-                onClick={() => exportCsv(candidates)}
+                onClick={() => exportExcel(candidates)}
                 disabled={!candidates.length}
-                title="Export all candidates to CSV"
+                title="Export all candidates to a formatted Excel file"
               >
                 <Download size={15} />
                 <span>Export All ({candidates.length})</span>
@@ -570,12 +581,12 @@ const HrRecruitment = () => {
             <button
               type="button"
               className="hr-export-btn"
-              onClick={() => exportCsv(candidates)}
+              onClick={() => exportExcel(candidates)}
               disabled={!candidates.length}
-              title="Export all candidates to CSV"
+              title="Export all candidates to a formatted Excel file"
             >
               <Download size={15} />
-              <span>Export CSV</span>
+              <span>Export Excel</span>
             </button>
           )}
         </div>
