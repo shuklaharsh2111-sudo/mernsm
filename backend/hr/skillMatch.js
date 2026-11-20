@@ -1,5 +1,6 @@
 // Compares a candidate (position + skills) with the base skills HR saved for roles.
 import RoleSkill from './RoleSkill.js';
+import Candidate from './Candidate.js';
 
 const SENIORITY = new Set(['senior', 'junior', 'sr', 'jr', 'lead', 'head', 'intern', 'trainee', 'fresher', 'executive', 'associate', 'assistant', 'manager', 'freelance', 'freelancer', 'full', 'time', 'part']);
 const stem = (w) => (w.length > 5 ? w.replace(/(ers|er|ing|s)$/, '') : w);
@@ -70,3 +71,31 @@ export const evaluateMatch = async (position, skillsText) => {
     autoShortlist: role.autoShortlist !== false
   };
 };
+
+// Re-compare every candidate after a role's base skills change, so the badges never show an old result.
+// Only the stored result is refreshed; nobody is shortlisted or un-shortlisted here.
+export const refreshAllMatches = async () => {
+  const roles = await RoleSkill.find().lean();
+  const list = await Candidate.find().select('position skills matchRole matchScore matchNeeded matchedSkills missingSkills').lean();
+  const ops = [];
+  list.forEach((c) => {
+    const role = findRole(roles, c.position);
+    let next = { matchRole: '', matchScore: null, matchNeeded: null, matchedSkills: [], missingSkills: [] };
+    if (role && role.skills.length) {
+      const have = splitSkills(c.skills).map(normSkill);
+      const matched = [];
+      const missing = [];
+      role.skills.forEach((req) => {
+        const n = normSkill(req);
+        (have.some((h) => sameSkill(h, n)) ? matched : missing).push(req);
+      });
+      next = { matchRole: role.role, matchScore: Math.round((matched.length / role.skills.length) * 100), matchNeeded: role.minMatch, matchedSkills: matched, missingSkills: missing };
+    }
+    const same = next.matchRole === (c.matchRole || '') && next.matchScore === (c.matchScore ?? null) && next.matchNeeded === (c.matchNeeded ?? null)
+      && next.missingSkills.join('|') === (c.missingSkills || []).join('|');
+    if (!same) ops.push({ updateOne: { filter: { _id: c._id }, update: { $set: next } } });
+  });
+  if (ops.length) await Candidate.bulkWrite(ops);
+  return ops.length;
+};
+

@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { UploadCloud, FileText, Search, Trash2, X, LoaderCircle, Users, UserCheck, PhoneCall, CalendarClock, Download, ChevronDown } from 'lucide-react';
+import { UploadCloud, FileText, Search, Trash2, X, LoaderCircle, Users, UserCheck, PhoneCall, CalendarClock, Download, ChevronDown, Mail, Phone, Pencil } from 'lucide-react';
 import api from '../api';
 import { errMsg, todayStr } from '../sopUtils';
 import { buildXlsx, downloadBlob } from './xlsxExport';
 import { fmtDate } from './hrUtils';
 import '../style.css';
+
+
 import '../styles/dashboard-glass.css';
 import '../styles/hr.css';
+
 const emptyFields = { name: '', mobile: '', email: '', position: '', skills: '' };
 const FIELD_LABELS = { name: 'name', mobile: 'mobile number', email: 'email', position: 'position' };
 const MAX_BULK = 30;
@@ -29,41 +32,6 @@ const FILTERS = [
   { id: 'callPending', label: 'Call pending', test: (c) => c.shortlisted && !c.callDone },
   { id: 'interview', label: 'Interview scheduled', test: (c) => !!c.interviewAt },
 ];
-const getPeriodRange = (period) => {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const monday = new Date(today);
-  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-  const nextMonday = new Date(monday);
-  nextMonday.setDate(nextMonday.getDate() + 7);
-  const previousMonday = new Date(monday);
-  previousMonday.setDate(previousMonday.getDate() - 7);
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-  const previousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-  const yearStart = new Date(today.getFullYear(), 0, 1);
-  const nextYear = new Date(today.getFullYear() + 1, 0, 1);
-  const ranges = {
-    today: [today, tomorrow],
-    yesterday: [new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1), today],
-    thisWeek: [monday, tomorrow],
-    previousWeek: [previousMonday, monday],
-    thisMonth: [monthStart, nextMonth],
-    previousMonth: [previousMonth, monthStart],
-    thisYear: [yearStart, nextYear],
-    overall: [null, null]
-  };
-  return ranges[period] || ranges.overall;
-};
-const isDateInRange = (value, range) => {
-  if (!value) return false;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return false;
-  const [start, end] = range;
-  return (!start || date >= start) && (!end || date < end);
-};
 // Dropdown choices (colours follow the recruitment sheet)
 const REMARK_OPTIONS = [
   { value: 'Shortlisted', bg: '#cfe3f5', fg: '#1f5f99' },
@@ -143,28 +111,39 @@ const StatusSelect = ({ value, options, onChange, label, disabled = false, disab
     </>
   );
 };
-// Skills box: comma separated, saves when you click away
-const SkillsCell = ({ value, onSave, label, match }) => {
+// Skills shown as badges; click the pencil to edit the comma separated list
+const SKILL_PREVIEW = 10;
+const SkillsCell = ({ value, onSave, label }) => {
+  const [editing, setEditing] = useState(false);
+  const [all, setAll] = useState(false);
   const [text, setText] = useState(value);
-  return (
-    <div className="hr-skills-cell">
+  const list = value.split(',').map((x) => x.trim()).filter(Boolean);
+  const visible = all ? list : list.slice(0, SKILL_PREVIEW);
+  if (editing) {
+    return (
       <textarea
         className="hr-skills"
-        rows={2}
+        rows={3}
         maxLength={500}
+        autoFocus
         value={text}
-        placeholder="Add skills (comma separated)"
+        placeholder="Photoshop, Figma, Canva…"
         aria-label={label}
         onChange={(e) => setText(e.target.value)}
-        onBlur={() => text.trim() !== value && onSave(text.trim())}
+        onKeyDown={(e) => { if (e.key === 'Escape') { setText(value); setEditing(false); } }}
+        onBlur={() => { setEditing(false); if (text.trim() !== value) onSave(text.trim()); }}
       />
-      {match && (
-        <span
-          className={`hr-match ${match.auto ? 'pass' : match.score >= match.needed ? 'ok' : 'low'}`}
-          title={`Role: ${match.role}${match.missing.length ? `\nMissing: ${match.missing.join(', ')}` : ''}`}
-        >
-          {match.score}% match{match.auto ? ' · auto-shortlisted' : ` · needs ${match.needed}%`}
-        </span>
+    );
+  }
+  return (
+    <div className="hr-skill-list">
+      {list.length === 0 && <button type="button" className="hr-skill-add" onClick={() => setEditing(true)}>+ Add skills</button>}
+      {visible.map((sk) => <span key={sk} className="hr-skill-tag">{sk}</span>)}
+      {list.length > SKILL_PREVIEW && (
+        <button type="button" className="hr-skill-more" onClick={() => setAll((v) => !v)}>{all ? 'Show less' : `+${list.length - SKILL_PREVIEW} more`}</button>
+      )}
+      {list.length > 0 && (
+        <button type="button" className="hr-skill-edit" aria-label={label} title="Edit skills" onClick={() => { setText(value); setEditing(true); }}><Pencil size={12} /></button>
       )}
     </div>
   );
@@ -187,7 +166,7 @@ const RemarkCell = ({ value, at, onSave }) => {
   );
 };
 // Small inline-editable cell: edits locally, saves on blur / Enter, reverts if the server says no
-const EditCell = ({ value, onSave, type = 'text', placeholder = '—', label }) => {
+const EditCell = ({ value, onSave, type = 'text', placeholder = '—', label, className = '' }) => {
   const [text, setText] = useState(value);
   const commit = async () => {
     const next = text.trim();
@@ -197,7 +176,7 @@ const EditCell = ({ value, onSave, type = 'text', placeholder = '—', label }) 
   };
   return (
     <input
-      className="hr-edit"
+      className={`hr-edit ${className}`}
       type={type}
       value={text}
       placeholder={placeholder}
@@ -207,6 +186,11 @@ const EditCell = ({ value, onSave, type = 'text', placeholder = '—', label }) 
       onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
     />
   );
+};
+const avatarStyle = (name) => {
+  let h = 0;
+  String(name || '?').split('').forEach((ch) => { h = (h * 31 + ch.charCodeAt(0)) % 360; });
+  return { background: `hsl(${h} 45% 32%)` };
 };
 const HrRecruitment = () => {
   const [candidates, setCandidates] = useState([]);
@@ -227,7 +211,6 @@ const HrRecruitment = () => {
   const [bulk, setBulk] = useState([]); // files of a multi-file upload, with the result for each
   const [bulkRunning, setBulkRunning] = useState(false);
   const [review, setReview] = useState(false); // false = add straight to the table once details are found
-  const [period, setPeriod] = useState('today');
   useEffect(() => {
     let cancelled = false;
     api.get('/hr/recruitment')
@@ -382,40 +365,24 @@ const HrRecruitment = () => {
       setError(err.response?.data?.message || errMsg(err));
     }
   };
-  const periodRange = useMemo(() => getPeriodRange(period), [period]);
-  const periodCandidates = useMemo(
-    () => candidates.filter((c) => isDateInRange(c.createdAt, periodRange)),
-    [candidates, periodRange]
-  );
-  const stats = useMemo(() => {
-    const now = new Date();
-    return {
-      total: periodCandidates.length,
-      shortlisted: periodCandidates.filter((c) => c.shortlisted).length,
-      called: periodCandidates.filter((c) => c.callDone).length,
-      interviews: candidates.filter((c) => {
-        if (!c.interviewAt) return false;
-        const interviewDate = new Date(c.interviewAt);
-        return interviewDate >= now && isDateInRange(c.interviewAt, periodRange);
-      }).length
-    };
-  }, [periodCandidates, candidates, periodRange]);
+  const stats = useMemo(() => ({
+    total: candidates.length,
+    shortlisted: candidates.filter((c) => c.shortlisted).length,
+    called: candidates.filter((c) => c.callDone).length,
+    interviews: candidates.filter((c) => c.interviewAt && new Date(c.interviewAt) >= new Date()).length,
+  }), [candidates]);
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return periodCandidates.filter((c) => {
-      const selectedFilter = FILTERS.find((f) => f.id === filter);
-      const matchesFilter = selectedFilter ? selectedFilter.test(c) : true;
-      const matchesSearch =
-        !q ||
-        [c.name, c.mobile, c.email, c.position, c.skills]
-          .some((value) => String(value || '').toLowerCase().includes(q));
-      return matchesFilter && matchesSearch;
-    });
-  }, [periodCandidates, filter, query]);
+    const test = FILTERS.find((f) => f.id === filter).test;
+    return candidates.filter((c) =>
+      test(c) && (!q || [c.name, c.email, c.mobile, c.position, c.skills].some((v) => String(v || '').toLowerCase().includes(q)))
+    );
+  }, [candidates, query, filter]);
   const setField = (k) => (e) => {
     setFields((f) => ({ ...f, [k]: e.target.value }));
     setMissing((m) => m.filter((x) => x !== k)); // typed in -> no longer "missing"
   };
+
   // Styled Excel file: coloured header, widths, status colours, real dates, clickable resume links
   const exportExcel = (listToExport = candidates) => {
     if (!listToExport || !listToExport.length) return;
@@ -479,6 +446,7 @@ const HrRecruitment = () => {
     const filterTag = isFiltered && filter !== 'all' ? `-${filter}` : isFiltered ? '-filtered' : '';
     downloadBlob(blob, `candidates${filterTag}-${todayStr()}.xlsx`);
   };
+
   return (
     <div className="dashboard-content scrollable dash-glass hr-page">
       <div className="page-header">
@@ -487,7 +455,16 @@ const HrRecruitment = () => {
           <h1>Recruitment</h1>
           <p>Upload a resume and the candidate's details are filled in for you. Then track shortlisting, calls and interviews.</p>
         </div>
-
+        <button
+          type="button"
+          className="hr-export-btn"
+          onClick={() => exportExcel(candidates)}
+          disabled={!candidates.length}
+          title="Export all candidates to a formatted Excel file"
+        >
+          <Download size={15} />
+          <span>Export Excel</span>
+        </button>
       </div>
       {error && <p className="error-message" role="alert">{error}</p>}
       {notice && <p className="success-message" role="status">{notice}</p>}
@@ -592,23 +569,8 @@ const HrRecruitment = () => {
           <Search size={15} />
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, email, mobile, position or skill" />
         </div>
-        <select
-          className="hr-period-select"
-          value={period}
-          onChange={(e) => setPeriod(e.target.value)}
-          aria-label="Filter recruitment by period"
-        >
-          <option value="today">Today</option>
-          <option value="yesterday">Yesterday</option>
-          <option value="thisWeek">This Week</option>
-          <option value="previousWeek">Previous Week</option>
-          <option value="thisMonth">This Month</option>
-          <option value="previousMonth">Previous Month</option>
-          <option value="thisYear">This Year</option>
-          <option value="overall">Overall</option>
-        </select>
         <div className="hr-toolbar-actions">
-          {shown.length !== periodCandidates.length || periodCandidates.length !== candidates.length ? (
+          {shown.length !== candidates.length ? (
             <>
               <button
                 type="button"
@@ -648,60 +610,94 @@ const HrRecruitment = () => {
       <div className="hr-chips">
         {FILTERS.map((f) => (
           <button key={f.id} type="button" className={filter === f.id ? 'active' : ''} onClick={() => setFilter(f.id)}>
-            {f.label}<em>{periodCandidates.filter(f.test).length}</em>
+            {f.label}<em>{candidates.filter(f.test).length}</em>
           </button>
         ))}
       </div>
       {loading ? (
         <p className="muted">Loading…</p>
       ) : (
-        <div className="hr-table-wrap">
-          <table className="hr-table hr-recruit-table">
-            <thead>
-              <tr>
-                <th>Candidate</th><th>Mobile</th><th>Position</th><th>Skills</th><th>Resume</th>
-                <th className="center">CV shortlisted</th><th className="center">Call done</th>
-                <th>Interview schedule</th><th>Remark</th><th>Interview Status</th><th>Last remark</th><th />
-              </tr>
-            </thead>
-            <tbody>
-              {shown.length === 0 && (
-                <tr><td colSpan={12}><p className="hr-empty">{candidates.length ? 'No candidates match.' : 'No candidates yet. Upload a resume above to add the first one.'}</p></td></tr>
-              )}
-              {shown.map((c) => (
-                <tr key={c.id}>
-                  <td>
-                    <EditCell key={`n-${c.id}-${c.name}`} value={c.name} label={`Name of ${c.name}`} onSave={(v) => update(c.id, { name: v })} />
-                    <EditCell key={`e-${c.id}-${c.email}`} type="email" value={c.email} placeholder="Add email" label={`Email of ${c.name}`} onSave={(v) => update(c.id, { email: v })} />
-                  </td>
-                  <td><EditCell key={`m-${c.id}-${c.mobile}`} value={c.mobile} placeholder="Add mobile" label={`Mobile of ${c.name}`} onSave={(v) => update(c.id, { mobile: v })} /></td>
-                  <td><EditCell key={`p-${c.id}-${c.position}`} value={c.position} placeholder="Add position" label={`Position of ${c.name}`} onSave={(v) => update(c.id, { position: v })} /></td>
-                  <td><SkillsCell key={`s-${c.id}-${c.skills}`} value={c.skills} label={`Skills of ${c.name}`} match={c.match} onSave={(v) => update(c.id, { skills: v })} /></td>
-                  <td>{c.resume ? <a className="hr-link" href={c.resume.url} target="_blank" rel="noreferrer"><FileText size={14} /> View</a> : '—'}</td>
-                  <td className="center">
-                    <input type="checkbox" className="hr-check" checked={c.shortlisted} onChange={(e) => update(c.id, { shortlisted: e.target.checked })} aria-label={`CV shortlisted: ${c.name}`} />
-                  </td>
-                  <td className="center">
-                    <input type="checkbox" className="hr-check" checked={c.callDone} disabled={!c.shortlisted} title={c.shortlisted ? '' : 'Shortlist the CV first'} onChange={(e) => update(c.id, { callDone: e.target.checked })} aria-label={`Call done: ${c.name}`} />
-                  </td>
-                  <td>
+        <div className="hr-cand-list">
+          {shown.length === 0 && (
+            <p className="hr-empty">{candidates.length ? 'No candidates match.' : 'No candidates yet. Upload a resume above to add the first one.'}</p>
+          )}
+          {shown.map((c) => {
+            const m = c.match;
+            const lock = c.shortlisted ? '' : 'Shortlist the CV first';
+            return (
+              <article key={c.id} className={`hr-cand${c.shortlisted ? ' is-shortlisted' : ''}`}>
+                <header className="hr-cand-head">
+                  <span className="hr-avatar" style={avatarStyle(c.name)} aria-hidden="true">{(c.name || '?').trim().charAt(0).toUpperCase()}</span>
+                  <div className="hr-cand-id">
+                    <EditCell className="hr-edit-name" key={`n-${c.id}-${c.name}`} value={c.name} label={`Name of ${c.name}`} onSave={(v) => update(c.id, { name: v })} />
+                    <EditCell className="hr-edit-role" key={`p-${c.id}-${c.position}`} value={c.position} placeholder="Add position" label={`Position of ${c.name}`} onSave={(v) => update(c.id, { position: v })} />
+                  </div>
+                  <div className="hr-cand-tools">
+                    <span
+                      className={`hr-match ${!m ? 'none' : m.auto ? 'pass' : m.score >= m.needed ? 'ok' : 'low'}`}
+                      title={!m ? 'No base skills saved for this role yet (see Base Skills in the sidebar)' : `Role: ${m.role}\nNeeds ${m.needed}% to be shortlisted${m.missing.length ? `\nMissing: ${m.missing.join(', ')}` : ''}`}
+                    >
+                      {!m ? 'No role match' : `${m.auto ? '✓ ' : ''}${m.score}% match`}
+                    </span>
+                    {c.resume ? <a className="hr-resume-btn" href={c.resume.url} target="_blank" rel="noreferrer"><FileText size={14} /> Resume</a> : <span className="hr-resume-btn off">No resume</span>}
+                    <button type="button" className="btn-ghost danger" onClick={() => remove(c)} aria-label={`Remove ${c.name}`}><Trash2 size={15} /></button>
+                  </div>
+                </header>
+
+                <div className="hr-cand-body">
+                  <section className="hr-block">
+                    <h4>Contact</h4>
+                    <div className="hr-contact-row"><Mail size={14} /><EditCell key={`e-${c.id}-${c.email}`} type="email" value={c.email} placeholder="Add email" label={`Email of ${c.name}`} onSave={(v) => update(c.id, { email: v })} /></div>
+                    <div className="hr-contact-row"><Phone size={14} /><EditCell key={`m-${c.id}-${c.mobile}`} value={c.mobile} placeholder="Add mobile" label={`Mobile of ${c.name}`} onSave={(v) => update(c.id, { mobile: v })} /></div>
+                  </section>
+                  <section className="hr-block">
+                    <h4>Skills</h4>
+                    <SkillsCell key={`s-${c.id}-${c.skills}`} value={c.skills} label={`Skills of ${c.name}`} onSave={(v) => update(c.id, { skills: v })} />
+                  </section>
+                  <section className="hr-block">
+                    <h4>Last remark</h4>
+                    <RemarkCell key={`${c.id}-${c.remark}`} value={c.remark} at={c.remarkAt} onSave={(remark) => update(c.id, { remark })} />
+                  </section>
+                </div>
+
+                <div className="hr-cand-flow">
+                  <div className="hr-field">
+                    <span className="hr-field-label">CV shortlisted</span>
+                    <label className="hr-switch-row">
+                      <input type="checkbox" className="hr-switch" checked={c.shortlisted} onChange={(e) => update(c.id, { shortlisted: e.target.checked })} aria-label={`CV shortlisted: ${c.name}`} />
+                      <span>{c.shortlisted ? 'Yes' : 'No'}</span>
+                    </label>
+                  </div>
+                  <div className="hr-field">
+                    <span className="hr-field-label">Call done</span>
+                    <label className="hr-switch-row" title={lock}>
+                      <input type="checkbox" className="hr-switch" checked={c.callDone} disabled={!c.shortlisted} onChange={(e) => update(c.id, { callDone: e.target.checked })} aria-label={`Call done: ${c.name}`} />
+                      <span>{c.callDone ? 'Yes' : 'No'}</span>
+                    </label>
+                  </div>
+                  <div className="hr-field">
+                    <span className="hr-field-label">Interview schedule</span>
                     <input
                       type="datetime-local"
                       className="hr-dt"
                       value={toLocalInput(c.interviewAt)}
                       disabled={!c.shortlisted}
-                      title={c.shortlisted ? '' : 'Shortlist the CV first'}
+                      title={lock}
                       onChange={(e) => update(c.id, { interviewAt: e.target.value ? new Date(e.target.value).toISOString() : null })}
                     />
-                  </td>
-                  <td><StatusSelect value={c.remarkStatus} options={REMARK_OPTIONS} label={`Remark for ${c.name}`} disabled={!c.shortlisted} disabledHint="Shortlist the CV first" onChange={(v) => update(c.id, { remarkStatus: v })} /></td>
-                  <td><StatusSelect value={c.interviewStatus} options={INTERVIEW_OPTIONS} label={`Interview status for ${c.name}`} disabled={!c.shortlisted} disabledHint="Shortlist the CV first" onChange={(v) => update(c.id, { interviewStatus: v })} /></td>
-                  <td><RemarkCell key={`${c.id}-${c.remark}`} value={c.remark} at={c.remarkAt} onSave={(remark) => update(c.id, { remark })} /></td>
-                  <td><button type="button" className="btn-ghost danger" onClick={() => remove(c)} aria-label={`Remove ${c.name}`}><Trash2 size={15} /></button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                  <div className="hr-field">
+                    <span className="hr-field-label">Remark</span>
+                    <StatusSelect value={c.remarkStatus} options={REMARK_OPTIONS} label={`Remark for ${c.name}`} disabled={!c.shortlisted} disabledHint={lock} onChange={(v) => update(c.id, { remarkStatus: v })} />
+                  </div>
+                  <div className="hr-field">
+                    <span className="hr-field-label">Interview status</span>
+                    <StatusSelect value={c.interviewStatus} options={INTERVIEW_OPTIONS} label={`Interview status for ${c.name}`} disabled={!c.shortlisted} disabledHint={lock} onChange={(v) => update(c.id, { interviewStatus: v })} />
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </div>
