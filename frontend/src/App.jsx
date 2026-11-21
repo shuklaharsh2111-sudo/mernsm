@@ -38,6 +38,7 @@ import PlaylistPage from './music/PlaylistPage';
 import { MusicProvider } from './music/MusicContext';
 import MiniPlayer from './music/MiniPlayer';
 import { NotificationProvider } from './notifications/NotificationContext';
+import { ThemeProvider } from './theme/ThemeContext';
 
 
 const getDashboardPath = (role) => {
@@ -190,7 +191,9 @@ const AppRoutes = () => {
 const App = () => (
   <BrowserRouter>
     <AuthProvider>
-      <AppRoutes />
+      <ThemeProvider>
+        <AppRoutes />
+      </ThemeProvider>
     </AuthProvider>
   </BrowserRouter>
 );

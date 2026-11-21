@@ -32,7 +32,7 @@
 }
 .des-refresh:hover:not(:disabled) {
     border-color: var(--orange);
-    background: rgba(242, 107, 15, 0.18);
+    background: rgba(var(--accent-rgb), 0.18);
 }
 .des-refresh:disabled {
     opacity: .6;
@@ -66,7 +66,7 @@
 }
 .des-stat-icon.total {
     color: var(--orange-light);
-    background: rgba(242, 107, 15, 0.14);
+    background: rgba(var(--accent-rgb), 0.14);
 }
 .des-stat-icon.pending {
     color: var(--warn);
@@ -163,7 +163,7 @@
 }
 .des-filters button.active {
     color: #fff;
-    background: #f27b36;
+    background: var(--orange);
     border-color: rgba(255, 255, 255, 0.3);
 }
 .des-filters button.active span {
@@ -189,7 +189,7 @@
     transition: border-color .2s ease, transform .2s ease;
 }
 .des-creative-card:hover {
-    border-color: rgba(242, 107, 15, 0.5);
+    border-color: rgba(var(--accent-rgb), 0.5);
     transform: translateY(-2px);
 }
 .des-card-top {
@@ -211,7 +211,7 @@
     height: 40px;
     flex-shrink: 0;
     color: var(--orange-light);
-    background: rgba(242, 107, 15, 0.14);
+    background: rgba(var(--accent-rgb), 0.14);
     border-radius: 50%;
 }
 .des-company h4 {
@@ -340,12 +340,12 @@
     font-weight: 600;
     text-decoration: none;
     color: var(--orange-light);
-    background: rgba(242, 107, 15, 0.1);
-    border: 1px solid rgba(242, 107, 15, 0.3);
+    background: rgba(var(--accent-rgb), 0.1);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
     border-radius: 999px;
 }
 .des-reference-links a:hover {
-    background: rgba(242, 107, 15, 0.22);
+    background: rgba(var(--accent-rgb), 0.22);
 }
 .des-card-footer {
     display: flex;
@@ -367,7 +367,7 @@
     font-size: 11px;
     font-weight: 700;
     color: var(--orange-light);
-    background: rgba(242, 107, 15, 0.12);
+    background: rgba(var(--accent-rgb), 0.12);
     border-radius: 999px;
 }
 .des-upload-list {
@@ -416,7 +416,7 @@
     height: 64px;
     margin-bottom: 14px;
     color: var(--orange-light);
-    background: rgba(242, 107, 15, 0.12);
+    background: rgba(var(--accent-rgb), 0.12);
     border-radius: 50%;
 }
 .des-empty h3 {
@@ -522,9 +522,9 @@
 }
 .des-company-total {
     padding: 8px 14px;
-    border: 1px solid rgba(242, 107, 15, 0.3);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
     border-radius: 999px;
-    background: rgba(242, 107, 15, 0.12);
+    background: rgba(var(--accent-rgb), 0.12);
     color: var(--orange-light);
     font-size: 12px;
     font-weight: 700;
@@ -789,8 +789,8 @@
 }
 .des-status.review {
     color: var(--orange-light);
-    background: rgba(242, 107, 15, 0.12);
-    border-color: rgba(242, 107, 15, 0.3);
+    background: rgba(var(--accent-rgb), 0.12);
+    border-color: rgba(var(--accent-rgb), 0.3);
 }
 /* needs-attention list */
 .des-attention-list {
@@ -819,7 +819,7 @@
 }
 .des-attention-row:hover {
     border-color: var(--orange);
-    background: rgba(242, 107, 15, 0.1);
+    background: rgba(var(--accent-rgb), 0.1);
 }
 .des-attention-logo {
     display: grid;
@@ -900,7 +900,7 @@
     height: 42px;
     flex-shrink: 0;
     color: var(--orange-light);
-    background: rgba(242, 107, 15, 0.14);
+    background: rgba(var(--accent-rgb), 0.14);
     border-radius: 12px;
 }
 .des-quick-text {
@@ -1009,8 +1009,8 @@
     font-size: 11px;
     font-weight: 600;
     color: var(--orange-light);
-    background: rgba(242, 107, 15, 0.1);
-    border: 1px solid rgba(242, 107, 15, 0.28);
+    background: rgba(var(--accent-rgb), 0.1);
+    border: 1px solid rgba(var(--accent-rgb), 0.28);
     border-radius: 999px;
 }
 .des-tags.plain span {

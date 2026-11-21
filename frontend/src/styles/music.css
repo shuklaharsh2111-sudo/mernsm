@@ -27,7 +27,7 @@
 .pl-side-h { font-size: 10.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--ink-3); margin: 12px 8px 4px; }
 .pl-tab { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 0; border-radius: 10px; background: none; color: var(--ink-2); font: inherit; font-size: 13.5px; cursor: pointer; text-align: left; }
 .pl-tab:hover { background: var(--surface-2); }
-.pl-tab.active { background: rgba(242, 107, 15, .14); color: var(--orange-light); }
+.pl-tab.active { background: rgba(var(--accent-rgb), .14); color: var(--orange-light); }
 .pl-tab-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pl-tab small { color: var(--ink-3); }
 .pl-newform { display: flex; gap: 6px; margin-top: 10px; }
@@ -44,7 +44,7 @@
 .pl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .pl-row { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 10px; }
 .pl-row:hover { background: var(--surface-2); }
-.pl-row.active { background: rgba(242, 107, 15, .10); }
+.pl-row.active { background: rgba(var(--accent-rgb), .10); }
 .pl-art { position: relative; width: 46px; height: 46px; border-radius: 8px; overflow: hidden; border: 0; padding: 0; background: var(--surface-3); color: var(--ink-3); display: grid; place-items: center; cursor: pointer; flex: none; }
 .pl-art img { width: 100%; height: 100%; object-fit: cover; }
 .pl-art-over { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, .55); color: #fff; opacity: 0; transition: opacity .15s; }

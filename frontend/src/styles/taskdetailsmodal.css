@@ -17,7 +17,7 @@
     display: flex;
     flex-direction: column;
     background: var(--bg);
-    border: 1px solid rgba(242, 107, 15, .28);
+    border: 1px solid rgba(var(--accent-rgb), .28);
     border-radius: 22px;
     box-shadow: 0 30px 100px rgba(0, 0, 0, .65), var(--glow);
     overflow: hidden;
@@ -32,8 +32,8 @@
     gap: 20px;
     padding: 26px 30px 22px;
     background:
-        radial-gradient(520px 220px at 0% 0%, rgba(242, 107, 15, .28), transparent 70%),
-        radial-gradient(420px 200px at 100% 0%, rgba(175, 3, 0, .30), transparent 70%),
+        radial-gradient(520px 220px at 0% 0%, rgba(var(--accent-rgb), .28), transparent 70%),
+        radial-gradient(420px 200px at 100% 0%, rgba(var(--accent3-rgb), .30), transparent 70%),
         var(--surface);
     border-bottom: 1px solid var(--line);
 }
@@ -99,8 +99,8 @@
 }
 .tdm-status.in-progress {
     color: var(--orange);
-    background: rgba(242, 107, 15, .14);
-    border-color: rgba(242, 107, 15, .45);
+    background: rgba(var(--accent-rgb), .14);
+    border-color: rgba(var(--accent-rgb), .45);
 }
 .tdm-status.completed {
     color: var(--ok);
@@ -173,7 +173,7 @@
 .tdm-stat:hover {
     border-color: var(--orange);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(242, 107, 15, .14);
+    box-shadow: 0 8px 20px rgba(var(--accent-rgb), .14);
 }
 .tdm-stat-icon {
     width: 38px;
@@ -182,7 +182,7 @@
     place-items: center;
     flex-shrink: 0;
     border-radius: 12px;
-    background: rgba(242, 107, 15, .14);
+    background: rgba(var(--accent-rgb), .14);
     color: var(--orange-light);
 }
 .tdm-stat>div {
@@ -293,7 +293,7 @@
 }
 .tdm-timeline li.active .tdm-dot {
     border-color: var(--orange);
-    box-shadow: 0 0 0 4px rgba(242, 107, 15, .2);
+    box-shadow: 0 0 0 4px rgba(var(--accent-rgb), .2);
 }
 .tdm-timeline li>div {
     display: flex;
@@ -405,8 +405,8 @@
     font-size: 11px;
     font-weight: 800;
     color: var(--orange-light);
-    background: rgba(242, 107, 15, .14);
-    border: 1px solid rgba(242, 107, 15, .3);
+    background: rgba(var(--accent-rgb), .14);
+    border: 1px solid rgba(var(--accent-rgb), .3);
 }
 .tdm-upload-controls {
     display: flex;
@@ -427,7 +427,7 @@
     font-weight: 700;
     font-size: 12px;
     cursor: pointer;
-    box-shadow: 0 5px 15px rgba(242, 107, 15, .25);
+    box-shadow: 0 5px 15px rgba(var(--accent-rgb), .25);
     transition: .2s;
 }
 .tdm-upload-btn.secondary {
@@ -438,7 +438,7 @@
 }
 .tdm-upload-btn:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 9px 22px rgba(242, 107, 15, .4);
+    box-shadow: 0 9px 22px rgba(var(--accent-rgb), .4);
 }
 .tdm-upload-btn.secondary:hover:not(:disabled) {
     border-color: var(--orange);
@@ -615,9 +615,9 @@
 }
 .tdm-footer button {
     padding: 10px 22px;
-    border: 1px solid rgba(242, 107, 15, .35);
+    border: 1px solid rgba(var(--accent-rgb), .35);
     border-radius: 11px;
-    background: rgba(242, 107, 15, .12);
+    background: rgba(var(--accent-rgb), .12);
     color: var(--orange-light);
     font-size: 12px;
     font-weight: 750;
@@ -638,7 +638,7 @@
 }
 .tm-clickable-task:hover {
     border-color: var(--orange) !important;
-    box-shadow: 0 8px 20px rgba(242, 107, 15, .16);
+    box-shadow: 0 8px 20px rgba(var(--accent-rgb), .16);
 }
 @keyframes tdmFade {
     from {
@@ -700,7 +700,7 @@
     transition: background .2s;
 }
 .tdm-file-preview:hover {
-    background: rgba(242, 107, 15, .08);
+    background: rgba(var(--accent-rgb), .08);
 }
 .tdm-file-preview span {
     font-size: 12px;
@@ -723,9 +723,9 @@
     justify-content: center;
     gap: 6px;
     padding: 8px 10px;
-    border: 1px solid rgba(242, 107, 15, .3);
+    border: 1px solid rgba(var(--accent-rgb), .3);
     border-radius: 9px;
-    background: rgba(242, 107, 15, .12);
+    background: rgba(var(--accent-rgb), .12);
     color: var(--orange-light);
     text-decoration: none;
     font-size: 12px;

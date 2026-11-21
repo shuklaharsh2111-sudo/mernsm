@@ -1,14 +1,15 @@
-/* ---------- PAGE BACKGROUND (full #af0300 + dark) ---------- */
-body:has(.nl-page) {
-  background: #af0300;
-}
 
+/* ---------- PAGE BACKGROUND (full var(--red-deep) + dark) ---------- */
+body:has(.nl-page) {
+  background: var(--red-deep);
+}
 body:has(.nl-page)::before,
 body:has(.nl-page)::after {
   display: none;
 }
-
 .nl-page {
+  background-color: var(--red-deep);
+  background: linear-gradient(135deg, var(--red-deep) 0%, var(--red-deep) 50%, #5a0100 100%);
   width: 100%;
   height: 100%;
   padding: 16px;
@@ -19,8 +20,8 @@ body:has(.nl-page)::after {
   background:
     radial-gradient(ellipse 55% 60% at 0% 100%, rgba(0, 0, 0, 0.85), transparent 100%),
     radial-gradient(ellipse 50% 55% at 100% 0%, rgba(0, 0, 0, 0.7), transparent 100%),
-    radial-gradient(ellipse 45% 45% at 50% 50%, color-mix(in oklab, #af0300 50%, transparent), transparent 100%),
-    linear-gradient(135deg, #af0300 0%, #af0300 50%, #5a0100 100%);
+    radial-gradient(ellipse 45% 45% at 50% 50%, color-mix(in oklab, var(--red-deep) 50%, transparent), transparent 100%),
+    linear-gradient(135deg, var(--red-deep) 0%, var(--red-deep) 50%, #5a0100 100%);
 }
 
 /* ---------- CARD (fits one screen) ---------- */
@@ -44,11 +45,10 @@ body:has(.nl-page)::after {
   border-radius: 22px;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 60% 45% at 50% 58%, rgba(242, 107, 15, 0.3), transparent 100%),
+    radial-gradient(ellipse 60% 45% at 50% 58%, rgba(var(--accent-rgb), 0.3), transparent 100%),
     radial-gradient(ellipse at 20% 0%, #2e1a0d 0%, #120a05 45%, #080504 100%);
   border: 1px solid rgba(255, 140, 60, 0.15);
 }
-
 .nl-visual::before {
   content: '';
   position: absolute;
@@ -60,7 +60,6 @@ body:has(.nl-page)::after {
   pointer-events: none;
   z-index: 0;
 }
-
 .nl-visual::after {
   content: '';
   position: absolute;
@@ -72,104 +71,151 @@ body:has(.nl-page)::after {
   background: linear-gradient(180deg, transparent, rgba(120, 45, 5, 0.35));
   pointer-events: none;
 }
-
 /* animated red neon ribbons (same look as the coming-soon page) behind a small astronaut */
 .nl-visual {
   background: radial-gradient(ellipse at 50% 40%, #1a0000 0%, #090000 60%, #030000 100%);
   border-color: rgba(255, 60, 30, 0.25);
 }
+.nl-visual::before { display: none; }
 
-.nl-visual::before {
-  display: none;
-}
-
-/* animatable offsets: they slide every ring outward from the centre */
-@property --nl-r {
-  syntax: '<length>';
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --nl-r2 {
-  syntax: '<length>';
-  inherits: false;
-  initial-value: 0px;
-}
-
-.nl-ribbons {
+/* three.js ribbon canvas (LoginRibbons.jsx) */
+.nl-three {
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
 }
 
-/* one period (120px) = one glossy ring: dark gap, red face, hot yellow edge lines.
-   The rings are born at the centre and travel outward. */
-.nl-ribbons-front {
-  background-image: repeating-radial-gradient(circle at 50% 50%,
-      #060000 calc(var(--nl-r) + 0px), #060000 calc(var(--nl-r) + 30px),
-      #3a0000 calc(var(--nl-r) + 46px), #a80800 calc(var(--nl-r) + 66px),
-      #ff2a00 calc(var(--nl-r) + 80px), #ff6a00 calc(var(--nl-r) + 82px),
-      #ffe14a calc(var(--nl-r) + 83px), #ff4a00 calc(var(--nl-r) + 85px),
-      #ff3000 calc(var(--nl-r) + 88px), #ffd23a calc(var(--nl-r) + 89px),
-      #ff4a00 calc(var(--nl-r) + 91px), #c01000 calc(var(--nl-r) + 96px),
-      #ff5a00 calc(var(--nl-r) + 98px), #ffe14a calc(var(--nl-r) + 99px),
-      #6a0000 calc(var(--nl-r) + 101px), #2a0000 calc(var(--nl-r) + 108px),
-      #060000 calc(var(--nl-r) + 120px));
-  animation: nlRingsOut 6s linear infinite, nlRibbonPulse 4.5s ease-in-out infinite;
-  filter: saturate(1.15);
+/* (legacy CSS strips, no longer used) diagonal neon strips with a fine "grass" line texture and a hot glow, drifting slowly
+   (same look as the coming-soon page). Pure CSS: each layer slides by exactly one pattern
+   period, so the loop is seamless. */
+.nl-strips {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.4;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0, 0, 0, 0.25) 0%, #000 100%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0, 0, 0, 0.25) 0%, #000 100%);
 }
-
-/* second, wider and slower ring layer for depth, with thin bright pinstripes */
-.nl-ribbons-back {
-  background-image:
-    repeating-radial-gradient(circle at 50% 50%,
-      transparent calc(var(--nl-r2) + 0px),
-      transparent calc(var(--nl-r2) + 9px),
-      rgba(255, 210, 90, 0.55) calc(var(--nl-r2) + 9px),
-      rgba(255, 210, 90, 0.55) calc(var(--nl-r2) + 10px),
-      transparent calc(var(--nl-r2) + 10px),
-      transparent calc(var(--nl-r2) + 13px)),
-    repeating-radial-gradient(circle at 50% 50%,
-      #050000 calc(var(--nl-r2) + 0px), #050000 calc(var(--nl-r2) + 90px),
-      #4a0200 calc(var(--nl-r2) + 130px), #c01000 calc(var(--nl-r2) + 170px),
-      #ff3a10 calc(var(--nl-r2) + 190px), #6a0000 calc(var(--nl-r2) + 230px),
-      #050000 calc(var(--nl-r2) + 260px));
-  opacity: 0.55;
-  animation: nlRingsOutSlow 16s linear infinite;
+.nl-strips > span {
+  position: absolute;
+  inset: -40%;
+  will-change: transform;
 }
-
-@keyframes nlRingsOut {
-  from {
-    --nl-r: 0px;
-  }
-
-  to {
-    --nl-r: 120px;
-  }
+/* the strips: dark gap, deep red body, hot red edge, thin yellow line */
+.nl-band {
+  background: repeating-linear-gradient(
+    120deg,
+    #030000 0,
+    #030000 26px,
+    #3a0000 40px,
+    #8a0500 54px,
+    #e01800 66px,
+    #ff3a14 70px,
+    #ff9a2a 71px,
+    #ffe04a 72px,
+    #ffe04a 73px,
+    #4a0000 75px,
+    #030000 90px
+  );
+  animation: nlDriftA 9s linear infinite;
 }
-
-/* 260px is a whole number of 13px pinstripe periods, so the loop is seamless */
-@keyframes nlRingsOutSlow {
-  from {
-    --nl-r2: 0px;
-  }
-
-  to {
-    --nl-r2: 260px;
-  }
+/* thin parallel lines that light up only on the red body (the grass texture) */
+.nl-grass {
+  background: repeating-linear-gradient(
+    120deg,
+    transparent 0,
+    transparent 4px,
+    rgba(255, 190, 90, 0.95) 4px,
+    rgba(255, 190, 90, 0.95) 5px
+  );
+  mix-blend-mode: overlay;
+  opacity: 0.75;
+  animation: nlDriftB 1.6s linear infinite, nlFlicker 3.2s ease-in-out infinite;
 }
+/* blurred copy of the strips = glow bleeding around them */
+.nl-bloom {
+  background: inherit;
+  background: repeating-linear-gradient(
+    120deg,
+    transparent 0,
+    transparent 44px,
+    rgba(255, 30, 0, 0.9) 62px,
+    rgba(255, 90, 20, 1) 70px,
+    transparent 76px,
+    transparent 90px
+  );
+  filter: blur(12px);
+  mix-blend-mode: screen;
+  opacity: 0.6;
+  animation: nlDriftA 9s linear infinite, nlPulse 4s ease-in-out infinite;
+}
+/* a soft light sweeping across the strips */
+.nl-sweep {
+  inset: 0 !important;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 140, 60, 0.28) 50%, transparent 65%);
+  mix-blend-mode: screen;
+  background-size: 260% 100%;
+  animation: nlSweep 6s ease-in-out infinite;
+}
+/* one pattern period (90px / 6px along 120deg) per loop = seamless */
+@keyframes nlDriftA { to { transform: translate(77.94px, 45px); } }
+@keyframes nlDriftB { to { transform: translate(5.196px, 3px); } }
+@keyframes nlPulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.85; } }
+@keyframes nlFlicker { 0%, 100% { opacity: 0.55; } 50% { opacity: 0.9; } }
+@keyframes nlSweep { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
 
-@keyframes nlRibbonPulse {
-
-  0%,
-  100% {
-    opacity: 0.85;
-  }
-
-  50% {
-    opacity: 1;
-  }
+/* ---------- RING OF SLANTED GLASS PLANES: circle -> outward ---------- */
+.nl-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  z-index: 5; /* in front of the astronaut, like glass */
+  pointer-events: none;
+}
+.nl-plane {
+  position: absolute;
+  width: var(--w, 90px);
+  height: 440px;
+  left: calc(var(--w, 90px) / -2);
+  top: -440px;
+  transform-origin: 50% 100%; /* bottom-centre sits on the ring centre */
+  opacity: 0;
+  transform: rotate(var(--a)) translateY(-4px) skewX(-42deg) scale(0.35, 0.2);
+  /* glossy red body, hot edges, fine bright lines running along the plane */
+  background:
+    repeating-linear-gradient(90deg, transparent 0, transparent 5px, rgba(255, 230, 110, 1) 5px, rgba(255, 230, 110, 1) 6px),
+    linear-gradient(90deg, #3a0000 0%, #d01000 16%, #ff3a14 46%, #e01800 74%, #3a0000 100%);
+  background-blend-mode: overlay, normal;
+  border-left: 1px solid rgba(255, 235, 170, 0.9);
+  border-right: 1px solid rgba(255, 90, 40, 0.7);
+  box-shadow:
+    inset 0 0 26px rgba(255, 255, 255, 0.18),
+    0 0 30px rgba(255, 40, 5, 0.55);
+  /* fades in from the dark centre, bright toward the outer end */
+  -webkit-mask-image: linear-gradient(0deg, transparent 0%, transparent 14%, #000 40%);
+  mask-image: linear-gradient(0deg, transparent 0%, transparent 14%, #000 40%);
+  will-change: transform, opacity;
+  animation: nlPlaneOut 8s cubic-bezier(0.4, 0, 0.8, 1) infinite;
+}
+/* glass specular sheen */
+.nl-plane::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 12%, rgba(255, 255, 255, 0.4) 30%, transparent 46%);
+  mix-blend-mode: screen;
+}
+@keyframes nlPlaneOut {
+  0%   { opacity: 0; transform: rotate(var(--a)) translateY(-4px) skewX(-42deg) scale(0.35, 0.2); }
+  20%  { opacity: 0; }
+  38%  { opacity: 0.92; }
+  80%  { opacity: 0.88; }
+  100% { opacity: 0; transform: rotate(calc(var(--a) + 40deg)) translateY(-340px) skewX(-42deg) scale(1.5, 1.35); }
 }
 
 /* darken toward the centre so the astronaut reads, keep the ribbons bright at the edges */
@@ -182,7 +228,6 @@ body:has(.nl-page)::after {
     radial-gradient(ellipse 52% 46% at 50% 50%, rgba(5, 0, 0, 0.8), rgba(5, 0, 0, 0.35) 70%, transparent 100%),
     linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent 22%, transparent 78%, rgba(0, 0, 0, 0.5));
 }
-
 .nl-glow {
   position: absolute;
   z-index: 2;
@@ -197,24 +242,14 @@ body:has(.nl-page)::after {
   pointer-events: none;
   animation: nlGlow 5s ease-in-out infinite;
 }
-
 @keyframes nlGlow {
-
-  0%,
-  100% {
-    opacity: 0.5;
-    transform: translate(-50%, -50%) scale(0.92);
-  }
-
-  50% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1.08);
-  }
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.92); }
+  50%      { opacity: 1;   transform: translate(-50%, -50%) scale(1.08); }
 }
 
-/* astronaut fills the whole box; only a thin feathered rim lets the rings glow around it */
+/* transparent astronaut PNG fills the whole box; the circles show around and behind him */
+/* astronaut fills the whole box, solid (no transparency / mask) */
 .nl-astro {
-  --nl-rim: 22px;
   position: absolute;
   inset: 0;
   z-index: 3;
@@ -225,37 +260,15 @@ body:has(.nl-page)::after {
   border-radius: 22px;
   user-select: none;
   -webkit-user-drag: none;
-  -webkit-mask-image:
-    linear-gradient(90deg, transparent, #000 var(--nl-rim), #000 calc(100% - var(--nl-rim)), transparent),
-    linear-gradient(180deg, transparent, #000 var(--nl-rim), #000 calc(100% - var(--nl-rim)), transparent);
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(90deg, transparent, #000 var(--nl-rim), #000 calc(100% - var(--nl-rim)), transparent),
-    linear-gradient(180deg, transparent, #000 var(--nl-rim), #000 calc(100% - var(--nl-rim)), transparent);
-  mask-composite: intersect;
-  animation: nlFloat 8s ease-in-out infinite;
 }
-
-/* gentle breathing zoom (a slide would expose gaps now that it covers the box) */
 @keyframes nlFloat {
-
-  0%,
-  100% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(1.035);
-  }
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.03); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-
-  .nl-astro,
-  .nl-ribbons,
-  .nl-glow {
-    animation: none;
-  }
+  .nl-band, .nl-grass, .nl-bloom, .nl-sweep, .nl-glow { animation: none; }
+  .nl-plane { animation: none; opacity: 0; }
 }
 
 /* ---------- RIGHT: FORM ---------- */
@@ -267,7 +280,6 @@ body:has(.nl-page)::after {
   min-width: 0;
   min-height: 0;
 }
-
 .nl-forgot {
   align-self: flex-end;
   display: flex;
@@ -279,7 +291,6 @@ body:has(.nl-page)::after {
   font-size: 14px;
   cursor: pointer;
 }
-
 .nl-forgot-icon {
   width: 32px;
   height: 32px;
@@ -287,22 +298,19 @@ body:has(.nl-page)::after {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: #f26b0f;
+  color: var(--orange);
   background: #fde0cc;
 }
-
 .nl-form-wrap {
   width: 100%;
   max-width: 520px;
   margin: auto 0;
 }
-
 .nl-eyebrow {
   font-size: 18px;
   line-height: 1.2;
   color: #2a1a10;
 }
-
 .nl-title {
   margin: 4px 0 clamp(14px, 3.4vh, 28px);
   font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -312,12 +320,10 @@ body:has(.nl-page)::after {
   letter-spacing: -1px;
   color: #1a0d08;
 }
-
 .nl-title span {
   display: block;
   color: #5b2a0b;
 }
-
 .nl-input {
   position: relative;
   height: clamp(46px, 6.2vh, 56px);
@@ -329,12 +335,10 @@ body:has(.nl-page)::after {
   border-radius: 15px;
   transition: all 0.25s ease;
 }
-
 .nl-input:focus-within {
   background: #fff;
-  box-shadow: 0 0 0 3px color-mix(in oklab, #af0300 50%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--red-deep) 50%, transparent);
 }
-
 .nl-input input {
   width: 100%;
   min-width: 0;
@@ -344,16 +348,13 @@ body:has(.nl-page)::after {
   color: #2a1a10;
   font-size: 15px;
 }
-
 .nl-input input::placeholder {
   color: #b08c75;
 }
-
 .nl-input input:-webkit-autofill {
   -webkit-text-fill-color: #2a1a10;
   transition: background-color 5000s ease-in-out 0s;
 }
-
 .nl-eye {
   display: flex;
   align-items: center;
@@ -362,7 +363,6 @@ body:has(.nl-page)::after {
   color: #6b5547;
   cursor: pointer;
 }
-
 .nl-submit {
   width: 100%;
   height: clamp(48px, 6.4vh, 58px);
@@ -378,21 +378,18 @@ body:has(.nl-page)::after {
   font-weight: 700;
   cursor: pointer;
   background: linear-gradient(180deg, #2b2b2f, #070504);
-  box-shadow: 0 12px 26px rgba(242, 107, 15, 0.35);
+  box-shadow: 0 12px 26px rgba(var(--accent-rgb), 0.35);
   transition: all 0.3s ease;
 }
-
 .nl-submit:hover {
   transform: translateY(-2px);
-  box-shadow: 0 16px 32px rgba(242, 107, 15, 0.45);
+  box-shadow: 0 16px 32px rgba(var(--accent-rgb), 0.45);
 }
-
 .nl-submit:disabled {
   opacity: 0.65;
   cursor: not-allowed;
   transform: none;
 }
-
 .nl-error {
   margin-bottom: 4px;
   padding: 10px 14px;
@@ -402,7 +399,6 @@ body:has(.nl-page)::after {
   color: #b3261e;
   font-size: 13px;
 }
-
 .nl-note {
   display: flex;
   align-items: flex-start;
@@ -412,19 +408,16 @@ body:has(.nl-page)::after {
   line-height: 1.45;
   color: #7a6455;
 }
-
 .nl-note svg {
   flex-shrink: 0;
   margin-top: 2px;
 }
-
 .nl-brand {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-top: clamp(14px, 3vh, 26px);
 }
-
 .nl-brand-mark {
   width: clamp(38px, 5.6vh, 50px);
   height: clamp(38px, 5.6vh, 50px);
@@ -435,14 +428,14 @@ body:has(.nl-page)::after {
   color: #1a0d05;
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(135deg, #ffb04d, #f26b0f 65%, #d14d00);
-  box-shadow: 0 8px 20px rgba(242, 107, 15, 0.4);
+  background: linear-gradient(135deg, var(--orange-light), var(--orange) 65%, #d14d00);
+  box-shadow: 0 8px 20px rgba(var(--accent-rgb), 0.4);
 }
-
 .nl-brand-name {
   font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  font-size: clamp(32px, 5vh, 44px);
-  letter-spacing: 1px;
+  font-size: clamp(28px, 4.4vh, 40px);
+  font-weight: 700;
+  letter-spacing: 0.5px;
   color: #1a0d08;
 }
 
@@ -452,18 +445,270 @@ body:has(.nl-page)::after {
     overflow-y: auto;
     align-items: flex-start;
   }
-
   .nl-card {
     height: auto;
     margin: auto;
     grid-template-columns: 1fr;
   }
-
   .nl-visual {
     height: 320px;
   }
-
   .nl-panel {
     padding: 20px 20px 30px;
   }
+}
+
+/* ---------- DOWNLOAD MANUAL BUTTON (icon only, on the NEURO row, tooltip on hover) ---------- */
+.nl-dl {
+  position: relative;
+  margin-left: auto;      /* sits on the NEURO row, pushed to the right edge of the form */
+  flex-shrink: 0;
+  z-index: 2;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.nl-dl:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; border-radius: 50%; }
+.nl-dl:disabled { cursor: progress; }
+
+/* same look as the "Forgot password?" icon */
+.nl-dl-icon {
+  position: relative;
+  width: clamp(38px, 5.6vh, 50px);     /* same size as the NEURO "N" mark */
+  height: clamp(38px, 5.6vh, 50px);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  color: var(--orange);
+  background: #fde0cc;
+  transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease;
+}
+.nl-dl:hover:not(:disabled) .nl-dl-icon { background: var(--orange); color: #fff; transform: scale(1.08); }
+.nl-dl:active:not(:disabled) .nl-dl-icon { transform: scale(0.92); }
+.nl-dl-ic { position: relative; grid-area: 1 / 1; width: 42%; height: 42%; transition: transform 0.3s ease, opacity 0.2s ease; }
+.nl-dl-down { animation: nlBob 2.2s ease-in-out infinite; }
+.nl-dl:hover:not(:disabled) .nl-dl-down { animation-duration: 0.8s; }
+.nl-dl-check { opacity: 0; transform: translateY(10px); }
+
+/* loading: a lighter orange rises inside the circle while the arrow drops in */
+.nl-dl-fill {
+  position: absolute;
+  inset: 0;
+  background: #ffb67d;
+  transform: scaleY(0);
+  transform-origin: bottom;
+}
+.nl-dl.is-loading .nl-dl-down { animation: nlDrop 0.5s ease-in infinite; color: #b84300; }
+.nl-dl.is-loading .nl-dl-fill { animation: nlFill 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+/* done: turns green with a tick */
+.nl-dl.is-done .nl-dl-icon { background: #2e9e5b; color: #fff; }
+.nl-dl.is-done .nl-dl-fill { display: none; }
+.nl-dl.is-done .nl-dl-down { opacity: 0; animation: none; transform: translateY(-10px); }
+.nl-dl.is-done .nl-dl-check { opacity: 1; transform: translateY(0); }
+
+/* tooltip / toast message */
+.nl-dl-tip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: #1a0d08;
+  color: #fff3ea;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: 0 8px 22px rgba(26, 13, 8, 0.28);
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.nl-dl-tip::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 100%;
+  border: 5px solid transparent;
+  border-top-color: #1a0d08;
+}
+.nl-dl:hover .nl-dl-tip,
+.nl-dl:focus-visible .nl-dl-tip,
+.nl-dl.is-loading .nl-dl-tip,
+.nl-dl.is-done .nl-dl-tip { opacity: 1; transform: translateY(0); }
+.nl-dl.is-done .nl-dl-tip { background: #1f7a45; }
+.nl-dl.is-done .nl-dl-tip::after { border-top-color: #1f7a45; }
+
+@keyframes nlBob { 0%, 100% { transform: translateY(-1px); } 50% { transform: translateY(1.5px); } }
+@keyframes nlDrop {
+  0% { transform: translateY(-10px); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translateY(10px); opacity: 0; }
+}
+@keyframes nlFill { to { transform: scaleY(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .nl-dl *, .nl-dl { animation: none !important; transition: none !important; }
+  .nl-dl.is-loading .nl-dl-fill { transform: scaleY(1); }
+}
+
+/* ---------- LEFT BOX CENTRE PIECE: glowing aura (LoginShowcase.jsx) ---------- */
+.nl-show {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.nl-aura {
+  position: relative;
+  height: 74%;
+  aspect-ratio: 1;
+  max-width: 100%;
+}
+.nl-aura > span,
+.nl-aura > i {
+  position: absolute;
+  border-radius: 50%;
+}
+
+/* soft halo that breathes behind everything */
+.nl-aura-halo {
+  inset: -18%;
+  background: radial-gradient(circle, rgba(255, 70, 25, 0.55) 0%, rgba(255, 40, 10, 0.22) 38%, transparent 68%);
+  filter: blur(18px);
+  animation: nlAuraBreathe 6s ease-in-out infinite;
+}
+@keyframes nlAuraBreathe {
+  0%, 100% { transform: scale(0.9); opacity: 0.75; }
+  50%      { transform: scale(1.12); opacity: 1; }
+}
+
+/* ripples spreading outward from the orb, like an aura pulse */
+.nl-aura-wave {
+  inset: 26%;
+  border: 1.5px solid rgba(255, 140, 80, 0.7);
+  box-shadow: 0 0 22px rgba(255, 70, 30, 0.45), inset 0 0 22px rgba(255, 70, 30, 0.25);
+  opacity: 0;
+  animation: nlAuraWave 6s ease-out infinite;
+  animation-delay: var(--w);
+}
+@keyframes nlAuraWave {
+  0%   { transform: scale(0.7); opacity: 0.85; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+
+/* slowly turning colour swirl: a wide blurred one under a tighter one */
+.nl-aura-swirl {
+  inset: 14%;
+  background: conic-gradient(from 0deg, rgba(255, 30, 10, 0.9), rgba(var(--accent-light-rgb), 0.75), rgba(255, 230, 150, 0.55), rgba(255, 60, 20, 0.9), rgba(180, 0, 0, 0.8), rgba(255, 30, 10, 0.9));
+  filter: blur(22px);
+  opacity: 0.85;
+  animation: nlAuraSpin 14s linear infinite reverse;
+}
+.nl-aura-orb {
+  inset: 28%;
+  background: conic-gradient(from 0deg, #ff2a10, #ff8a2a, #ffd27a, #ff4a1a, #c40a0a, #ff2a10);
+  filter: blur(5px);
+  box-shadow: 0 0 60px rgba(255, 60, 20, 0.8), 0 0 120px rgba(255, 40, 10, 0.5);
+  animation: nlAuraSpin 9s linear infinite;
+}
+@keyframes nlAuraSpin { to { transform: rotate(360deg); } }
+
+/* bright glowing core with a soft glassy edge */
+.nl-aura-core {
+  inset: 34%;
+  background: radial-gradient(circle at 38% 32%, #fff6e8 0%, #ffc88a 22%, rgba(255, 110, 50, 0.85) 52%, rgba(120, 10, 0, 0.9) 100%);
+  box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.35), 0 0 40px rgba(255, 120, 60, 0.7);
+  animation: nlAuraCore 5s ease-in-out infinite;
+}
+@keyframes nlAuraCore {
+  0%, 100% { transform: scale(0.96); }
+  50%      { transform: scale(1.06); }
+}
+
+/* tiny sparks drifting upward around the aura */
+.nl-spark {
+  width: var(--s);
+  height: var(--s);
+  background: #ffd9a8;
+  box-shadow: 0 0 10px 2px rgba(255, 140, 70, 0.9);
+  opacity: 0;
+  animation: nlSpark var(--d) ease-in-out infinite;
+  animation-delay: var(--t);
+}
+@keyframes nlSpark {
+  0%   { transform: translateY(12px) scale(0.4); opacity: 0; }
+  25%  { opacity: 0.95; }
+  100% { transform: translateY(-46px) scale(1); opacity: 0; }
+}
+
+/* sunburst of thin rays turning slowly behind the orb */
+.nl-aura-rays {
+  inset: -8%;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 130, 70, 0.7) 0deg 0.7deg, transparent 0.7deg 7.5deg);
+  -webkit-mask-image: radial-gradient(circle, transparent 24%, #000 38%, rgba(0, 0, 0, 0.35) 62%, transparent 74%);
+  mask-image: radial-gradient(circle, transparent 24%, #000 38%, rgba(0, 0, 0, 0.35) 62%, transparent 74%);
+  animation: nlAuraSpin 70s linear infinite;
+}
+
+/* neon line work: rings, travelling dots and the wireframe globe */
+.nl-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 4px rgba(255, 90, 40, 0.95)) drop-shadow(0 0 12px rgba(255, 50, 20, 0.6));
+}
+.nl-lines * { transform-box: view-box; transform-origin: 200px 200px; }
+.nl-ln { fill: none; stroke: #ff9a62; }
+.nl-r-a { stroke-width: 2.4; stroke-dasharray: 1 11; stroke-linecap: round; animation: nlAuraSpin 70s linear infinite; }
+.nl-r-b { stroke: #ffb27a; stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 150 34 60 34; animation: nlAuraSpin 28s linear infinite reverse; }
+.nl-r-c { stroke-width: 1; opacity: 0.55; }
+.nl-r-d { stroke: #ff7a40; stroke-width: 2; stroke-dasharray: 4 13; animation: nlAuraSpin 22s linear infinite; }
+.nl-dot circle { fill: #fff; }
+.nl-dot-a { animation: nlAuraSpin 16s linear infinite; }
+.nl-dot-b { animation: nlAuraSpin 24s linear infinite reverse; }
+.nl-dot-c { animation: nlAuraSpin 11s linear infinite; }
+.nl-dot-b circle, .nl-dot-c circle { fill: #ffc58f; }
+
+.nl-gl { fill: none; stroke: #ffd2a6; stroke-width: 1.4; opacity: 0.9; }
+.nl-rim { stroke: #fff; stroke-width: 1.8; }
+.nl-mer { vector-effect: non-scaling-stroke; animation: nlMeridian 12s linear infinite; }
+@keyframes nlMeridian {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(-1); }
+}
+
+@media (max-width: 900px) {
+  .nl-aura { height: 78%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nl-aura-halo, .nl-aura-wave, .nl-aura-swirl, .nl-aura-orb, .nl-aura-core, .nl-spark { animation: none; }
+  .nl-aura-wave { opacity: 0.35; transform: scale(1.3); }
+  .nl-aura-rays, .nl-ln, .nl-dot, .nl-mer { animation: none; }
+  .nl-spark { opacity: 0.8; }
+}
+
+/* ---------- LEFT BOX: hero image over the ribbon animation ---------- */
+.nl-hero {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 0;
+  width: 112%;
+  max-width: none;
+  height: auto;
+  transform: translateX(-50%);
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+  filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.55));
 }

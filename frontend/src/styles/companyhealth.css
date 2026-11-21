@@ -20,7 +20,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 14px;
-    background: linear-gradient(135deg, #ff7729, #e15b0e);
+    background: linear-gradient(135deg, var(--orange), #e15b0e);
     color: #fff;
 }
 
@@ -34,7 +34,7 @@
 .ch-header p {
     margin: 5px 0 0;
     font-size: 13px;
-    color: #f27b36;
+    color: var(--orange);
 }
 
 .ch-summary {
@@ -55,8 +55,8 @@
     box-shadow: 0 8px 28px rgba(0, 0, 0, .15);
 }
 
-.ch-summary-card.purple { border-top: 2px solid #ff7729; }
-.ch-summary-card.blue { border-top: 2px solid #ff7729; }
+.ch-summary-card.purple { border-top: 2px solid var(--orange); }
+.ch-summary-card.blue { border-top: 2px solid var(--orange); }
 .ch-summary-card.green { border-top: 2px solid #46c58a; }
 .ch-summary-card.orange { border-top: 2px solid #e7a34b; }
 
@@ -70,8 +70,8 @@
     border-radius: 12px;
 }
 
-.ch-summary-icon.purple { background: rgba(255, 119, 41, .16); color: #d5c3b5; }
-.ch-summary-icon.blue { background: rgba(255, 119, 41, .15); color: #d0bcac; }
+.ch-summary-icon.purple { background: rgba(var(--accent-rgb), .16); color: #d5c3b5; }
+.ch-summary-icon.blue { background: rgba(var(--accent-rgb), .15); color: #d0bcac; }
 .ch-summary-icon.green { background: rgba(70, 197, 138, .15); color: #75dfac; }
 .ch-summary-icon.orange { background: rgba(231, 163, 75, .15); color: #f0b66b; }
 
@@ -86,7 +86,7 @@
 .ch-summary-card p {
     margin: 4px 0 0;
     font-size: 12px;
-    color: #f27b36;
+    color: var(--orange);
 }
 
 .ch-panel {
@@ -115,12 +115,12 @@
     border: 1px solid rgba(255, 255, 255, .1);
     border-radius: 10px;
     background: #191310;
-    color: #f27b36;
+    color: var(--orange);
 }
 
 .ch-search:focus-within {
-    border-color: #ff7729;
-    box-shadow: 0 0 0 3px rgba(255, 119, 41, .1);
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .1);
 }
 
 .ch-search input {
@@ -141,7 +141,7 @@
     padding: 10px 16px;
     border: 1px solid rgba(255, 255, 255, .12);
     border-radius: 10px;
-    background: rgba(255, 119, 41, .14);
+    background: rgba(var(--accent-rgb), .14);
     color: #e4d8cf;
     font-size: 12px;
     font-weight: 650;
@@ -151,7 +151,7 @@
 }
 
 .ch-export-btn:hover:not(:disabled) {
-    background: #f27b36;
+    background: var(--orange);
     color: #fff;
 }
 
@@ -217,7 +217,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 10px;
-    background: linear-gradient(135deg, #ff7729, #e15b0e);
+    background: linear-gradient(135deg, var(--orange), #e15b0e);
     color: #fff;
     font-weight: 700;
 }
@@ -232,7 +232,7 @@
     display: block;
     margin-top: 2px;
     font-size: 11px;
-    color: #f2772f;
+    color: var(--orange);
 }
 
 .ch-num {
@@ -263,7 +263,7 @@
 
 .ch-table td.ch-empty {
     padding: 28px 8px;
-    color: #f2772f;
+    color: var(--orange);
 }
 
 @media (max-width: 900px) {

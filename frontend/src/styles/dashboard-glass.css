@@ -4,8 +4,8 @@
 ========================================================= */
 
 .dash-glass {
-  --dg-orange: #f26b0f;
-  --dg-orange-light: #ffb04d;
+  --dg-orange: var(--orange);
+  --dg-orange-light: var(--orange-light);
   --dg-border: #2b2b32;
   --dg-muted: #8f8883;
   --dg-text: #f6f2ef;
@@ -24,8 +24,8 @@
   border: 1px solid var(--line);
   border-radius: 18px;
   background:
-    radial-gradient(520px 220px at 100% 0%, rgba(242, 107, 15, .28), transparent 70%),
-    radial-gradient(420px 220px at 0% 100%, rgba(175, 3, 0, .35), transparent 70%),
+    radial-gradient(520px 220px at 100% 0%, rgba(var(--accent-rgb), .28), transparent 70%),
+    radial-gradient(420px 220px at 0% 100%, rgba(var(--accent3-rgb), .35), transparent 70%),
     #121214;
 }
 
@@ -92,7 +92,7 @@
   border-color: transparent;
   background: var(--grad);
   color: #fff;
-  box-shadow: 0 8px 22px rgba(242, 107, 15, .32);
+  box-shadow: 0 8px 22px rgba(var(--accent-rgb), .32);
 }
 
 .dash-btn.primary:hover {
@@ -121,7 +121,7 @@
 }
 
 .kpi-card:hover {
-  border-color: rgba(242, 107, 15, .5);
+  border-color: rgba(var(--accent-rgb), .5);
   transform: translateY(-2px);
 }
 
@@ -144,12 +144,12 @@
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: rgba(242, 107, 15, .14);
+  background: rgba(var(--accent-rgb), .14);
   color: var(--orange);
 }
 
 .kpi-card.red .kpi-icon {
-  background: rgba(217, 45, 10, .16);
+  background: rgba(var(--accent2-rgb), .16);
   color: #ff6a4d;
 }
 
@@ -236,7 +236,7 @@
 }
 
 .quick-card:hover {
-  border-color: rgba(242, 107, 15, .55);
+  border-color: rgba(var(--accent-rgb), .55);
   background: var(--surface-2);
   transform: translateY(-2px);
 }
@@ -321,7 +321,7 @@
 }
 
 .dash-glass .sop-tabs button:hover {
-  border-color: rgba(242, 107, 15, .6);
+  border-color: rgba(var(--accent-rgb), .6);
   color: #fff;
 }
 
@@ -329,14 +329,14 @@
   color: #fff;
   background: var(--grad);
   border-color: transparent;
-  box-shadow: 0 6px 16px rgba(242, 107, 15, .3);
+  box-shadow: 0 6px 16px rgba(var(--accent-rgb), .3);
 }
 
 .dash-glass .add-meeting-btn {
   background: var(--grad);
   border-color: transparent;
   border-radius: 10px;
-  box-shadow: 0 8px 20px rgba(242, 107, 15, .3);
+  box-shadow: 0 8px 20px rgba(var(--accent-rgb), .3);
 }
 
 .dash-glass .add-meeting-btn:hover {
@@ -347,7 +347,7 @@
 .dash-glass .join-now-btn {
   background: var(--grad);
   color: #fff;
-  box-shadow: 0 6px 16px rgba(242, 107, 15, .3);
+  box-shadow: 0 6px 16px rgba(var(--accent-rgb), .3);
 }
 
 .dash-glass .join-now-btn:hover:not(:disabled) {
@@ -364,7 +364,7 @@
 
 .dash-glass .meeting-item.clickable:hover {
   background: #202026;
-  border-color: rgba(242, 107, 15, .55);
+  border-color: rgba(var(--accent-rgb), .55);
 }
 
 .dash-glass .sme-sop.done {
@@ -395,7 +395,7 @@
 .dash-glass .ch-heading-icon {
   color: #fff;
   background: var(--grad);
-  box-shadow: 0 8px 20px rgba(242, 107, 15, .35);
+  box-shadow: 0 8px 20px rgba(var(--accent-rgb), .35);
 }
 
 .dash-glass .sme-task-heading h2,
@@ -444,8 +444,8 @@
 .dash-glass .sme-add-task-btn,
 .dash-glass .ch-export-btn {
   color: #ffd9bd;
-  background: rgba(242, 107, 15, .16);
-  border-color: rgba(242, 107, 15, .45);
+  background: rgba(var(--accent-rgb), .16);
+  border-color: rgba(var(--accent-rgb), .45);
 }
 
 .dash-glass .sme-add-task-btn:hover,
@@ -455,7 +455,7 @@
 }
 
 .dash-glass .tm-action-btn.start {
-  background: rgba(242, 107, 15, .2);
+  background: rgba(var(--accent-rgb), .2);
 }
 
 .dash-glass .tm-action-btn.start:hover {
@@ -490,7 +490,7 @@
 .sop-co { font-size: 11.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--orange-light); }
 .sop-count { font-size: 11.5px; font-weight: 700; color: var(--ink-3); }
 .dash-glass .sme-sop { padding: 12px 14px; transition: border-color .15s, background .15s; }
-.dash-glass .sme-sop:not(.upcoming):hover { border-color: rgba(242, 107, 15, .5); }
+.dash-glass .sme-sop:not(.upcoming):hover { border-color: rgba(var(--accent-rgb), .5); }
 .dash-glass .sme-sop.tick input { accent-color: var(--orange); }
 .dash-glass .sme-sop.done input { accent-color: var(--ok); }
 .dash-glass .sme-sop .sop-item-top { gap: 8px; }
@@ -498,10 +498,10 @@
 .dash-glass .sme-sop.done .sop-item-text { color: var(--ink-3); text-decoration: line-through; text-decoration-color: rgba(255, 255, 255, .25); }
 .sop-pill.daily { color: #7ee7b9; background: rgba(52, 211, 153, .14); }
 .sop-pill.weekly { color: var(--orange-light); background: rgba(255, 176, 77, .14); }
-.sop-pill.monthly { color: #ff8a73; background: rgba(217, 45, 10, .18); }
+.sop-pill.monthly { color: var(--red-soft); background: rgba(var(--accent2-rgb), .18); }
 .sop-status { margin-left: auto; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
 .sop-status.done { color: #7ee7b9; background: rgba(52, 211, 153, .14); }
-.sop-status.todo { color: var(--orange-light); background: rgba(242, 107, 15, .16); }
+.sop-status.todo { color: var(--orange-light); background: rgba(var(--accent-rgb), .16); }
 .sop-status.later { color: var(--ink-3); background: rgba(255, 255, 255, .07); }
 .sop-head {
   display: flex;
@@ -595,7 +595,7 @@
 }
 
 .dash-glass .sme-sop:not(.upcoming):hover {
-  border-color: rgba(242, 107, 15, .5);
+  border-color: rgba(var(--accent-rgb), .5);
 }
 
 .dash-glass .sme-sop.tick input {
@@ -631,8 +631,8 @@
 }
 
 .sop-pill.monthly {
-  color: #ff8a73;
-  background: rgba(217, 45, 10, .18);
+  color: var(--red-soft);
+  background: rgba(var(--accent2-rgb), .18);
 }
 
 .sop-status {
@@ -650,7 +650,7 @@
 
 .sop-status.todo {
   color: var(--orange-light);
-  background: rgba(242, 107, 15, .16);
+  background: rgba(var(--accent-rgb), .16);
 }
 
 .sop-status.later {
@@ -660,22 +660,18 @@
 
 
 body:has(.app-shell .dash-glass) {
-  background-color: #050404;
+  background-color: var(--bg-left-1);
   background-image:
-    /* grid */
-    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    /* the orange circle on the right */
-    radial-gradient(circle at 84% 58%,
-      rgba(255, 150, 40, 0.95) 0%,
-      rgba(242, 107, 15, 0.9) 14%,
-      rgba(226, 70, 18, 0.7) 28%,
-      rgba(200, 35, 10, 0.38) 44%,
+    linear-gradient(rgba(255, 255, 255, var(--grid-a)) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, var(--grid-a)) 1px, transparent 1px),
+    radial-gradient(circle at var(--glow-x) var(--glow-y),
+      rgba(var(--accent-light-rgb), calc(0.95 * var(--glow-k))) 0%,
+      rgba(var(--accent-rgb), calc(0.9 * var(--glow-k))) 14%,
+      rgba(var(--accent2-rgb), calc(0.7 * var(--glow-k))) 28%,
+      rgba(var(--accent3-rgb), calc(0.38 * var(--glow-k))) 44%,
       transparent 64%),
-    /* red wash along the right edge */
-    radial-gradient(ellipse 55% 95% at 100% 35%, rgba(217, 45, 10, 0.55), transparent 70%),
-    /* dark on the left */
-    linear-gradient(90deg, #030202 0%, #060303 38%, #0b0504 100%);
+    radial-gradient(ellipse 55% 95% at var(--wash-x) var(--wash-y), rgba(var(--accent2-rgb), calc(0.55 * var(--glow-k))), transparent 70%),
+    linear-gradient(90deg, var(--bg-left-1) 0%, var(--bg-left-2) 38%, var(--bg-left-3) 100%);
   background-size: 64px 64px, 64px 64px, 100% 100%, 100% 100%, 100% 100%;
   background-position: -1px -1px, -1px -1px, 0 0, 0 0, 0 0;
   background-attachment: fixed;
@@ -744,7 +740,7 @@ body:has(.app-shell .dash-glass) {
   border-color: transparent;
   background: var(--grad);
   color: #fff;
-  box-shadow: 0 8px 22px rgba(242, 107, 15, .32);
+  box-shadow: 0 8px 22px rgba(var(--accent-rgb), .32);
 }
 
 .dash-btn.primary:hover {
@@ -816,7 +812,7 @@ body:has(.app-shell .dash-glass) .app-topbar {
 }
 
 .kpi-card:hover {
-  border-color: rgba(242, 107, 15, .5);
+  border-color: rgba(var(--accent-rgb), .5);
   transform: translateY(-2px);
 }
 
@@ -839,12 +835,12 @@ body:has(.app-shell .dash-glass) .app-topbar {
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: rgba(242, 107, 15, .14);
+  background: rgba(var(--accent-rgb), .14);
   color: var(--orange);
 }
 
 .kpi-card.red .kpi-icon {
-  background: rgba(217, 45, 10, .16);
+  background: rgba(var(--accent2-rgb), .16);
   color: #ff6a4d;
 }
 
@@ -931,7 +927,7 @@ body:has(.app-shell .dash-glass) .app-topbar {
 }
 
 .quick-card:hover {
-  border-color: rgba(242, 107, 15, .55);
+  border-color: rgba(var(--accent-rgb), .55);
   background: var(--surface-2);
   transform: translateY(-2px);
 }
@@ -1016,7 +1012,7 @@ body:has(.app-shell .dash-glass) .app-topbar {
 }
 
 .dash-glass .sop-tabs button:hover {
-  border-color: rgba(242, 107, 15, .6);
+  border-color: rgba(var(--accent-rgb), .6);
   color: #fff;
 }
 
@@ -1024,14 +1020,14 @@ body:has(.app-shell .dash-glass) .app-topbar {
   color: #fff;
   background: var(--grad);
   border-color: transparent;
-  box-shadow: 0 6px 16px rgba(242, 107, 15, .3);
+  box-shadow: 0 6px 16px rgba(var(--accent-rgb), .3);
 }
 
 .dash-glass .add-meeting-btn {
   background: var(--grad);
   border-color: transparent;
   border-radius: 10px;
-  box-shadow: 0 8px 20px rgba(242, 107, 15, .3);
+  box-shadow: 0 8px 20px rgba(var(--accent-rgb), .3);
 }
 
 .dash-glass .add-meeting-btn:hover {
@@ -1042,7 +1038,7 @@ body:has(.app-shell .dash-glass) .app-topbar {
 .dash-glass .join-now-btn {
   background: var(--grad);
   color: #fff;
-  box-shadow: 0 6px 16px rgba(242, 107, 15, .3);
+  box-shadow: 0 6px 16px rgba(var(--accent-rgb), .3);
 }
 
 .dash-glass .join-now-btn:hover:not(:disabled) {
@@ -1059,7 +1055,7 @@ body:has(.app-shell .dash-glass) .app-topbar {
 
 .dash-glass .meeting-item.clickable:hover {
   background: #202026;
-  border-color: rgba(242, 107, 15, .55);
+  border-color: rgba(var(--accent-rgb), .55);
 }
 
 .dash-glass .sme-sop.done {
@@ -1090,7 +1086,7 @@ body:has(.app-shell .dash-glass) .app-topbar {
 .dash-glass .ch-heading-icon {
   color: #fff;
   background: var(--grad);
-  box-shadow: 0 8px 20px rgba(242, 107, 15, .35);
+  box-shadow: 0 8px 20px rgba(var(--accent-rgb), .35);
 }
 
 .dash-glass .sme-task-heading h2,
@@ -1139,8 +1135,8 @@ body:has(.app-shell .dash-glass) .app-topbar {
 .dash-glass .sme-add-task-btn,
 .dash-glass .ch-export-btn {
   color: #ffd9bd;
-  background: rgba(242, 107, 15, .16);
-  border-color: rgba(242, 107, 15, .45);
+  background: rgba(var(--accent-rgb), .16);
+  border-color: rgba(var(--accent-rgb), .45);
 }
 
 .dash-glass .sme-add-task-btn:hover,
@@ -1150,7 +1146,7 @@ body:has(.app-shell .dash-glass) .app-topbar {
 }
 
 .dash-glass .tm-action-btn.start {
-  background: rgba(242, 107, 15, .2);
+  background: rgba(var(--accent-rgb), .2);
 }
 
 .dash-glass .tm-action-btn.start:hover {
@@ -1262,7 +1258,7 @@ body:has(.app-shell .dash-glass) .app-topbar {
 }
 
 .dash-glass .sme-sop:not(.upcoming):hover {
-  border-color: rgba(242, 107, 15, .5);
+  border-color: rgba(var(--accent-rgb), .5);
 }
 
 .dash-glass .sme-sop.tick input {
@@ -1298,8 +1294,8 @@ body:has(.app-shell .dash-glass) .app-topbar {
 }
 
 .sop-pill.monthly {
-  color: #ff8a73;
-  background: rgba(217, 45, 10, .18);
+  color: var(--red-soft);
+  background: rgba(var(--accent2-rgb), .18);
 }
 
 .sop-status {
@@ -1317,7 +1313,7 @@ body:has(.app-shell .dash-glass) .app-topbar {
 
 .sop-status.todo {
   color: var(--orange-light);
-  background: rgba(242, 107, 15, .16);
+  background: rgba(var(--accent-rgb), .16);
 }
 
 .sop-status.later {

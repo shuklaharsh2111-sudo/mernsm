@@ -20,7 +20,7 @@
     display: grid;
     place-items: center;
     border-radius: 12px;
-    background: rgba(242, 107, 15, .12);
+    background: rgba(var(--accent-rgb), .12);
     color: var(--orange-light);
 }
 .smi-stat small {
