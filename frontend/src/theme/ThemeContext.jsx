@@ -143,11 +143,11 @@ export const DEFAULT_THEME = {
 export const PRESETS = [
   { id: 'ember', name: 'Ember', note: 'The original', set: { accent: 'ember', tone: 'ember', glow: 'strong', glowPos: 'right' } },
   { id: 'ocean-night', name: 'Ocean night', note: 'Calm blue', set: { accent: 'ocean', tone: 'midnight', glow: 'strong', glowPos: 'right' } },
-  { id: 'aurora', name: 'Aurora', note: 'Green and teal', set: { accent: 'emerald', tone: 'forest', glow: 'strong', glowPos: 'top' } },
-  { id: 'violet-dream', name: 'Violet dream', note: 'Purple glow', set: { accent: 'violet', tone: 'plum', glow: 'strong', glowPos: 'left' } },
-  { id: 'sunset', name: 'Sunset', note: 'Orange to pink', set: { accent: 'sunset', tone: 'ember', glow: 'strong', glowPos: 'bottom' } },
+  { id: 'aurora', name: 'Aurora', note: 'Green and teal', set: { accent: 'emerald', tone: 'forest', glow: 'strong', glowPos: 'right' } },
+  { id: 'violet-dream', name: 'Violet dream', note: 'Purple glow', set: { accent: 'violet', tone: 'plum', glow: 'strong', glowPos: 'right' } },
+  { id: 'sunset', name: 'Sunset', note: 'Orange to pink', set: { accent: 'sunset', tone: 'ember', glow: 'strong', glowPos: 'right' } },
   { id: 'rose-noir', name: 'Rose noir', note: 'Pink on black', set: { accent: 'rose', tone: 'amoled', glow: 'soft', glowPos: 'right' } },
-  { id: 'gold-rush', name: 'Gold rush', note: 'Warm and rich', set: { accent: 'gold', tone: 'graphite', glow: 'soft', glowPos: 'top' } },
+  { id: 'gold-rush', name: 'Gold rush', note: 'Warm and rich', set: { accent: 'gold', tone: 'graphite', glow: 'soft', glowPos: 'right' } },
   { id: 'mono', name: 'Mono', note: 'Quiet and plain', set: { accent: 'silver', tone: 'graphite', glow: 'off', glowPos: 'right' } }
 ];
 
@@ -182,7 +182,7 @@ export const buildVars = (theme) => {
   const { primary, secondary } = resolveAccent(theme);
   const tone = pick(TONES, theme.tone, TONES[0]);
   const glow = pick(GLOWS, theme.glow, GLOWS[0]);
-  const pos = pick(GLOW_POSITIONS, theme.glowPos, GLOW_POSITIONS[0]);
+  const pos = GLOW_POSITIONS[0]; // glow is always on the right; only its colours change with the theme
   const glass = pick(GLASS, theme.glass, GLASS[1]);
   const radius = pick(RADII, theme.radius, RADII[1]);
   const density = pick(DENSITIES, theme.density, DENSITIES[1]);
