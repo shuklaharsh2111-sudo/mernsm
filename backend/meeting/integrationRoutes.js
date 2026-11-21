@@ -48,7 +48,7 @@ export const mountIntegrationRoutes = (router) => {
 
 // Google redirects the browser here after consent. No cookie auth: the signed `state` says who it is.
 export const googleCallback = async (req, res) => {
-  const back = (role, flag) => res.redirect(`${process.env.CLIENT_URL || ''}/${role === 'admin' ? 'admin/meetings' : `${role}/settings`}?google=${flag}`);
+  const back = (role, flag) => res.redirect(`${process.env.CLIENT_URL || ''}/${role === 'admin' ? 'admin/meetings' : role === 'operation_manager' ? 'om/meetings' : `${role}/settings`}?google=${flag}`);
   let who;
   try {
     who = jwt.verify(String(req.query.state || ''), process.env.JWT_SECRET);

@@ -65,6 +65,12 @@ export const ADMIN_NAV = [
     ]
   }
 ];
+// Operation Manager: exactly the admin menu, under /om.
+const withBase = (groups, from, to) => groups.map((g) => ({
+  ...g,
+  items: g.items.map((i) => ({ ...i, path: i.path.replace(from, to) }))
+}));
+export const OM_NAV = withBase(ADMIN_NAV, '/admin', '/om');
 export const SME_NAV = [
   {
     heading: 'Overview', items: [
@@ -185,6 +191,7 @@ export const HR_NAV = [
 export const navFor = (role) => {
   switch (role) {
     case 'admin': return ADMIN_NAV;
+    case 'operation_manager': return OM_NAV;
     case 'reporting_manager': return RM_NAV;
     case 'sme': return SME_NAV;
     case 'des': return DES_NAV;

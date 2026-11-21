@@ -6,7 +6,7 @@ import { protect } from '../auth.js';
 
 const router = express.Router();
 
-router.use(protect(['admin', 'sme']));
+router.use(protect(['admin', 'operation_manager', 'sme']));
 
 const roundAmount = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
 

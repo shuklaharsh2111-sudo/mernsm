@@ -41,6 +41,7 @@ import MiniPlayer from './music/MiniPlayer';
 
 const getDashboardPath = (role) => {
   if (role === 'admin') return '/admin';
+  if (role === 'operation_manager') return '/om';
   if (role === 'reporting_manager') return '/rm';
   if (role === 'sme') return '/sme';
   if (role === 'des') return '/des';
@@ -109,6 +110,20 @@ const AppRoutes = () => {
           <Route path="/admin/calendar" element={<AdminCalendar />} />
           <Route path="/admin/playlist" element={<PlaylistPage workspace="ADMIN WORKSPACE" />} />
           <Route path="/admin/settings" element={<ProfileSettings workspace="ADMIN WORKSPACE" />} />
+        </Route>
+      </Route>
+      <Route element={<ProtectedRoute role="operation_manager" />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/om" element={<AdminDashboard base="/om" />} />
+          <Route path="/om/users" element={<AdminUsers />} />
+          <Route path="/om/companies" element={<AdminCompanies />} />
+          <Route path="/om/meetings" element={<AdminMeetings label="OPERATION MANAGER" />} />
+          <Route path="/om/invoices" element={<Invoices />} />
+          <Route path="/om/creatives" element={<AdminCreatives label="OPERATION MANAGER" />} />
+          <Route path="/om/attendance" element={<AdminAttendance label="OPERATION MANAGER" />} />
+          <Route path="/om/calendar" element={<AdminCalendar />} />
+          <Route path="/om/playlist" element={<PlaylistPage workspace="OPERATION MANAGER WORKSPACE" />} />
+          <Route path="/om/settings" element={<ProfileSettings workspace="OPERATION MANAGER WORKSPACE" />} />
         </Route>
       </Route>
       <Route element={<ProtectedRoute role="reporting_manager" />}>

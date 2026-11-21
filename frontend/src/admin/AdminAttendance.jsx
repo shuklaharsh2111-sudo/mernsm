@@ -38,7 +38,7 @@ const QUICK = [
 ];
 
 // Departments, in the order they are listed. Each role is one department.
-const DEPTS = ['admin', 'reporting_manager', 'sme', 'smi', 'des', 'hr', 'clients'];
+const DEPTS = ['admin', 'operation_manager', 'reporting_manager', 'sme', 'smi', 'des', 'hr', 'clients'];
 
 const STATUSES = [
   { value: 'all', label: 'All' },

@@ -42,7 +42,7 @@ const invoiceSchema = new mongoose.Schema({
     gstAmount: { type: Number, default: 0 },
     totalAmount: { type: Number, required: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, required: true },
-    createdByRole: { type: String, enum: ['admin', 'sme'], required: true }
+    createdByRole: { type: String, enum: ['admin', 'operation_manager', 'sme'], required: true }
 }, { timestamps: true });
 
 invoiceSchema.index(

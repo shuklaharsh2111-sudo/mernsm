@@ -1,6 +1,7 @@
 
 export const ROLE_NAMES = {
   admin: 'Admin',
+  operation_manager: 'Operation Manager',
   reporting_manager: 'Reporting Manager',
   sme: 'Social Media Executive',
   smi: 'Social Media Intern',
