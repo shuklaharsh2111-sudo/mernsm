@@ -3,6 +3,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import Invoice, { InvoiceCounter } from './Invoice.js';
 import { protect } from '../auth.js';
+import { notifyRoles } from '../notifications/notify.js';
 
 const router = express.Router();
 
@@ -109,6 +110,8 @@ router.post('/', async (req, res) => {
             createdBy: req.user.id,
             createdByRole: req.user.role
         });
+
+        notifyRoles(['admin', 'operation_manager'], { topic: 'invoices', tone: 'info', title: 'Invoice created', message: `{actor} created invoice ${invoice.invoiceNumber || ''}.` }, req.user);
 
         return res.status(201).json({
             message: 'Invoice created successfully',

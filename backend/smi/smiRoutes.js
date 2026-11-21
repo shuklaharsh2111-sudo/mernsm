@@ -8,6 +8,7 @@ import TaskAttachment from '../sme/TaskAttachment.js';
 import SmiSopAssignment from '../sop/SmiSopAssignment.js';
 import Company from '../company/Company.js';
 import { periodKey, resolveToday } from '../sop/period.js';
+import { notifyUsers } from '../notifications/notify.js';
 
 const allowedTypes = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
@@ -166,6 +167,7 @@ router.patch('/tasks/:id/start', async (req, res) => {
     task.status = 'in-progress';
     task.startedAt = new Date();
     await task.save();
+    notifyUsers([{ id: task.user, role: 'sme' }], { topic: 'tasks', tone: 'info', title: 'Task started', message: `{actor} started "${task.title}".` }, req.user);
     res.json({ message: 'Task started successfully', task: await populateTask(Task.findById(task._id)) });
   } catch (error) {
     console.error('SMI start task error:', error);
@@ -181,6 +183,7 @@ router.patch('/tasks/:id/end', async (req, res) => {
     task.status = 'completed';
     task.endedAt = new Date();
     await task.save();
+    notifyUsers([{ id: task.user, role: 'sme' }], { topic: 'tasks', tone: 'success', title: 'Task completed', message: `{actor} completed "${task.title}".` }, req.user);
     res.json({ message: 'Task completed successfully', task: await populateTask(Task.findById(task._id)) });
   } catch (error) {
     console.error('SMI end task error:', error);

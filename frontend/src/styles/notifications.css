@@ -1,0 +1,42 @@
+/* Notification bell, panel and toasts */
+.nt-wrap { position: relative; }
+.nt-bell { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); cursor: pointer; transition: border-color .15s, color .15s; }
+.nt-bell:hover { border-color: var(--orange); color: var(--orange-light); }
+.nt-bell.has-new svg { color: var(--orange); animation: nt-ring 1.6s ease-in-out infinite; transform-origin: 50% 0; }
+.nt-badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--grad); color: #fff; font-size: 10px; font-weight: 800; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px var(--bg); }
+@keyframes nt-ring { 0%, 55%, 100% { transform: rotate(0); } 10% { transform: rotate(14deg); } 20% { transform: rotate(-12deg); } 30% { transform: rotate(8deg); } 40% { transform: rotate(-5deg); } }
+
+.nt-panel { position: absolute; top: calc(100% + 10px); right: 0; z-index: 80; width: min(380px, calc(100vw - 24px)); border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 18px 48px rgba(0, 0, 0, .55); overflow: hidden; }
+.nt-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--line-soft); color: var(--ink); font-size: 14px; }
+.nt-head-actions { display: flex; gap: 4px; }
+.nt-head-actions button { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-2); cursor: pointer; }
+.nt-head-actions button:hover:not(:disabled) { background: var(--surface-3); color: var(--orange-light); }
+.nt-head-actions button:disabled { opacity: .35; cursor: default; }
+
+.nt-list { max-height: min(460px, 70vh); overflow-y: auto; }
+.nt-item { position: relative; display: flex; align-items: flex-start; gap: 11px; width: 100%; padding: 12px 14px; border: 0; border-bottom: 1px solid var(--line-soft); background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.nt-item:hover { background: var(--surface-2); }
+.nt-item.unread { background: rgba(242, 107, 15, .07); }
+.nt-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.nt-text strong { color: var(--ink); font-size: 13px; font-weight: 700; }
+.nt-text span { color: var(--ink-2); font-size: 12.5px; line-height: 1.4; overflow-wrap: anywhere; }
+.nt-text em { color: var(--ink-3); font-size: 11px; font-style: normal; }
+.nt-icon { display: inline-flex; flex: none; margin-top: 1px; color: var(--orange-light); }
+.nt-item.success .nt-icon, .nt-toast.success .nt-icon { color: var(--ok); }
+.nt-item.warning .nt-icon, .nt-toast.warning .nt-icon { color: var(--warn); }
+.nt-item.danger .nt-icon, .nt-toast.danger .nt-icon { color: var(--bad); }
+.nt-dot { flex: none; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: var(--orange); }
+.nt-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 34px 16px; color: var(--ink-3); font-size: 13px; }
+.nt-empty p { margin: 0; }
+
+.nt-toasts { position: fixed; top: 78px; right: 18px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; width: min(360px, calc(100vw - 24px)); pointer-events: none; }
+.nt-toast { position: relative; display: flex; align-items: flex-start; border: 1px solid var(--line); border-left: 3px solid var(--orange); border-radius: 12px; background: var(--surface-2); box-shadow: 0 14px 36px rgba(0, 0, 0, .55); pointer-events: auto; animation: nt-in .28s ease-out; }
+.nt-toast.success { border-left-color: var(--ok); }
+.nt-toast.warning { border-left-color: var(--warn); }
+.nt-toast.danger { border-left-color: var(--bad); }
+.nt-toast-body { display: flex; align-items: flex-start; gap: 11px; flex: 1; min-width: 0; padding: 12px 8px 12px 14px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.nt-toast-x { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin: 6px 6px 0 0; border: 0; border-radius: 8px; background: transparent; color: var(--ink-3); cursor: pointer; }
+.nt-toast-x:hover { background: var(--surface-3); color: var(--ink); }
+@keyframes nt-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .nt-bell.has-new svg, .nt-toast { animation: none; } }
+@media (max-width: 560px) { .nt-toasts { top: 70px; right: 12px; } }

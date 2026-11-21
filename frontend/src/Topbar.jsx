@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { Menu, CalendarDays, Clock3 } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { titleFor } from './navConfig';
+import NotificationBell from './notifications/NotificationBell';
 
 const Topbar = ({ onMenu }) => {
   const { user } = useAuth();
@@ -33,6 +34,7 @@ const Topbar = ({ onMenu }) => {
       <div className="top-meta">
         <span className="top-chip"><CalendarDays size={15} /> {date}</span>
         <span className="top-chip"><Clock3 size={15} /> {time}</span>
+        <NotificationBell />
       </div>
     </header>
   );

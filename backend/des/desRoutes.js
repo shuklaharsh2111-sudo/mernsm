@@ -6,6 +6,7 @@ import Creative from '../sme/Creative.js';
 import cloudinary from '../config/cloudinary.js';
 import Admin from '../admin/Admin.js';
 import { Des, ReportingManager } from '../admin/UserModels.js';
+import { notifyUsers } from '../notifications/notify.js';
 const router = express.Router();
 const MAX_FILE_MB = 10;
 const ALLOWED_TYPES = [
@@ -198,6 +199,7 @@ router.post('/creatives/:id/design', (req, res) => {
         redoCount: prev?.redoCount || 0
       };
       await creative.save();
+      notifyUsers([{ id: creative.user, role: 'sme' }], { topic: 'creatives', tone: 'info', title: creative.designOutput.version > 1 ? 'Updated design uploaded' : 'Design uploaded', message: `{actor} uploaded the design for "${creative.contentPillar?.title || 'your creative'}". Please review it.` }, req.user);
       if (prev && !keepPrev && prev.publicId) {
         await cloudinary.uploader.destroy(prev.publicId, { resource_type: prev.resourceType || 'image' }).catch(() => null);
       }
