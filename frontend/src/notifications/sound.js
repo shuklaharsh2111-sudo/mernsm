@@ -5,13 +5,20 @@ let ctx = null;
 let master = null;
 // a notification that arrived while the browser was blocking sound: it rings on the very next click / key press
 let pending = null;
-const KEY = 'notifSoundMuted';
+// Sound is ON by default. (v2 key: an old saved "muted" value from earlier versions is ignored.)
+const KEY = 'notifSoundMuted_v2';
 const listeners = new Set();
 
 let muted = (() => {
   try { return localStorage.getItem(KEY) === '1'; } catch { return false; }
 })();
 
+const ENABLED_KEY = 'notifSoundEnabled';
+// true once the person has unlocked sound in this browser (browsers still re-lock audio after a refresh,
+// but the very next click or key press unlocks it again by itself, so no prompt is needed).
+export const wasEnabled = () => {
+  try { return localStorage.getItem(ENABLED_KEY) === '1'; } catch { return false; }
+};
 export const isMuted = () => muted;
 export const setMuted = (value) => {
   muted = Boolean(value);
@@ -32,18 +39,42 @@ const getCtx = () => {
     if (!AC) return null;
     ctx = new AC();
     ctx.onstatechange = emit;
-    // every note goes through one compressor + gain so the ding is clearly audible
+    // Every note goes through one chain: low-pass (removes harshness) -> compressor (keeps it loud without
+    // distortion) with a soft echo tail, so the ding sounds smooth, round and clearly audible.
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 4500;
+    lp.Q.value = 0.3;
     const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -20;
+    comp.knee.value = 24;
+    comp.ratio.value = 3;
+    comp.attack.value = 0.01;
+    comp.release.value = 0.3;
+    const echo = ctx.createDelay(1);
+    echo.delayTime.value = 0.16;
+    const feedback = ctx.createGain();
+    feedback.gain.value = 0.25;
+    const wet = ctx.createGain();
+    wet.gain.value = 0.15;
     master = ctx.createGain();
     master.gain.value = 1.6;
-    master.connect(comp);
+    master.connect(lp);
+    lp.connect(comp);
+    lp.connect(echo);
+    echo.connect(feedback);
+    feedback.connect(echo);
+    echo.connect(wet);
+    wet.connect(comp);
     comp.connect(ctx.destination);
   }
   return ctx;
 };
 
 // Called from a real click / key press: this is what lets the browser play sound later without a click.
+let asked = false;
 const unlock = () => {
+  if (!asked) { asked = true; askSystemNotifications(); }
   const c = getCtx();
   if (!c) return;
   const done = () => {
@@ -54,6 +85,7 @@ const unlock = () => {
       src.connect(c.destination);
       src.start(0);
     } catch { /* ignore */ }
+    if (c.state === 'running') { try { localStorage.setItem(ENABLED_KEY, '1'); } catch { /* ignore */ } }
     emit();
     if (c.state === 'running' && pending) {
       const t = pending;
@@ -74,6 +106,7 @@ export const enableSound = () => {
 const EVENTS = ['pointerdown', 'mousedown', 'touchend', 'click', 'keydown'];
 if (typeof window !== 'undefined') {
   EVENTS.forEach((e) => window.addEventListener(e, unlock, true));
+  try { const c0 = getCtx(); if (c0 && c0.state !== 'running') c0.resume().catch(() => { }); } catch { /* ignore */ }
   // Safari/iOS and some browsers suspend audio when the tab is hidden; wake it up again on return.
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && ctx && ctx.state !== 'running') ctx.resume().catch(() => { });
@@ -83,27 +116,47 @@ if (typeof window !== 'undefined') {
 
 // ---- Backup sound: a plain <audio> element playing a generated WAV file.
 // Used whenever the Web Audio context is still locked/suspended, so a new notification is never silent.
+// [frequency Hz, start s, length s, volume, triangle?]  info/success rise, danger/warning fall
 const TONES = {
-  info: [[880, 0, 0.25, 0.6], [1319, 0.15, 0.55, 0.55]],
-  success: [[784, 0, 0.22, 0.55], [1047, 0.12, 0.24, 0.55], [1568, 0.24, 0.5, 0.5]],
-  danger: [[622, 0, 0.3, 0.6, 1], [466, 0.17, 0.5, 0.6, 1]]
+  info: [[784, 0, 0.4, 0.85], [1175, 0.12, 0.85, 0.9]],
+  success: [[784, 0, 0.35, 0.85], [988, 0.1, 0.35, 0.85], [1319, 0.2, 0.9, 0.9]],
+  danger: [[659, 0, 0.5, 0.9], [523, 0.16, 0.9, 0.95]]
 };
 const wavCache = {};
 const makeWav = (notes) => {
   const rate = 22050;
-  const total = Math.ceil(rate * (Math.max(...notes.map((n) => n[1] + n[2])) + 0.1));
-  const pcm = new Int16Array(total);
+  const tail = 1.1; // room for the echo
+  const total = Math.ceil(rate * (Math.max(...notes.map((n) => n[1] + n[2])) + tail));
+  const mix = new Float32Array(total);
+  const parts = [[1, 1], [2, 0.12]];
+  const sum = parts.reduce((a, [, amp]) => a + amp, 0);
   notes.forEach(([freq, start, len, vol, tri]) => {
     const from = Math.floor(start * rate);
-    const count = Math.floor(len * rate);
+    const count = Math.floor(len * 1.75 * rate);
+    const tau = len / 4;
     for (let i = 0; i < count && from + i < total; i += 1) {
       const t = i / rate;
-      const env = Math.min(1, t / 0.015) * Math.exp(-4.5 * (t / len));
-      const phase = 2 * Math.PI * freq * t;
-      const wave = tri ? (2 / Math.PI) * Math.asin(Math.sin(phase)) : Math.sin(phase);
-      pcm[from + i] = Math.max(-32767, Math.min(32767, pcm[from + i] + wave * env * vol * 22000));
+      const env = Math.min(1, t / 0.025) * Math.exp(-t / tau);
+      let v = 0;
+      parts.forEach(([mult, amp]) => {
+        const phase = 2 * Math.PI * freq * mult * (t - 0.015 * 0.02 * (1 - Math.exp(-t / 0.02)));
+        v += (tri ? (2 / Math.PI) * Math.asin(Math.sin(phase)) : Math.sin(phase)) * amp;
+      });
+      mix[from + i] += (v / sum) * env * vol;
     }
   });
+  // soft echo tail
+  const d = Math.floor(0.16 * rate);
+  for (let i = d; i < total; i += 1) mix[i] += 0.25 * mix[i - d];
+  // soften it: one-pole low-pass (about 4.5 kHz) takes the sharp edge off
+  const a = 1 - Math.exp((-2 * Math.PI * 4500) / rate);
+  for (let i = 1; i < total; i += 1) mix[i] = mix[i - 1] + a * (mix[i] - mix[i - 1]);
+  // normalise to a loud level (about 90% of full scale)
+  let peak = 0;
+  for (let i = 0; i < total; i += 1) peak = Math.max(peak, Math.abs(mix[i]));
+  const k = peak ? (0.9 * 32767) / peak : 0;
+  const pcm = new Int16Array(total);
+  for (let i = 0; i < total; i += 1) pcm[i] = Math.round(mix[i] * k);
   const bytes = new Uint8Array(44 + pcm.length * 2);
   const dv = new DataView(bytes.buffer);
   const str = (o, v) => [...v].forEach((ch, i) => dv.setUint8(o + i, ch.charCodeAt(0)));
@@ -140,18 +193,34 @@ export const showSystemNotification = (n) => {
   } catch { /* not supported */ }
 };
 
-// One soft note with a quick fade in and out.
+// One smooth, bell-like note: soft 25 ms attack, long natural decay (no abrupt cut), a little 2nd harmonic.
+const PARTIALS = [[1, 1], [2, 0.07]];
 const note = (c, freq, start, length, volume, type = 'sine') => {
-  const osc = c.createOscillator();
+  const rich = type === 'sine' || type === 'triangle';
+  const parts = rich ? PARTIALS : [[1, 1]];
+  const total = parts.reduce((sum, [, amp]) => sum + amp, 0);
+  const tau = length / 4; // decay time constant: it has faded out by `length`
   const gain = c.createGain();
-  osc.type = type;
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(volume, start + 0.015);
-  gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
-  osc.connect(gain).connect(master || c.destination);
-  osc.start(start);
-  osc.stop(start + length + 0.05);
+  gain.gain.setValueAtTime(0, start);
+  gain.gain.linearRampToValueAtTime(volume, start + 0.025);
+  gain.gain.setTargetAtTime(0, start + 0.025, tau);
+  gain.connect(master || c.destination);
+  const end = start + 0.025 + tau * 7;
+  parts.forEach(([mult, amp]) => {
+    const osc = c.createOscillator();
+    const part = c.createGain();
+    osc.type = type;
+    if (rich) {
+      osc.frequency.setValueAtTime(freq * mult * 0.985, start);
+      osc.frequency.exponentialRampToValueAtTime(freq * mult, start + 0.05);
+    } else {
+      osc.frequency.value = freq * mult;
+    }
+    part.gain.value = amp / total;
+    osc.connect(part).connect(gain);
+    osc.start(start);
+    osc.stop(end);
+  });
 };
 
 // Waits until the browser has actually unlocked audio, THEN schedules the notes (scheduling on a
@@ -168,17 +237,9 @@ const play = (fn, force = false) => {
 };
 
 const ding = (c, t, tone) => {
-  if (tone === 'danger' || tone === 'warning') {
-    note(c, 622, t, 0.3, 0.6, 'triangle');
-    note(c, 466, t + 0.17, 0.5, 0.6, 'triangle');
-  } else if (tone === 'success') {
-    note(c, 784, t, 0.22, 0.55);
-    note(c, 1047, t + 0.12, 0.24, 0.55);
-    note(c, 1568, t + 0.24, 0.5, 0.5);
-  } else {
-    note(c, 880, t, 0.25, 0.6);
-    note(c, 1319, t + 0.15, 0.55, 0.55);
-  }
+  (TONES[tone === 'warning' ? 'danger' : tone] || TONES.info).forEach(([freq, at, len, vol, tri]) => {
+    note(c, freq, t + at, len, vol, 'sine');
+  });
 };
 
 // Someone else did something for you: a two-note "ding". Warnings and rejections get a lower, falling tone.

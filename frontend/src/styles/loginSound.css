@@ -1,0 +1,6 @@
+/* Login page: "enable notification sound" prompt (only while the browser blocks sound) */
+.nl-sound { display: flex; align-items: center; gap: 8px; width: 100%; margin: 12px 0 0; padding: 9px 12px; border: 1px solid rgba(251, 191, 36, .55); border-radius: 10px; background: rgba(251, 191, 36, .1); color: #fbbf24; font-family: inherit; font-size: 12.5px; line-height: 1.35; text-align: left; cursor: pointer; transition: background .15s, border-color .15s; }
+.nl-sound svg { flex: none; }
+.nl-sound strong { font-weight: 800; text-decoration: underline; }
+button.nl-sound:hover { background: rgba(251, 191, 36, .2); border-color: #fbbf24; }
+.nl-sound.is-on { cursor: default; border-color: rgba(52, 211, 153, .5); background: rgba(52, 211, 153, .1); color: #34d399; }

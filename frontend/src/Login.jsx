@@ -4,6 +4,7 @@ import { ArrowRight, Eye, EyeOff, KeyRound, MapPin } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import LoginRibbons from './LoginRibbons';
 import DownloadManual from './DownloadManual';
+import LoginSoundPrompt from './notifications/LoginSoundPrompt';
 import './styles/login.css';
 import heroFlowers from './assets/images/login-hero-flowers.png';
 import heroProfile from './assets/images/login-hero-profile.png';
@@ -111,6 +112,7 @@ const Login = () => {
               <MapPin size={13} />
               Staff logins work only from the office. Allow location access when your browser asks.
             </p>
+            <LoginSoundPrompt />
             <div className="nl-brand">
               <span className="nl-brand-mark">N</span>
               <span className="nl-brand-name">NEURO</span>

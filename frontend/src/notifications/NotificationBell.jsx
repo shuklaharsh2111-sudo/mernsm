@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, BellOff, BellRing, Volume2, VolumeX, CheckCheck, Trash2, X, CircleCheck, TriangleAlert, OctagonAlert, Info } from 'lucide-react';
 import { useNotifications } from './NotificationContext';
-import { audioState, subscribeAudio, playTest, enableSound } from './sound';
+import { audioState, subscribeAudio, playTest, enableSound, wasEnabled } from './sound';
 import '../styles/notifications.css';
 
 const TONE_ICON = { success: CircleCheck, warning: TriangleAlert, danger: OctagonAlert, info: Info };
@@ -51,7 +51,7 @@ const NotificationBell = () => {
 
   // tells the person when the browser is still blocking sound (until they click once on the page)
   useEffect(() => subscribeAudio(setAudio), []);
-  const blocked = !muted && audio !== 'running';
+  const blocked = !muted && audio !== 'running' && !wasEnabled();
 
   useEffect(() => {
     if (!show) return undefined;
