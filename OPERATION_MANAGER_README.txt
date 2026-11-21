@@ -7,9 +7,10 @@ HOW TO CREATE AN OPERATION MANAGER
   Log in as admin -> Users -> choose the new "Operation Manager" role -> Create.
   They sign in on the normal login page and land on /om.
 
-The panel is a copy of the admin panel (same pages, same API), under /om:
-  Dashboard, Users, Companies, Invoices, Meetings, Creatives, Attendance,
-  Calendar, Settings, Playlist.
+The panel is manage-only, under /om:
+  Dashboard, Invoices, Meetings, Creatives, Attendance, Calendar, Settings, Playlist.
+  There is NO Users or Companies page: adding/changing/deleting users and
+  companies stays with the admin (also blocked on the server).
 
 BACKEND
 backend/admin/UserModels.js            new OperationManager model (collection: operation_managers)

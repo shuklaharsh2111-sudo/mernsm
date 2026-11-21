@@ -140,7 +140,7 @@ const AdminDashboard = ({ base = '/admin' }) => {
 
       <div className="dash-section-title">Quick access</div>
       <div className="quick-grid">
-        {QUICK.map(({ title, text, path, icon: Icon }) => (
+        {QUICK.filter(({ path }) => base !== '/om' || !['/users', '/companies'].includes(path)).map(({ title, text, path, icon: Icon }) => (
           <Link to={`${base}${path}`} className="quick-card" key={path}>
             <span className="kpi-icon"><Icon size={19} /></span>
             <div><strong>{title}</strong><span>{text}</span></div>
