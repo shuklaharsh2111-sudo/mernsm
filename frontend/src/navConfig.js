@@ -65,12 +65,16 @@ export const ADMIN_NAV = [
     ]
   }
 ];
-// Operation Manager: exactly the admin menu, under /om.
+// Operation Manager: the admin menu under /om, minus the user/company setup pages.
 const withBase = (groups, from, to) => groups.map((g) => ({
   ...g,
   items: g.items.map((i) => ({ ...i, path: i.path.replace(from, to) }))
 }));
-export const OM_NAV = withBase(ADMIN_NAV, '/admin', '/om');
+// Manage-only: no Users or Companies pages (adding people/companies stays with the admin).
+const OM_HIDDEN = ['/om/users', '/om/companies'];
+export const OM_NAV = withBase(ADMIN_NAV, '/admin', '/om')
+  .map((g) => ({ ...g, items: g.items.filter((i) => !OM_HIDDEN.includes(i.path)) }))
+  .filter((g) => g.items.length);
 export const SME_NAV = [
   {
     heading: 'Overview', items: [

@@ -42,6 +42,13 @@ const deleteFromCloudinary = async (publicId) => {
 };
 // The Operation Manager panel reuses every admin endpoint, so both roles are allowed here.
 router.use(protect(['admin', 'operation_manager']));
+// Operation managers can read users/companies (dashboard, calendar, attendance) but never add, change or delete them.
+router.use((req, res, next) => {
+  if (req.user.role === 'operation_manager' && req.method !== 'GET' && /^\/(users|companies)(\/|$)/.test(req.path)) {
+    return res.status(403).json({ message: 'Operation managers cannot add or change users and companies.' });
+  }
+  next();
+});
 mountIntegrationRoutes(router);
 const validId = (id) => mongoose.Types.ObjectId.isValid(id);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

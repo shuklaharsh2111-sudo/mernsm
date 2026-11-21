@@ -115,8 +115,6 @@ const AppRoutes = () => {
       <Route element={<ProtectedRoute role="operation_manager" />}>
         <Route element={<DashboardLayout />}>
           <Route path="/om" element={<AdminDashboard base="/om" />} />
-          <Route path="/om/users" element={<AdminUsers />} />
-          <Route path="/om/companies" element={<AdminCompanies />} />
           <Route path="/om/meetings" element={<AdminMeetings label="OPERATION MANAGER" />} />
           <Route path="/om/invoices" element={<Invoices />} />
           <Route path="/om/creatives" element={<AdminCreatives label="OPERATION MANAGER" />} />
