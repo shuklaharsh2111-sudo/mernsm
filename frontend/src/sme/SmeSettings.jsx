@@ -3,6 +3,7 @@ import { Camera, Trash2, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-r
 import api from '../api';
 import { useAuth } from '../AuthContext';
 import { errMsg } from '../sopUtils';
+import ThemeSettings from '../theme/ThemeSettings';
 import '../styles/settings.css';
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -257,6 +258,8 @@ const SmeSettings = () => {
                         </button>
                     </div>
                 </form>
+
+                <ThemeSettings />
             </div>
         </div>
     );

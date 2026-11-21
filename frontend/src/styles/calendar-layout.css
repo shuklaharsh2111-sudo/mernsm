@@ -613,8 +613,8 @@ body .modal-card.cx-modal>.modal-foot {
 }
 
 .modal-card.cx-modal .creative-check.on {
-  background: color-mix(in srgb, var(--plat, #f27b36) 30%, rgba(20, 15, 15, 0.7));
-  border-color: var(--plat, #f27b36);
+  background: color-mix(in srgb, var(--plat, var(--orange)) 30%, rgba(20, 15, 15, 0.7));
+  border-color: var(--plat, var(--orange));
   color: #fff;
 }
 
@@ -756,7 +756,7 @@ body .modal-card.cx-modal>.modal-foot {
 
 /* ---------- platform strip: match the app theme (orange accent, same as the sidebar logo) ---------- */
 .cx-platforms {
-  --plat-line-active: var(--orange-light, #ffb04d);
+  --plat-line-active: var(--orange-light, var(--orange-light));
 }
 
 .cx-plat {
@@ -772,7 +772,7 @@ body .modal-card.cx-modal>.modal-foot {
   bottom: 0;
   height: 3px;
   border-radius: 3px;
-  background: var(--grad, linear-gradient(135deg, #ff7729, #f26b0f));
+  background: var(--grad, linear-gradient(135deg, var(--orange), var(--orange)));
   transform: scaleX(0);
   transform-origin: center;
   transition: transform .2s ease;
@@ -791,20 +791,20 @@ body .modal-card.cx-modal>.modal-foot {
 }
 
 .cx-plat.active .cx-plat-icon svg {
-  filter: drop-shadow(0 4px 12px rgba(242, 107, 15, .55));
+  filter: drop-shadow(0 4px 12px rgba(var(--accent-rgb), .55));
 }
 
 .cx-plat .cx-plat-count {
   padding: 1px 9px;
   border-radius: 999px;
-  background: rgba(242, 107, 15, .12);
-  border: 1px solid rgba(242, 107, 15, .28);
-  color: var(--orange-light, #ffb04d);
+  background: rgba(var(--accent-rgb), .12);
+  border: 1px solid rgba(var(--accent-rgb), .28);
+  color: var(--orange-light, var(--orange-light));
   font-weight: 700;
 }
 
 .cx-plat.active .cx-plat-count {
-  background: var(--grad, #f26b0f);
+  background: var(--grad, var(--orange));
   border-color: transparent;
   color: #fff;
 }
@@ -898,7 +898,7 @@ body .modal-card.cx-modal>.modal-body {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   --plat-line: #9d968f;
-  --plat-line-active: var(--orange-light, #ffb04d);
+  --plat-line-active: var(--orange-light, var(--orange-light));
 }
 
 .cx-plat,
@@ -931,8 +931,8 @@ body .modal-card.cx-modal>.modal-body {
 }
 
 .cx-plat.active {
-  background: rgba(242, 107, 15, 0.14);
-  border-color: rgba(242, 107, 15, 0.35);
+  background: rgba(var(--accent-rgb), 0.14);
+  border-color: rgba(var(--accent-rgb), 0.35);
   color: var(--plat-line-active);
 }
 
@@ -977,7 +977,7 @@ body .modal-card.cx-modal>.modal-body {
 }
 
 .cx-plat.active .cx-plat-count {
-  background: var(--grad, #f26b0f);
+  background: var(--grad, var(--orange));
   color: #fff;
 }
 

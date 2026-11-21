@@ -3,6 +3,7 @@ import { Camera, Trash2, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-r
 import api from '../api';
 import { useAuth } from '../AuthContext';
 import { errMsg } from '../sopUtils';
+import ThemeSettings from '../theme/ThemeSettings';
 import '../styles/settings.css';
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -145,7 +146,7 @@ const ProfileSettings = ({ workspace = 'WORKSPACE' }) => {
                 <div>
                     <span className="page-label">{workspace}</span>
                     <h1>Settings</h1>
-                    <p>Update your profile image, name and password.</p>
+                    <p>Update your profile image, name, password and theme.</p>
                 </div>
             </div>
 
@@ -258,6 +259,8 @@ const ProfileSettings = ({ workspace = 'WORKSPACE' }) => {
                         </button>
                     </div>
                 </form>
+
+                <ThemeSettings />
             </div>
         </div>
     );

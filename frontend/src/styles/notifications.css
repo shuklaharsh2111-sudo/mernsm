@@ -17,7 +17,7 @@
 .nt-list { max-height: min(460px, 70vh); overflow-y: auto; }
 .nt-item { position: relative; display: flex; align-items: flex-start; gap: 11px; width: 100%; padding: 12px 14px; border: 0; border-bottom: 1px solid var(--line-soft); background: transparent; color: inherit; text-align: left; cursor: pointer; }
 .nt-item:hover { background: var(--surface-2); }
-.nt-item.unread { background: rgba(242, 107, 15, .07); }
+.nt-item.unread { background: rgba(var(--accent-rgb), .07); }
 .nt-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .nt-text strong { color: var(--ink); font-size: 13px; font-weight: 700; }
 .nt-text span { color: var(--ink-2); font-size: 12.5px; line-height: 1.4; overflow-wrap: anywhere; }

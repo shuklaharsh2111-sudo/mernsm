@@ -1,15 +1,15 @@
 
-/* ---------- PAGE BACKGROUND (full #af0300 + dark) ---------- */
+/* ---------- PAGE BACKGROUND (full var(--red-deep) + dark) ---------- */
 body:has(.nl-page) {
-  background: #af0300;
+  background: var(--red-deep);
 }
 body:has(.nl-page)::before,
 body:has(.nl-page)::after {
   display: none;
 }
 .nl-page {
-  background-color: #af0300;
-  background: linear-gradient(135deg, #af0300 0%, #af0300 50%, #5a0100 100%);
+  background-color: var(--red-deep);
+  background: linear-gradient(135deg, var(--red-deep) 0%, var(--red-deep) 50%, #5a0100 100%);
   width: 100%;
   height: 100%;
   padding: 16px;
@@ -20,8 +20,8 @@ body:has(.nl-page)::after {
   background:
     radial-gradient(ellipse 55% 60% at 0% 100%, rgba(0, 0, 0, 0.85), transparent 100%),
     radial-gradient(ellipse 50% 55% at 100% 0%, rgba(0, 0, 0, 0.7), transparent 100%),
-    radial-gradient(ellipse 45% 45% at 50% 50%, color-mix(in oklab, #af0300 50%, transparent), transparent 100%),
-    linear-gradient(135deg, #af0300 0%, #af0300 50%, #5a0100 100%);
+    radial-gradient(ellipse 45% 45% at 50% 50%, color-mix(in oklab, var(--red-deep) 50%, transparent), transparent 100%),
+    linear-gradient(135deg, var(--red-deep) 0%, var(--red-deep) 50%, #5a0100 100%);
 }
 
 /* ---------- CARD (fits one screen) ---------- */
@@ -45,7 +45,7 @@ body:has(.nl-page)::after {
   border-radius: 22px;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 60% 45% at 50% 58%, rgba(242, 107, 15, 0.3), transparent 100%),
+    radial-gradient(ellipse 60% 45% at 50% 58%, rgba(var(--accent-rgb), 0.3), transparent 100%),
     radial-gradient(ellipse at 20% 0%, #2e1a0d 0%, #120a05 45%, #080504 100%);
   border: 1px solid rgba(255, 140, 60, 0.15);
 }
@@ -298,7 +298,7 @@ body:has(.nl-page)::after {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: #f26b0f;
+  color: var(--orange);
   background: #fde0cc;
 }
 .nl-form-wrap {
@@ -337,7 +337,7 @@ body:has(.nl-page)::after {
 }
 .nl-input:focus-within {
   background: #fff;
-  box-shadow: 0 0 0 3px color-mix(in oklab, #af0300 50%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--red-deep) 50%, transparent);
 }
 .nl-input input {
   width: 100%;
@@ -378,12 +378,12 @@ body:has(.nl-page)::after {
   font-weight: 700;
   cursor: pointer;
   background: linear-gradient(180deg, #2b2b2f, #070504);
-  box-shadow: 0 12px 26px rgba(242, 107, 15, 0.35);
+  box-shadow: 0 12px 26px rgba(var(--accent-rgb), 0.35);
   transition: all 0.3s ease;
 }
 .nl-submit:hover {
   transform: translateY(-2px);
-  box-shadow: 0 16px 32px rgba(242, 107, 15, 0.45);
+  box-shadow: 0 16px 32px rgba(var(--accent-rgb), 0.45);
 }
 .nl-submit:disabled {
   opacity: 0.65;
@@ -428,8 +428,8 @@ body:has(.nl-page)::after {
   color: #1a0d05;
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(135deg, #ffb04d, #f26b0f 65%, #d14d00);
-  box-shadow: 0 8px 20px rgba(242, 107, 15, 0.4);
+  background: linear-gradient(135deg, var(--orange-light), var(--orange) 65%, #d14d00);
+  box-shadow: 0 8px 20px rgba(var(--accent-rgb), 0.4);
 }
 .nl-brand-name {
   font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -469,7 +469,7 @@ body:has(.nl-page)::after {
   background: transparent;
   cursor: pointer;
 }
-.nl-dl:focus-visible { outline: 2px solid #f26b0f; outline-offset: 3px; border-radius: 50%; }
+.nl-dl:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; border-radius: 50%; }
 .nl-dl:disabled { cursor: progress; }
 
 /* same look as the "Forgot password?" icon */
@@ -481,11 +481,11 @@ body:has(.nl-page)::after {
   place-items: center;
   overflow: hidden;
   border-radius: 50%;
-  color: #f26b0f;
+  color: var(--orange);
   background: #fde0cc;
   transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease;
 }
-.nl-dl:hover:not(:disabled) .nl-dl-icon { background: #f26b0f; color: #fff; transform: scale(1.08); }
+.nl-dl:hover:not(:disabled) .nl-dl-icon { background: var(--orange); color: #fff; transform: scale(1.08); }
 .nl-dl:active:not(:disabled) .nl-dl-icon { transform: scale(0.92); }
 .nl-dl-ic { position: relative; grid-area: 1 / 1; width: 42%; height: 42%; transition: transform 0.3s ease, opacity 0.2s ease; }
 .nl-dl-down { animation: nlBob 2.2s ease-in-out infinite; }
@@ -607,7 +607,7 @@ body:has(.nl-page)::after {
 /* slowly turning colour swirl: a wide blurred one under a tighter one */
 .nl-aura-swirl {
   inset: 14%;
-  background: conic-gradient(from 0deg, rgba(255, 30, 10, 0.9), rgba(255, 150, 40, 0.75), rgba(255, 230, 150, 0.55), rgba(255, 60, 20, 0.9), rgba(180, 0, 0, 0.8), rgba(255, 30, 10, 0.9));
+  background: conic-gradient(from 0deg, rgba(255, 30, 10, 0.9), rgba(var(--accent-light-rgb), 0.75), rgba(255, 230, 150, 0.55), rgba(255, 60, 20, 0.9), rgba(180, 0, 0, 0.8), rgba(255, 30, 10, 0.9));
   filter: blur(22px);
   opacity: 0.85;
   animation: nlAuraSpin 14s linear infinite reverse;

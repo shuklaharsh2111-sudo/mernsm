@@ -18,7 +18,7 @@
   --text-muted: #cdb7a7;
   --shadow: 0 15px 45px rgba(24, 18, 16, 0.3);
   --glow: 0 0 30px rgba(210, 190, 175, 0.24);
-  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--app-font, 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
   color: var(--text-primary);
   background: var(--royal-deep);
   font-synthesis: none;
@@ -61,7 +61,7 @@ body::before {
   left: -100px;
 }
 body::after {
-  background: #ff7729;
+  background: var(--orange);
   right: -120px;
   bottom: -120px;
   animation-delay: -6s;
@@ -144,8 +144,8 @@ button {
   background:
     radial-gradient(ellipse 55% 60% at 0% 100%, rgba(0, 0, 0, 0.85), transparent 100%),
     radial-gradient(ellipse 50% 55% at 100% 0%, rgba(0, 0, 0, 0.7), transparent 100%),
-    radial-gradient(ellipse 45% 45% at 50% 50%, color-mix(in oklab, #af0300 50%, transparent), transparent 100%),
-    linear-gradient(135deg, #af0300 0%, #af0300 50%, #5a0100 100%);
+    radial-gradient(ellipse 45% 45% at 50% 50%, color-mix(in oklab, var(--red-deep) 50%, transparent), transparent 100%),
+    linear-gradient(135deg, var(--red-deep) 0%, var(--red-deep) 50%, #5a0100 100%);
 }
 .login-card {
   width: 100%;
@@ -183,7 +183,7 @@ button {
   justify-content: center;
   border-radius: 17px;
   color: white;
-  background: linear-gradient(135deg, #d6c3b5, #f27b36 55%, #dd5a0e);
+  background: linear-gradient(135deg, #d6c3b5, var(--orange) 55%, #dd5a0e);
   font-size: 20px;
   font-weight: 800;
   box-shadow:
@@ -269,10 +269,10 @@ button {
   font-size: 13px;
   font-weight: 700;
   background: linear-gradient(110deg,
-      #f27b36,
-      #f27b36,
+      var(--orange),
+      var(--orange),
       #e35d0f,
-      #f27b36);
+      var(--orange));
   background-size: 250% auto;
   box-shadow:
     0 8px 25px rgba(43, 32, 27, 0.38),
@@ -397,7 +397,7 @@ button {
   letter-spacing: 0.6px;
 }
 .role-tag.sme {
-  background: rgba(255, 119, 41, 0.19);
+  background: rgba(var(--accent-rgb), 0.19);
   border-color: rgba(215, 197, 184, 0.3);
   color: #eee7e1;
 }
@@ -1069,7 +1069,7 @@ body {
 }
 .btn-primary {
   border: 1px solid rgba(255, 255, 255, 0.22);
-  background: linear-gradient(110deg, #f27b36, #f27b36, #e35d0f);
+  background: linear-gradient(110deg, var(--orange), var(--orange), #e35d0f);
   box-shadow: 0 8px 22px rgba(43, 32, 27, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.25);
 }
 .btn-primary:hover:not(:disabled) {
@@ -1263,7 +1263,7 @@ body {
 }
 .sop-tabs button.active {
   color: white;
-  background: #f27b36;
+  background: var(--orange);
   border-color: rgba(255, 255, 255, 0.3);
 }
 /* company circles on the SME dashboard (white) */
@@ -1632,7 +1632,7 @@ body {
   width: 0;
 }
 .sops-type.on {
-  background: #f27b36;
+  background: var(--orange);
   border-color: rgba(255, 255, 255, 0.35);
 }
 .sops-type:focus-within {
@@ -1758,7 +1758,7 @@ body {
 html,
 body,
 #root {
-  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--app-font, 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
 }
 button,
 input,
@@ -1777,5 +1777,5 @@ select,
 textarea,
 optgroup,
 option {
-  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--app-font, 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
 }

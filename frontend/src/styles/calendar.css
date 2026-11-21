@@ -122,7 +122,7 @@
 
 .cal-toggle button.active {
   color: #fff;
-  background: #f27b36;
+  background: var(--orange);
 }
 
 /* Month grid */
@@ -212,7 +212,7 @@
 }
 
 .cal-cell.today .cal-day {
-  background: #f27b36;
+  background: var(--orange);
 }
 
 @media (max-width: 700px) {
@@ -254,7 +254,7 @@
 }
 
 .cal-add:hover {
-  background: #f27b36;
+  background: var(--orange);
 }
 
 .cal-creative {
@@ -412,7 +412,7 @@
   height: 20px;
   padding: 0;
   color: #fff;
-  background: #f27b36;
+  background: var(--orange);
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 50%;
   cursor: pointer;
@@ -470,7 +470,7 @@
 
 .creative-check.on {
   color: #fff;
-  background: #f27b36;
+  background: var(--orange);
   border-color: rgba(255, 255, 255, 0.35);
 }
 
@@ -836,7 +836,7 @@
 
 .pps-tab.on {
   color: #fff;
-  background: #f27b36;
+  background: var(--orange);
   border-color: rgba(255, 255, 255, 0.35);
 }
 
@@ -1067,7 +1067,7 @@
 
 .cal-plat-tabs button.active {
   color: #fff;
-  background: var(--plat, #f27b36);
+  background: var(--plat, var(--orange));
 }
 
 .cal-plat-count {
@@ -1112,20 +1112,20 @@
 }
 
 .cal-grid .cal-cell.today .cal-day {
-  background: var(--plat, #f27b36);
+  background: var(--plat, var(--orange));
 }
 
 .cal-grid .cal-add {
-  background: color-mix(in srgb, var(--plat, #f27b36) 40%, transparent);
+  background: color-mix(in srgb, var(--plat, var(--orange)) 40%, transparent);
 }
 
 .cal-grid .cal-add:hover {
-  background: var(--plat, #f27b36);
+  background: var(--plat, var(--orange));
 }
 
 .cal-grid .cal-creative {
-  background: color-mix(in srgb, var(--plat, #f27b36) 28%, transparent);
-  border-color: color-mix(in srgb, var(--plat, #f27b36) 70%, white 10%);
+  background: color-mix(in srgb, var(--plat, var(--orange)) 28%, transparent);
+  border-color: color-mix(in srgb, var(--plat, var(--orange)) 70%, white 10%);
 }
 
 /* ---- Instagram: calendar / grid / story views ---- */
@@ -1158,7 +1158,7 @@
 
 .cal-views button.active {
   color: #fff;
-  background: var(--plat, #f27b36);
+  background: var(--plat, var(--orange));
 }
 
 .ig-empty {
@@ -1399,7 +1399,7 @@
 }
 
 .ig-story-blank {
-  background: linear-gradient(160deg, #f27b36, #e05b0e);
+  background: linear-gradient(160deg, var(--orange), #e05b0e);
 }
 
 .ig-story-shade {

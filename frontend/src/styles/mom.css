@@ -36,7 +36,7 @@
 }
 .mom-attendee.absent { border-color: rgba(255, 143, 171, 0.5); background: rgba(255, 110, 150, 0.08); }
 .mom-attendee.absent .mom-attendee-text b { color: #ffc2d0; text-decoration: line-through; text-decoration-color: rgba(255, 143, 171, 0.7); }
-.mom-avatar { margin-left: 0; background: #ff7729; flex-shrink: 0; }
+.mom-avatar { margin-left: 0; background: var(--orange); flex-shrink: 0; }
 .mom-attendee.absent .mom-avatar { background: #dd5a0e; }
 .mom-attendee-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .mom-attendee-text b { color: #fff; font-size: 14px; overflow-wrap: anywhere; }
@@ -122,14 +122,14 @@
 .creative-assigned-info { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 9px 14px; width: fit-content; max-width: 100%; font-size: 13px; color: #9cf0cf; background: rgba(121, 220, 186, 0.1); border: 1px solid rgba(121, 220, 186, 0.4); border-radius: 12px; }
 .creative-assigned-info strong { font-weight: 700; color: #fff; }
 /* ---- Grain recording panel ---- */
-.rec-panel { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; padding: 16px; border: 1px solid rgba(242, 107, 15, .35); border-radius: 12px; background: rgba(242, 107, 15, .06); }
+.rec-panel { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; padding: 16px; border: 1px solid rgba(var(--accent-rgb), .35); border-radius: 12px; background: rgba(var(--accent-rgb), .06); }
 .rec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .rec-head h4 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; }
 .rec-sync { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 12px; }
 .rec-video { display: flex; align-items: center; gap: 14px; }
 .rec-video img { width: 120px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
 .rec-video > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.rec-watch, .rec-link { display: inline-flex; align-items: center; gap: 6px; width: fit-content; font-size: 13px; font-weight: 600; color: #ff9a55; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: none; }
+.rec-watch, .rec-link { display: inline-flex; align-items: center; gap: 6px; width: fit-content; font-size: 13px; font-weight: 600; color: var(--orange-light); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: none; }
 .rec-watch:hover, .rec-link:hover { text-decoration: underline; }
 .rec-summary { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; line-height: 1.55; }
 .rec-summary h5, .rec-actions h5 { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font-size: 13px; }

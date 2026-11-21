@@ -26,6 +26,27 @@
   --sidebar-w: 264px;
   --sidebar-w-collapsed: 76px;
   --topbar-h: 68px;
+  --red-soft: #ff8a73;
+  --accent-rgb: 242, 107, 15;
+  --accent-light-rgb: 255, 176, 77;
+  --accent2-rgb: 217, 45, 10;
+  --accent3-rgb: 175, 3, 0;
+  --glow-k: 1;
+  --glow-x: 84%;
+  --glow-y: 58%;
+  --wash-x: 100%;
+  --wash-y: 35%;
+  --panel-a: 0.42;
+  --glass-blur: 20px;
+  --content-pad: 26px 32px 48px;
+  --app-font: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --grid-a: 0.05;
+  --bg-left-1: #030202;
+  --bg-left-2: #060303;
+  --bg-left-3: #0b0504;
+  --side-1: #0e0e11;
+  --side-2: #0a0a0c;
+  --panel-rgb: 18, 14, 14;
 
   /* point the older tokens used all over the app at the new palette */
   --royal: var(--orange);
@@ -51,8 +72,8 @@
 
 body:has(.app-shell) {
   background:
-    radial-gradient(900px 480px at 0% 0%, rgba(175, 3, 0, 0.20), transparent 62%),
-    radial-gradient(700px 420px at 100% 100%, rgba(242, 107, 15, 0.09), transparent 60%),
+    radial-gradient(900px 480px at 0% 0%, rgba(var(--accent3-rgb), calc(0.20 * var(--glow-k))), transparent 62%),
+    radial-gradient(700px 420px at 100% 100%, rgba(var(--accent-rgb), calc(0.09 * var(--glow-k))), transparent 60%),
     var(--bg);
   background-attachment: fixed;
 }
@@ -66,7 +87,7 @@ body:has(.app-shell) #root { background: none; }
 .app-shell.collapsed .app-main { margin-left: var(--sidebar-w-collapsed); }
 .app-content {
   flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
-  padding: 26px 32px 48px;
+  padding: var(--content-pad, 26px 32px 48px);
   scrollbar-width: thin; scrollbar-color: #3a3a42 transparent;
 }
 .app-content::-webkit-scrollbar { width: 8px; }
@@ -80,14 +101,14 @@ body:has(.app-shell) #root { background: none; }
   position: fixed; inset: 0 auto 0 0; z-index: 1000;
   width: var(--sidebar-w);
   display: flex; flex-direction: column;
-  background: linear-gradient(180deg, #0e0e11 0%, #0a0a0c 100%);
+  background: linear-gradient(180deg, var(--side-1) 0%, var(--side-2) 100%);
   border-right: 1px solid var(--line);
   transition: width .25s ease, transform .25s ease;
 }
 .app-sidebar::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--grad); }
 
 .side-brand { flex-shrink: 0; display: flex; align-items: center; gap: 12px; height: var(--topbar-h); padding: 6px 18px 0; border-bottom: 1px solid var(--line); }
-.side-logo { flex-shrink: 0; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 11px; background: var(--grad); color: #fff; font-weight: 800; font-size: 14px; letter-spacing: .5px; box-shadow: 0 6px 18px rgba(242, 107, 15, .35); }
+.side-logo { flex-shrink: 0; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 11px; background: var(--grad); color: #fff; font-weight: 800; font-size: 14px; letter-spacing: .5px; box-shadow: 0 6px 18px rgba(var(--accent-rgb), .35); }
 .side-brand-text { min-width: 0; line-height: 1.25; }
 .side-brand-text strong { display: block; font-size: 13.5px; font-weight: 700; color: var(--ink); white-space: nowrap; }
 .side-brand-text span { font-size: 10.5px; color: var(--ink-3); letter-spacing: .3px; white-space: nowrap; }
@@ -106,7 +127,7 @@ body:has(.app-shell) #root { background: none; }
 .side-link svg { flex-shrink: 0; color: var(--ink-3); transition: color .15s; }
 .side-link:hover { background: rgba(255, 255, 255, .05); color: #fff; }
 .side-link:hover svg { color: var(--orange-light); }
-.side-link.active { background: linear-gradient(90deg, rgba(242, 107, 15, .20), rgba(217, 45, 10, .06)); color: #fff; font-weight: 600; }
+.side-link.active { background: linear-gradient(90deg, rgba(var(--accent-rgb), .20), rgba(var(--accent2-rgb), .06)); color: #fff; font-weight: 600; }
 .side-link.active svg { color: var(--orange); }
 .side-link.active::before { content: ''; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--grad); }
 
@@ -119,13 +140,13 @@ body:has(.app-shell) #root { background: none; }
 .side-user-info { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .side-user-info strong { font-size: 12.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .side-user-info span { font-size: 10.5px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.side-role { align-self: flex-start; margin-top: 4px; padding: 2px 7px; border-radius: 5px; font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: .8px; background: rgba(242, 107, 15, .16); color: var(--orange-light); border: 1px solid rgba(242, 107, 15, .35); }
-.side-role.admin { background: rgba(217, 45, 10, .18); color: #ff8a73; border-color: rgba(217, 45, 10, .4); }
+.side-role { align-self: flex-start; margin-top: 4px; padding: 2px 7px; border-radius: 5px; font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: .8px; background: rgba(var(--accent-rgb), .16); color: var(--orange-light); border: 1px solid rgba(var(--accent-rgb), .35); }
+.side-role.admin { background: rgba(var(--accent2-rgb), .18); color: var(--red-soft); border-color: rgba(var(--accent2-rgb), .4); }
 .side-role.operation_manager { background: rgba(14, 165, 233, .16); color: #7dd3fc; border-color: rgba(14, 165, 233, .4); }
 .side-manager { display: flex; flex-direction: column; gap: 1px; padding: 8px 12px; border-left: 2px solid var(--orange); background: rgba(255, 255, 255, .03); border-radius: 0 8px 8px 0; }
 .side-manager span { font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .8px; }
 .side-manager strong { font-size: 12px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.side-logout { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid rgba(217, 45, 10, .35); border-radius: 10px; background: rgba(217, 45, 10, .08); color: #ff8a73; font-size: 13px; font-weight: 600; transition: background .15s, color .15s; }
+.side-logout { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid rgba(var(--accent2-rgb), .35); border-radius: 10px; background: rgba(var(--accent2-rgb), .08); color: var(--red-soft); font-size: 13px; font-weight: 600; transition: background .15s, color .15s; }
 .side-logout:hover { background: var(--red); color: #fff; }
 
 /* collapsed icon rail */
@@ -203,22 +224,22 @@ body:has(.app-shell) #root { background: none; }
    Applies to every page inside the app shell.
 ========================================================= */
 body:has(.app-shell) {
-  background-color: #050404;
+  background-color: var(--bg-left-1);
   background-image:
     /* grid */
-    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    /* the orange circle on the right */
-    radial-gradient(circle at 84% 58%,
-      rgba(255, 150, 40, 0.95) 0%,
-      rgba(242, 107, 15, 0.9) 14%,
-      rgba(226, 70, 18, 0.7) 28%,
-      rgba(200, 35, 10, 0.38) 44%,
+    linear-gradient(rgba(255, 255, 255, var(--grid-a)) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, var(--grid-a)) 1px, transparent 1px),
+    /* the accent circle on the right */
+    radial-gradient(circle at var(--glow-x) var(--glow-y),
+      rgba(var(--accent-light-rgb), calc(0.95 * var(--glow-k))) 0%,
+      rgba(var(--accent-rgb), calc(0.9 * var(--glow-k))) 14%,
+      rgba(var(--accent2-rgb), calc(0.7 * var(--glow-k))) 28%,
+      rgba(var(--accent3-rgb), calc(0.38 * var(--glow-k))) 44%,
       transparent 64%),
-    /* red wash along the right edge */
-    radial-gradient(ellipse 55% 95% at 100% 35%, rgba(217, 45, 10, 0.55), transparent 70%),
+    /* wash along the right edge */
+    radial-gradient(ellipse 55% 95% at var(--wash-x) var(--wash-y), rgba(var(--accent2-rgb), calc(0.55 * var(--glow-k))), transparent 70%),
     /* dark on the left */
-    linear-gradient(90deg, #030202 0%, #060303 38%, #0b0504 100%);
+    linear-gradient(90deg, var(--bg-left-1) 0%, var(--bg-left-2) 38%, var(--bg-left-3) 100%);
   background-size: 64px 64px, 64px 64px, 100% 100%, 100% 100%, 100% 100%;
   background-position: -1px -1px, -1px -1px, 0 0, 0 0, 0 0;
   background-attachment: fixed;
@@ -230,7 +251,7 @@ body:has(.app-shell) {
 .dash-hero-actions { display: flex; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
 .dash-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255, 255, 255, .05); color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; transition: background .15s, border-color .15s, transform .15s; }
 .dash-btn:hover { background: rgba(255, 255, 255, .09); border-color: #45454d; transform: translateY(-1px); }
-.dash-btn.primary { border-color: transparent; background: var(--grad); color: #fff; box-shadow: 0 8px 22px rgba(242, 107, 15, .32); }
+.dash-btn.primary { border-color: transparent; background: var(--grad); color: #fff; box-shadow: 0 8px 22px rgba(var(--accent-rgb), .32); }
 .dash-btn.primary:hover { filter: brightness(1.08); }
 
 /* top bar + shared surfaces become blurred glass */
@@ -251,11 +272,11 @@ body:has(.app-shell) .app-topbar {
 .app-content .kpi-card,
 .app-content .quick-card,
 .app-content .dash-hero {
-  background: rgba(18, 14, 14, 0.42) !important;
+  background: rgba(var(--panel-rgb), var(--panel-a, 0.42)) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 12px 36px rgba(0, 0, 0, 0.35) !important;
-  backdrop-filter: blur(20px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
+  backdrop-filter: blur(var(--glass-blur, 20px)) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur, 20px)) saturate(150%) !important;
 }
 .app-content .quick-card:hover,
 .app-content .kpi-card:hover { background: rgba(30, 20, 18, 0.5) !important; }
@@ -308,7 +329,7 @@ body .tm-modal-header { background: rgba(24, 18, 16, 0.92); }
 /* ---------- Logout confirmation ---------- */
 .logout-confirm-backdrop { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(12, 8, 6, .62); backdrop-filter: blur(4px); animation: lc-fade .15s ease-out; }
 .logout-confirm-card { width: min(380px, 100%); padding: 26px 24px 22px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 16px; background: #281e19; color: #fff; text-align: center; box-shadow: 0 24px 60px rgba(0, 0, 0, .5); animation: lc-pop .18s ease-out; }
-.logout-confirm-icon { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto 12px; border-radius: 50%; background: rgba(217, 45, 10, .16); color: #ff8a73; }
+.logout-confirm-icon { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto 12px; border-radius: 50%; background: rgba(var(--accent2-rgb), .16); color: var(--red-soft); }
 .logout-confirm-card h3 { margin: 0 0 6px; font-size: 18px; font-weight: 600; }
 .logout-confirm-card p { margin: 0 0 20px; font-size: 13px; line-height: 1.5; color: #cdb7a7; }
 .logout-confirm-actions { display: flex; gap: 10px; }
@@ -316,7 +337,23 @@ body .tm-modal-header { background: rgba(24, 18, 16, 0.92); }
 .logout-confirm-actions button:disabled { opacity: .6; cursor: not-allowed; }
 .logout-confirm-cancel { border: 1px solid rgba(255, 255, 255, .18); background: transparent; color: #fff; }
 .logout-confirm-cancel:hover:not(:disabled) { background: rgba(255, 255, 255, .08); }
-.logout-confirm-yes { border: 1px solid transparent; background: #d92d0a; color: #fff; }
+.logout-confirm-yes { border: 1px solid transparent; background: var(--red); color: #fff; }
 .logout-confirm-yes:hover:not(:disabled) { background: #f03a15; }
 @keyframes lc-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes lc-pop { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
+
+/* =========================================================
+   Customize theme: font and animations
+========================================================= */
+body, button, input, select, textarea { font-family: var(--app-font); }
+
+html[data-motion='off'] *,
+html[data-motion='off'] *::before,
+html[data-motion='off'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
