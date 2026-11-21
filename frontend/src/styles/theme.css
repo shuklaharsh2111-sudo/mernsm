@@ -357,3 +357,39 @@ html[data-motion='off'] *::after {
   transition-delay: 0s !important;
   scroll-behavior: auto !important;
 }
+
+
+/* =========================================================
+   Light mode (Customize theme > Light or dark)
+   The app is built dark, so light mode flips the whole app shell
+   (white <-> black, hue kept), then flips pictures and the accent
+   colour buttons back so they keep their real colours.
+   The login page is left dark.
+========================================================= */
+html[data-mode='light']:has(.app-shell) {
+  filter: invert(1) hue-rotate(180deg);
+  background: #fff;
+}
+html[data-mode='light']:has(.app-shell) :is(
+  img, video, canvas, picture, iframe, svg image,
+  input[type='color'],
+  .side-logo, .side-avatar, .top-user i,
+  .dash-btn.primary, .st-btn.primary, .logout-confirm-yes,
+  .th-swatch i, .th-preset i
+) {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* ---- dark / light button in the top bar ---- */
+.top-theme { flex-shrink: 0; width: 38px; height: 38px; display: inline-grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--orange-light); cursor: pointer; transition: background .15s, border-color .15s, transform .15s; }
+.top-theme:hover { border-color: var(--orange); transform: translateY(-1px); }
+
+/* ---- light mode polish ---- */
+html[data-mode='light']:has(.app-shell) { transition: filter .25s ease; color-scheme: dark; }
+/* shadows: white here becomes a soft dark shadow after the flip */
+html[data-mode='light']:has(.app-shell) :is(.glass-panel, .an-card, .stat-card, .welcome-card, .sme-task-card, .ch-summary-card, .ch-panel, .kpi-card, .quick-card, .dash-hero, .modal-card, .tm-modal, .side-user) {
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .04) inset, 0 6px 22px rgba(255, 255, 255, .16) !important;
+}
+html[data-mode='light']:has(.app-shell) .app-sidebar { box-shadow: 4px 0 24px rgba(255, 255, 255, .12); }
+html[data-mode='light']:has(.app-shell) .app-topbar { border-bottom-color: rgba(255, 255, 255, .14); }
+html[data-mode='light']:has(.app-shell) .app-content { scrollbar-color: #c9c9d0 transparent; }

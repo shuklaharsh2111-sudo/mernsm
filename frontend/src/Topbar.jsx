@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Menu, CalendarDays, Clock3 } from 'lucide-react';
+import { Menu, CalendarDays, Clock3, Sun, Moon } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { titleFor } from './navConfig';
 import NotificationBell from './notifications/NotificationBell';
+import { useTheme } from './theme/ThemeContext';
 
 const Topbar = ({ onMenu }) => {
   const { user } = useAuth();
+  const { theme, update } = useTheme();
+  const isLight = theme.mode === 'light';
   const { pathname } = useLocation();
   const [now, setNow] = useState(new Date());
 
@@ -34,6 +37,15 @@ const Topbar = ({ onMenu }) => {
       <div className="top-meta">
         <span className="top-chip"><CalendarDays size={15} /> {date}</span>
         <span className="top-chip"><Clock3 size={15} /> {time}</span>
+        <button
+          type="button"
+          className="top-theme"
+          onClick={() => update({ mode: isLight ? 'dark' : 'light' })}
+          aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
+          title={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
+        >
+          {isLight ? <Moon size={17} /> : <Sun size={17} />}
+        </button>
         <NotificationBell />
       </div>
     </header>
