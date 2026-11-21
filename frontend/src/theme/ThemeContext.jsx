@@ -136,7 +136,8 @@ export const DEFAULT_THEME = {
   sidebar: 'dark',      // 'dark' | 'tinted'
   density: 'comfortable',
   font: 'poppins',
-  motion: 'on'          // 'on' | 'off'
+  motion: 'on',         // 'on' | 'off'
+  mode: 'dark'          // 'dark' | 'light'
 };
 
 // ready-made looks: one click sets colours + background
@@ -244,7 +245,8 @@ export const sanitize = (raw) => {
     sidebar: flag(t.sidebar, 'dark', 'tinted', DEFAULT_THEME.sidebar),
     density: oneOf(DENSITIES, t.density, DEFAULT_THEME.density),
     font: oneOf(FONTS, t.font, DEFAULT_THEME.font),
-    motion: flag(t.motion, 'on', 'off', DEFAULT_THEME.motion)
+    motion: flag(t.motion, 'on', 'off', DEFAULT_THEME.motion),
+    mode: flag(t.mode, 'dark', 'light', DEFAULT_THEME.mode)
   };
 };
 
@@ -295,6 +297,7 @@ const apply = (theme) => {
   const root = document.documentElement;
   Object.entries(buildVars(theme)).forEach(([name, value]) => root.style.setProperty(name, value));
   root.dataset.motion = theme.motion;
+  root.dataset.mode = theme.mode;
 };
 
 /* ---------- context ---------- */
