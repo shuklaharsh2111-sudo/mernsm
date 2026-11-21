@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, BellOff, Volume2, VolumeX, CheckCheck, Trash2, X, CircleCheck, TriangleAlert, OctagonAlert, Info } from 'lucide-react';
+import { Bell, BellOff, BellRing, Volume2, VolumeX, CheckCheck, Trash2, X, CircleCheck, TriangleAlert, OctagonAlert, Info } from 'lucide-react';
 import { useNotifications } from './NotificationContext';
+import { audioState, subscribeAudio, playTest, enableSound } from './sound';
 import '../styles/notifications.css';
 
 const TONE_ICON = { success: CircleCheck, warning: TriangleAlert, danger: OctagonAlert, info: Info };
@@ -45,7 +46,12 @@ const Toasts = () => {
 const NotificationBell = () => {
   const { items, unread, muted, open, markAllRead, clearAll, toggleMuted } = useNotifications();
   const [show, setShow] = useState(false);
+  const [audio, setAudio] = useState(audioState());
   const box = useRef(null);
+
+  // tells the person when the browser is still blocking sound (until they click once on the page)
+  useEffect(() => subscribeAudio(setAudio), []);
+  const blocked = !muted && audio !== 'running';
 
   useEffect(() => {
     if (!show) return undefined;
@@ -62,6 +68,11 @@ const NotificationBell = () => {
   return (
     <>
       <div className="nt-wrap" ref={box}>
+        {blocked && (
+          <button type="button" className="nt-sound-chip" onClick={enableSound} title="Your browser is blocking notification sound until you click once">
+            <VolumeX size={14} /> Enable sound
+          </button>
+        )}
         <button
           type="button"
           className={`nt-bell ${unread ? 'has-new' : ''}`}
@@ -78,6 +89,7 @@ const NotificationBell = () => {
             <div className="nt-head">
               <strong>Notifications</strong>
               <div className="nt-head-actions">
+                <button type="button" onClick={playTest} title="Test sound" aria-label="Test sound"><BellRing size={16} /></button>
                 <button type="button" onClick={toggleMuted} title={muted ? 'Sound is off. Turn on' : 'Sound is on. Turn off'} aria-label="Toggle sound">
                   {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
                 </button>
@@ -85,6 +97,7 @@ const NotificationBell = () => {
                 <button type="button" onClick={clearAll} disabled={!items.length} title="Clear all" aria-label="Clear all"><Trash2 size={16} /></button>
               </div>
             </div>
+            {blocked && <p className="nt-hint">Your browser is blocking sound. Click Enable sound (or anywhere on the page) to switch it on.</p>}
             <div className="nt-list">
               {items.length === 0 ? (
                 <div className="nt-empty"><BellOff size={26} /><p>You are all caught up.</p></div>

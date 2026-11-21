@@ -81,3 +81,13 @@ CHANGED (notifications only)
 backend/server.js, backend/sme/smeRoutes.js, backend/smi/smiRoutes.js, backend/des/desRoutes.js,
 backend/review/reviewCore.js, backend/admin/adminRoutes.js, backend/invoices/invoiceRoutes.js,
 frontend/src/api.js, frontend/src/Topbar.jsx, frontend/src/App.jsx
+
+IF YOU HEAR NOTHING
+  1. Click the bell -> press the "Test sound" (bell-ring) button. If that is silent, check the
+     tab is not muted in the browser and the computer volume is up.
+  2. Browsers keep sound blocked until you click or press a key on the page once. After a
+     refresh it is blocked again; the bell panel shows a yellow hint while that is the case.
+  3. If you run the built app (served by the backend on port 5000) you must rebuild the frontend:
+         cd frontend && npm run build
+     With "npm run dev" nothing extra is needed.
+  4. Sound can be turned off in the bell panel (speaker icon): make sure it shows the speaker, not the crossed one.
