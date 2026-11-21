@@ -17,6 +17,7 @@ import Creative from '../sme/Creative.js';
 import Attendance from '../attendance/Attendance.js';
 import { getOfficeConfig } from '../attendance/geo.js';
 import { ReportingManager, Smi, roleModels } from './UserModels.js';
+import { notifyUsers } from '../notifications/notify.js';
 const router = express.Router();
 const imageUpload = multer({
   storage: multer.memoryStorage(),
@@ -154,6 +155,9 @@ router.post('/users', imageUpload.single('image'), async (req, res) => {
   };
   if (role === 'sme' || role === 'smi') userData.companies = [];
   const user = await UserModel.create(userData);
+  if (reportingManagerId) {
+    notifyUsers([{ id: reportingManagerId, role: 'reporting_manager' }], { topic: 'team', tone: 'info', title: 'New team member', message: `${name} was added to your team.` }, req.user);
+  }
   res.status(201).json({
     user: userView(user, getRoleCollection(role))
   });
@@ -244,6 +248,7 @@ router.put('/users/:id/companies', async (req, res) => {
   if (!found) return;
   found.user.companies = ids;
   await found.user.save();
+  notifyUsers([{ id: found.user._id, role: found.role }], { topic: 'home', tone: 'info', title: 'Companies updated', message: '{actor} updated the companies assigned to you.' }, req.user);
   res.json({ user: userView(found.user, found.collection) });
 });
 router.delete('/users/:id', async (req, res) => {
@@ -385,6 +390,7 @@ router.post('/users/:id/sop-assignments', async (req, res) => {
   const { company, type, text, date } = req.body;
   const { Model, field } = sopStoreFor(found);
   const doc = await Model.create({ [field]: found.user._id, company, type, text, date, createdBy: req.user.id });
+  notifyUsers([{ id: found.user._id, role: found.role }], { topic: 'sops', tone: 'info', title: 'New SOP assigned', message: '{actor} assigned you a new SOP.' }, req.user);
   res.status(201).json({ assignment: sopView(doc) });
 });
 router.put('/users/:id/sop-assignments/:sopId', async (req, res) => {

@@ -37,6 +37,7 @@ import InfluencerPage from './components/InfluencerPage';
 import PlaylistPage from './music/PlaylistPage';
 import { MusicProvider } from './music/MusicContext';
 import MiniPlayer from './music/MiniPlayer';
+import { NotificationProvider } from './notifications/NotificationContext';
 
 
 const getDashboardPath = (role) => {
@@ -77,6 +78,7 @@ const DashboardLayout = () => {
   }, [pathname]);
   return (
     <MusicProvider>
+      <NotificationProvider>
       <div className={`app-shell ${collapsed ? 'collapsed' : ''}`}>
         <Sidebar collapsed={collapsed} onToggle={toggleSidebar} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
         {mobileOpen && <div className="app-scrim" onClick={() => setMobileOpen(false)} />}
@@ -88,6 +90,7 @@ const DashboardLayout = () => {
           <MiniPlayer />
         </div>
       </div>
+      </NotificationProvider>
     </MusicProvider>
   );
 };

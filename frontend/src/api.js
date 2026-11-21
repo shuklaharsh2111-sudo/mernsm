@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { playAction, playError } from './notifications/sound';
 const api = axios.create({
   baseURL: '/api',
   withCredentials: true,
@@ -15,4 +16,23 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+// Sound feedback for every action you take: a soft tick when it worked, a low buzz when it failed.
+// Reading data, signing in/out, the notification feed itself and the music player stay silent.
+const SILENT = ['/notifications', '/auth', '/music'];
+const isAction = (config) => {
+  const method = String(config?.method || 'get').toLowerCase();
+  if (method === 'get') return false;
+  const url = String(config?.url || '');
+  return !SILENT.some((p) => url.startsWith(p));
+};
+api.interceptors.response.use(
+  (response) => {
+    if (isAction(response.config)) playAction();
+    return response;
+  },
+  (error) => {
+    if (error?.response && error.response.status !== 401 && isAction(error.config)) playError();
+    return Promise.reject(error);
+  }
+);
 export default api;

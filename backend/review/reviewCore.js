@@ -4,6 +4,7 @@ import { momView, recordingView } from '../meeting/momHelpers.js';
 import { createMeetingLink } from '../meeting/googleCalendar.js';
 import { resolveAccount } from '../meeting/accounts.js';
 import Creative from '../sme/Creative.js';
+import { notifyUsers } from '../notifications/notify.js';
 
 // Shared by the admin panel and the reporting manager panel.
 // `scope` is an extra Mongo filter (the reporting manager passes { user: { $in: teamSmeIds } }); the admin passes {}.
@@ -66,6 +67,10 @@ export const reviewMom = async (req, res, action, scope = {}) => {
   meeting.mom.reviewedAt = new Date();
   meeting.mom.reviewNote = needsNote ? note : '';
   await meeting.save();
+  const momTone = { approved: ['success', 'MOM approved', '{actor} approved your MOM'], sent_back: ['warning', 'MOM sent back', '{actor} sent your MOM back'], rejected: ['danger', 'MOM rejected', '{actor} rejected your MOM'] }[status];
+  if (meeting.user?._id) {
+    notifyUsers([{ id: meeting.user._id, role: 'sme' }], { topic: 'meetings', tone: momTone[0], title: momTone[1], message: `${momTone[2]} for "${meeting.subject}".${needsNote ? ` Reason: ${note}` : ''}` }, req.user);
+  }
   res.json({ mom: momItemView(meeting), nextScheduled });
 };
 // What the designer delivered for an approved creative, and where the SME's review of it stands
@@ -137,5 +142,11 @@ export const reviewCreative = async (req, res, action, scope = {}) => {
   creative.reviewedAt = new Date();
   if (action === 'reject') creative.rejectionCount = (creative.rejectionCount || 0) + 1;
   await creative.save();
+  if (creative.user?._id) {
+    const cTitle = creative.contentPillar?.title || 'your creative';
+    notifyUsers([{ id: creative.user._id, role: 'sme' }], action === 'approve'
+      ? { topic: 'creatives', tone: 'success', title: 'Creative approved', message: `{actor} approved "${cTitle}". It is now on your calendar.` }
+      : { topic: 'creatives', tone: 'danger', title: 'Creative needs a redo', message: `{actor} sent back "${cTitle}". Reason: ${note}` }, req.user);
+  }
   res.json({ creative: creativeItemView(creative) });
 };

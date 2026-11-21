@@ -21,6 +21,7 @@ import Creative, { CREATIVE_PLATFORMS, CREATIVE_STATUSES } from './Creative.js';
 import SocialMetrics from './SocialMetrics.js';
 import Admin from '../admin/Admin.js';
 import { Smi, Des } from '../admin/UserModels.js';
+import { notifyUsers, notifyReviewers, notifyRoles } from '../notifications/notify.js';
 const allowedMimeTypes = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
   'video/mp4', 'video/webm', 'video/quicktime',
@@ -216,6 +217,7 @@ router.post('/smi-sops', async (req, res) => {
   const doc = await SmiSopAssignment.create({
     smi, company, type, text: text.trim(), date, sourceSop: source, assignedBy: req.user.id,
   });
+  notifyUsers([{ id: smi, role: 'smi' }], { topic: 'sops', tone: 'info', title: 'New SOP assigned', message: '{actor} assigned you a new SOP.' }, req.user);
   const full = await SmiSopAssignment.findById(doc._id).populate('smi', 'name email').populate('sourceSop', 'completions').populate('company', 'name');
   res.status(201).json({ assignment: smiSopView(full, resolveToday(req.body.today)) });
 });
@@ -444,6 +446,7 @@ router.post('/tasks', async (req, res) => {
     });
     await task.populate('company', 'name');
     await task.populate('assignedSmi', 'name email');
+    if (smiId) notifyUsers([{ id: smiId, role: 'smi' }], { topic: 'tasks', tone: 'info', title: 'New task assigned', message: `{actor} assigned you "${task.title}".` }, req.user);
     return res.status(201).json({
       message: 'Task created successfully',
       task
@@ -479,6 +482,7 @@ router.patch('/tasks/:id/end', async (req, res) => {
     task.endedAt = new Date();
     await task.save();
     const updatedTask = await Task.findById(task._id).populate('company', 'name').populate('assignedSmi', 'name email');
+    notifyReviewers(req.user.id, { topic: 'tasks', tone: 'success', title: 'Task completed', message: `{actor} completed "${task.title}".` }, req.user);
     res.json({ message: 'Task completed successfully', task: updatedTask });
   } catch (error) {
     console.error('End task error:', error);
@@ -609,6 +613,7 @@ router.post('/creatives', (req, res) => {
         uploads: uploaded,
         contentPillar: { title: fields.title, caption: fields.caption, hashtags: fields.hashtags, keywords: fields.keywords, platforms: fields.platforms },
       });
+      notifyReviewers(req.user.id, { topic: 'creatives', tone: 'info', title: 'New creative to review', message: `{actor} submitted "${fields.title || 'a creative'}" for approval.` }, req.user);
       res.status(201).json({ creative: creativeView(creative), message: 'Sent to the admin for approval' });
     } catch (error) {
       await Promise.all(uploaded.map((u) => cloudinary.uploader.destroy(u.publicId).catch(() => null)));
@@ -650,6 +655,7 @@ router.put('/creatives/:id', (req, res) => {
       creative.reviewedAt = null;
       await creative.save();
       await Promise.all(removed.map((u) => u.publicId && cloudinary.uploader.destroy(u.publicId).catch(() => null)));
+      notifyReviewers(req.user.id, { topic: 'creatives', tone: 'info', title: 'Creative resubmitted', message: `{actor} updated "${fields.title || 'a creative'}" and sent it for approval again.` }, req.user);
       res.json({ creative: creativeView(creative), message: 'Sent back to the admin for approval' });
     } catch (error) {
       await Promise.all(uploaded.map((u) => cloudinary.uploader.destroy(u.publicId).catch(() => null)));
@@ -1199,6 +1205,7 @@ router.post('/meetings', async (req, res) => {
   const auto = cleanLink ? null : await createMeetingLink({ subject: subj, date, time, attendees, refreshToken: account.googleRefreshToken });
   const created = await Meeting.create({ user: req.user.id, company, subject: subj, date, time, link: cleanLink || auto.link, calendar: auto?.calendar, attendees });
   await created.populate('company', 'name');
+  notifyReviewers(req.user.id, { topic: 'meetings', tone: 'info', title: 'Meeting scheduled', message: `{actor} scheduled "${subj}" on ${date} at ${time}.` }, req.user);
   res.status(201).json({ meeting: meetingView(created) });
 });
 // Add more attendees to a meeting: { attendees: [{ name, designation }] } (appended to the existing ones).
@@ -1314,6 +1321,7 @@ router.put('/meetings/:id/mom', async (req, res) => {
   if (error) return res.status(400).json({ message: error });
   meeting.mom = mom;
   await meeting.save();
+  notifyReviewers(req.user.id, { topic: 'meetings', tone: 'info', title: 'MOM waiting for review', message: `{actor} submitted the MOM for "${meeting.subject}".` }, req.user);
   res.json({ meeting: meetingView(meeting) });
 });
 router.get('/tasks/:taskId/attachments', async (req, res) => {
@@ -1468,6 +1476,11 @@ router.put('/creatives/:id/design-review', async (req, res) => {
     if (action === 'redo') out.redoCount = (out.redoCount || 0) + 1;
     creative.markModified('designOutput');
     await creative.save();
+    if (creative.assignedDesigner?._id) {
+      notifyUsers([{ id: creative.assignedDesigner._id, role: 'des' }], action === 'approve'
+        ? { topic: 'creatives', tone: 'success', title: 'Design approved', message: '{actor} approved your design.' }
+        : { topic: 'creatives', tone: 'warning', title: 'Redo requested', message: `{actor} asked for changes: ${note}` }, req.user);
+    }
     res.json({ creative: creativeView(creative) });
   } catch (error) {
     console.error('Design review error:', error);
@@ -1524,6 +1537,7 @@ router.put('/creatives/:id/assign', async (req, res) => {
     creative.assignedBy = req.user.id;
     await creative.save();
     await creative.populate('assignedDesigner', 'name email');
+    notifyUsers([{ id: designerId, role: 'des' }], { topic: 'creatives', tone: 'info', title: 'New creative assigned', message: `{actor} assigned you "${creative.contentPillar?.title || 'a creative'}".` }, req.user);
     return res.json({
       message: 'Creative assigned successfully',
       creative: {
