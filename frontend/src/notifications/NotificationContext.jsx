@@ -2,10 +2,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
-import { isMuted, setMuted as saveMuted, playNotification } from './sound';
+import { isMuted, setMuted as saveMuted, playNotification, audioState, showSystemNotification } from './sound';
 
 const NotificationContext = createContext(null);
-const POLL_MS = 5000;
+const TONE_ORDER = ['danger', 'warning', 'success', 'info'];
+const loudestTone = (list) => [...list].sort((a, b) => TONE_ORDER.indexOf(a.tone) - TONE_ORDER.indexOf(b.tone))[0]?.tone || 'info';
+const POLL_MS = 3000;
 const TOAST_MS = 7000;
 
 export const NotificationProvider = ({ children }) => {
@@ -27,13 +29,26 @@ export const NotificationProvider = ({ children }) => {
       const list = data.notifications || [];
       if (known.current === null) {
         known.current = new Set(list.map((n) => n.id));
+        // First load (login or page refresh): if there are unread notifications, ring once.
+        // Remembered per tab, so a refresh does not ring again for the same notifications.
+        const unreadList = list.filter((n) => !n.read);
+        if (unreadList.length) {
+          let last = '';
+          try { last = sessionStorage.getItem('notifRung') || ''; } catch { /* ignore */ }
+          if (last !== unreadList[0].id) {
+            try { sessionStorage.setItem('notifRung', unreadList[0].id); } catch { /* ignore */ }
+            playNotification(loudestTone(unreadList));
+          }
+        }
       } else {
         const fresh = list.filter((n) => !known.current.has(n.id));
         fresh.forEach((n) => known.current.add(n.id));
         if (fresh.length) {
-          const order = ['danger', 'warning', 'success', 'info'];
-          const loudest = [...fresh].sort((a, b) => order.indexOf(a.tone) - order.indexOf(b.tone))[0];
-          playNotification(loudest.tone);
+          playNotification(loudestTone(fresh));
+          // tab in the background: also raise a system notification, which makes the OS play its own sound
+          if (document.hidden && !isMuted()) fresh.slice(0, 3).forEach(showSystemNotification);
+          // if the browser is still blocking sound, at least flag it in the tab title so it is noticed
+          if (audioState() !== 'running' && document.hidden) document.title = `New notification - ${baseTitle.current}`;
           setToasts((t) => [...fresh.slice(0, 3), ...t].slice(0, 4));
           fresh.slice(0, 3).forEach((n) => setTimeout(() => dismiss(n.id), TOAST_MS));
         }
@@ -52,9 +67,11 @@ export const NotificationProvider = ({ children }) => {
     const timer = setInterval(load, POLL_MS);
     const onFocus = () => load();
     window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
     return () => {
       clearInterval(timer);
       window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
     };
   }, [user, load]);
 

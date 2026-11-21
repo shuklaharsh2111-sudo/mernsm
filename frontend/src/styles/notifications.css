@@ -13,6 +13,7 @@
 .nt-head-actions button:hover:not(:disabled) { background: var(--surface-3); color: var(--orange-light); }
 .nt-head-actions button:disabled { opacity: .35; cursor: default; }
 
+.nt-hint { margin: 0; padding: 9px 14px; border-bottom: 1px solid var(--line-soft); background: rgba(251, 191, 36, .1); color: var(--warn); font-size: 12px; line-height: 1.4; }
 .nt-list { max-height: min(460px, 70vh); overflow-y: auto; }
 .nt-item { position: relative; display: flex; align-items: flex-start; gap: 11px; width: 100%; padding: 12px 14px; border: 0; border-bottom: 1px solid var(--line-soft); background: transparent; color: inherit; text-align: left; cursor: pointer; }
 .nt-item:hover { background: var(--surface-2); }
@@ -40,3 +41,9 @@
 @keyframes nt-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .nt-bell.has-new svg, .nt-toast { animation: none; } }
 @media (max-width: 560px) { .nt-toasts { top: 70px; right: 12px; } }
+
+/* "Enable sound" chip: shown only while the browser is still blocking notification sound */
+.nt-wrap { display: inline-flex; align-items: center; gap: 8px; }
+.nt-sound-chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--warn); background: rgba(251, 191, 36, .12); color: var(--warn); font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.nt-sound-chip:hover { background: rgba(251, 191, 36, .22); }
+@media (max-width: 640px) { .nt-sound-chip { display: none; } }
