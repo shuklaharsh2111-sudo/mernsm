@@ -78,7 +78,10 @@ const userView = (u, collection) => ({
   reportingManagerId: u.reportingManagerId ? String(u.reportingManagerId) : '',
   profileImage: u.profileImage || u.avatar || '',
   companies: ['smes', 'smis'].includes(collection) ? (u.companies || []).map(String) : [],
-  createdAt: u.createdAt
+  createdAt: u.createdAt,
+  isBanned: !!u.isBanned,
+  banReason: u.banReason || '',
+  bannedAt: u.bannedAt || null
 });
 const getRoleCollection = (role) => roleModels[role]?.collection?.collectionName || '';
 router.get('/users', async (req, res) => {
@@ -250,6 +253,48 @@ router.put('/users/:id/companies', async (req, res) => {
   await found.user.save();
   notifyUsers([{ id: found.user._id, role: found.role }], { topic: 'home', tone: 'info', title: 'Companies updated', message: '{actor} updated the companies assigned to you.' }, req.user);
   res.json({ user: userView(found.user, found.collection) });
+});
+// ---------------- Ban / unban ----------------
+// PUT /api/admin/users/:id/ban    body: { collection, reason }  -> the person can no longer sign in and sees the message
+// PUT /api/admin/users/:id/unban  body: { collection }
+const findByCollection = (collection) => {
+  const entry = Object.entries(roleModels).find(([role]) => getRoleCollection(role).toLowerCase() === String(collection || '').toLowerCase());
+  return entry ? { role: entry[0], Model: entry[1], collection: getRoleCollection(entry[0]) } : null;
+};
+router.put('/users/:id/ban', async (req, res) => {
+  if (!validId(req.params.id)) return res.status(404).json({ message: 'User not found' });
+  const target = findByCollection(req.body.collection);
+  if (!target) return res.status(400).json({ message: 'Valid user collection is required' });
+  if (String(req.user.id) === String(req.params.id)) {
+    return res.status(403).json({ message: 'You cannot ban your own account.' });
+  }
+  if (target.collection === 'admins') {
+    return res.status(403).json({ message: 'Admin accounts cannot be banned.' });
+  }
+  const reason = String(req.body.reason || '').trim();
+  if (!reason) return res.status(400).json({ message: 'Please write a message. The user will see it when they try to sign in.' });
+  if (reason.length > 300) return res.status(400).json({ message: 'The message can be at most 300 characters.' });
+  const user = await target.Model.findByIdAndUpdate(
+    req.params.id,
+    { $set: { isBanned: true, banReason: reason, bannedAt: new Date(), bannedBy: String(req.user.id) } },
+    { new: true }
+  );
+  if (!user) return res.status(404).json({ message: 'User not found in selected collection' });
+  // end any session that is still open so attendance shows the right logout time
+  await Attendance.updateMany({ userId: user._id, logoutAt: null }, { $set: { logoutAt: new Date() } });
+  res.json({ message: 'User banned', user: userView(user, target.collection) });
+});
+router.put('/users/:id/unban', async (req, res) => {
+  if (!validId(req.params.id)) return res.status(404).json({ message: 'User not found' });
+  const target = findByCollection(req.body.collection);
+  if (!target) return res.status(400).json({ message: 'Valid user collection is required' });
+  const user = await target.Model.findByIdAndUpdate(
+    req.params.id,
+    { $set: { isBanned: false, banReason: '', bannedAt: null, bannedBy: '' } },
+    { new: true }
+  );
+  if (!user) return res.status(404).json({ message: 'User not found in selected collection' });
+  res.json({ message: 'User unbanned', user: userView(user, target.collection) });
 });
 router.delete('/users/:id', async (req, res) => {
   if (!validId(req.params.id)) return res.status(404).json({ message: 'User not found' });

@@ -18,6 +18,13 @@ const cookieOptions = {
   maxAge: 7 * 24 * 60 * 60 * 1000,
   path: '/'
 };
+const bannedPayload = (user) => ({
+  code: 'ACCOUNT_BANNED',
+  message: user.banReason
+    ? `Your account has been banned. Message from admin: ${user.banReason}`
+    : 'Your account has been banned. Please contact your admin.',
+  reason: user.banReason || ''
+});
 const getUserDetails = (user, role) => ({
   id: user._id,
   name: user.name || user.fullname || user.email,
@@ -51,6 +58,9 @@ router.post('/login', async (req, res) => {
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) {
       return res.status(401).json({ message: 'Invalid email or password' });
+    }
+    if (user.isBanned) {
+      return res.status(403).json(bannedPayload(user));
     }
     const geo = checkLocation(role, req.body);
     if (!geo.ok) {
@@ -88,6 +98,7 @@ router.get('/me', async (req, res) => {
     if (!Model) return res.status(403).json({ message: 'Invalid role' });
     const user = await Model.findById(decoded.id);
     if (!user) return res.status(401).json({ message: 'User not found' });
+    if (user.isBanned) return res.status(403).json(bannedPayload(user));
     return res.json({ user: getUserDetails(user, decoded.role) });
   } catch (error) {
     return res.status(401).json({ message: 'Session expired or invalid' });
@@ -124,6 +135,12 @@ export const protect = (allowedRoles = []) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       if (allowedRoles.length && !allowedRoles.includes(decoded.role)) {
         return res.status(403).json({ message: 'Access denied' });
+      }
+      // a ban takes effect on the very next request, even for people who are already signed in
+      const Model = roleModels[decoded.role];
+      if (Model) {
+        const account = await Model.findById(decoded.id).select('isBanned banReason').lean();
+        if (account?.isBanned) return res.status(403).json(bannedPayload(account));
       }
       req.user = decoded;
       next();

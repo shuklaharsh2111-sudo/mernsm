@@ -11,6 +11,10 @@ const userSchema = new mongoose.Schema({
   profileImage: { type: String, default: '' },
   avatarPublicId: { type: String, default: '' },
   role: { type: String, required: true },
+  isBanned: { type: Boolean, default: false },
+  banReason: { type: String, default: '' },
+  bannedAt: { type: Date, default: null },
+  bannedBy: { type: String, default: '' },
   reportingManagerId: { type: mongoose.Schema.Types.ObjectId, ref: 'ReportingManager', default: null },
   companies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Company' }]
 }, { timestamps: true });

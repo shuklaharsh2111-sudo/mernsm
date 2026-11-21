@@ -11,6 +11,10 @@ const smeSchema = new mongoose.Schema({
   avatarPublicId: { type: String, default: '' },
   companies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Company' }],
   role: { type: String, default: 'sme' },
+  isBanned: { type: Boolean, default: false },
+  banReason: { type: String, default: '' },
+  bannedAt: { type: Date, default: null },
+  bannedBy: { type: String, default: '' },
   reportingManagerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ReportingManager',

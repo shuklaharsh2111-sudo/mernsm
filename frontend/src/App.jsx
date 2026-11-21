@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import Login from './Login';
+import BannedScreen from './BannedScreen';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import AdminDashboard from './admin/AdminDashboard';
@@ -96,8 +97,9 @@ const DashboardLayout = () => {
   );
 };
 const AppRoutes = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, banned } = useAuth();
   if (loading) return <div className="loading-screen">Loading...</div>;
+  if (banned) return <BannedScreen />;
   const dashboardPath = getDashboardPath(user?.role);
   return (
     <Routes>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { UserPlus, Building2, ClipboardList, Trash2, Mail, Phone, UserCheck, CalendarDays, ImagePlus, Eye, EyeOff, X, Users } from 'lucide-react';
+import { UserPlus, Building2, ClipboardList, Trash2, Mail, Phone, UserCheck, CalendarDays, ImagePlus, Eye, EyeOff, X, Users, Ban, ShieldCheck } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../AuthContext';
 import { errMsg } from '../sopUtils';
@@ -36,6 +36,9 @@ const AdminUsers = () => {
   const [assignUser, setAssignUser] = useState(null);
   const [sopUser, setSopUser] = useState(null);
   const [roleFilter, setRoleFilter] = useState('ALL');
+  const [banTarget, setBanTarget] = useState(null); // the user being banned (opens the message box)
+  const [banMsg, setBanMsg] = useState('');
+  const [banBusy, setBanBusy] = useState(false);
   useEffect(() => {
     let cancelled = false;
     Promise.all([
@@ -104,6 +107,36 @@ const AdminUsers = () => {
       reload();
     } catch (err) {
       setError(errMsg(err));
+    }
+  };
+  const openBan = (u) => { setBanTarget(u); setBanMsg(''); setError(''); setCreated(''); };
+  const closeBan = () => { setBanTarget(null); setBanMsg(''); };
+  const confirmBan = async (e) => {
+    e.preventDefault();
+    if (!banMsg.trim()) return;
+    setBanBusy(true);
+    setError('');
+    try {
+      await api.put(`/admin/users/${banTarget.id}/ban`, { collection: banTarget.collection, reason: banMsg.trim() });
+      setCreated(`${banTarget.name} was banned. They will see your message.`);
+      closeBan();
+      reload();
+    } catch (err) {
+      setError(err.response?.data?.message || errMsg(err));
+    } finally {
+      setBanBusy(false);
+    }
+  };
+  const unbanUser = async (u) => {
+    if (!window.confirm(`Unban ${u.name}? They will be able to sign in again.`)) return;
+    setError('');
+    setCreated('');
+    try {
+      await api.put(`/admin/users/${u.id}/unban`, { collection: u.collection });
+      setCreated(`${u.name} was unbanned.`);
+      reload();
+    } catch (err) {
+      setError(err.response?.data?.message || errMsg(err));
     }
   };
   const counts = users.reduce((acc, u) => ({ ...acc, [u.role]: (acc[u.role] || 0) + 1 }), {});
@@ -222,15 +255,26 @@ const AdminUsers = () => {
             const canAssign = u.collection === 'smes' || u.collection === 'smis';
             const isMe = String(u.id) === String(me?.id); // your own account can't be deleted
             return (
-              <div key={`${u.collection}-${u.id}`} className="au-card">
+              <div key={`${u.collection}-${u.id}`} className={`au-card${u.isBanned ? ' banned' : ''}`}>
                 <div className="au-card-top">
                   <div className="au-avatar">
                     {u.profileImage ? <img src={u.profileImage} alt={u.name} /> : <span>{initialsOf(u.name)}</span>}
                   </div>
                   <div className="au-id">
-                    <h3>{u.name}{isMe && <span className="au-you">You</span>}</h3>
+                    <h3>{u.name}{isMe && <span className="au-you">You</span>}{u.isBanned && <span className="au-banned-tag">Banned</span>}</h3>
                     <span className={`au-role ${String(u.role).toLowerCase()}`}>{roleLabel(u.role)}</span>
                   </div>
+                  {!isMe && u.collection !== 'admins' && (
+                    u.isBanned ? (
+                      <button type="button" className="btn-ghost au-ban-btn" aria-label={`Unban ${u.name}`} title="Unban user" onClick={() => unbanUser(u)}>
+                        <ShieldCheck size={15} />
+                      </button>
+                    ) : (
+                      <button type="button" className="btn-ghost danger au-ban-btn" aria-label={`Ban ${u.name}`} title="Ban user" onClick={() => openBan(u)}>
+                        <Ban size={15} />
+                      </button>
+                    )
+                  )}
                   {!isMe && (
                     <button type="button" className="btn-ghost danger au-delete" aria-label={`Delete ${u.name}`} title="Delete user" onClick={() => removeUser(u)}>
                       <Trash2 size={15} />
@@ -243,6 +287,12 @@ const AdminUsers = () => {
                   <div><dt><UserCheck size={14} /> Reporting Manager</dt><dd>{manager ? manager.name : '—'}</dd></div>
                   <div><dt><CalendarDays size={14} /> Joined</dt><dd>{fmtJoined(u.createdAt)}</dd></div>
                 </dl>
+                {u.isBanned && (
+                  <div className="au-ban-note">
+                    <small>Ban message{u.bannedAt ? ` · ${fmtJoined(u.bannedAt)}` : ''}</small>
+                    <p>{u.banReason || 'No message'}</p>
+                  </div>
+                )}
                 {String(u.role).toUpperCase() === 'REPORTING_MANAGER' && (
                   <div className="au-companies">
                     <span>Team ({reports.length})</span>
@@ -284,6 +334,38 @@ const AdminUsers = () => {
               </div>
             );
           })}
+        </div>
+      )}
+      {banTarget && (
+        <div className="modal-overlay" onClick={closeBan}>
+          <form className="modal-card au-ban-modal" onClick={(e) => e.stopPropagation()} onSubmit={confirmBan}>
+            <div className="au-ban-head">
+              <span><Ban size={20} /></span>
+              <div>
+                <h3>Ban {banTarget.name}?</h3>
+                <p>They will be signed out and cannot log in until you unban them.</p>
+              </div>
+            </div>
+            <label className="x-field">
+              <span>Message for the user *</span>
+              <textarea
+                value={banMsg}
+                onChange={(e) => setBanMsg(e.target.value)}
+                maxLength={300}
+                rows={4}
+                autoFocus
+                required
+                placeholder="e.g. Your account is on hold because of repeated policy violations. Contact HR."
+              />
+              <small className="au-ban-count">{banMsg.length}/300 · they will see this message when they try to sign in</small>
+            </label>
+            <div className="au-form-actions">
+              <button type="button" className="btn-ghost" onClick={closeBan} disabled={banBusy}>Cancel</button>
+              <button type="submit" className="btn-primary au-ban-confirm" disabled={banBusy || !banMsg.trim()}>
+                {banBusy ? 'Banning…' : 'Ban user'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
       {assignUser && ['smes', 'smis'].includes(assignUser.collection) && (
