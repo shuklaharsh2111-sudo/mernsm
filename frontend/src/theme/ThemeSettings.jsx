@@ -159,7 +159,7 @@ const ThemeSettings = () => {
                                 const a = pick(ACCENTS, p.set.accent, ACCENTS[0]);
                                 const t = pick(TONES, p.set.tone, TONES[0]);
                                 const g = pick(GLOWS, p.set.glow, GLOWS[0]);
-                                const pos = pick(GLOW_POSITIONS, p.set.glowPos, GLOW_POSITIONS[0]);
+                                const pos = GLOW_POSITIONS[0];
                                 const circle = g.k > 0
                                     ? `radial-gradient(circle at ${pos.x} ${pos.y}, ${hexA(a.primary, 0.95 * Math.max(g.k, 0.55))} 0%, ${hexA(a.secondary, 0.65 * Math.max(g.k, 0.55))} 38%, transparent 72%), `
                                     : '';
