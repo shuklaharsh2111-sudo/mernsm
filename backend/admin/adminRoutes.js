@@ -40,7 +40,8 @@ const deleteFromCloudinary = async (publicId) => {
   if (!publicId) return;
   await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
 };
-router.use(protect(['admin']));
+// The Operation Manager panel reuses every admin endpoint, so both roles are allowed here.
+router.use(protect(['admin', 'operation_manager']));
 mountIntegrationRoutes(router);
 const validId = (id) => mongoose.Types.ObjectId.isValid(id);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -268,7 +269,7 @@ router.get('/attendance', async (req, res) => {
     if (!validId(req.query.userId)) return res.status(400).json({ message: 'Invalid user' });
     filter.userId = req.query.userId;
   }
-  if (['admin', 'reporting_manager', 'sme', 'smi', 'des', 'hr', 'clients'].includes(req.query.role)) filter.role = req.query.role;
+  if (['admin', 'operation_manager', 'reporting_manager', 'sme', 'smi', 'des', 'hr', 'clients'].includes(req.query.role)) filter.role = req.query.role;
   const range = {};
   if (req.query.from) {
     const d = new Date(`${req.query.from}T00:00:00`);

@@ -35,7 +35,8 @@ const validCoords = (lat, lng) =>
  */
 export const checkLocation = (role, body = {}) => {
   const office = getOfficeConfig();
-  const enforce = role === 'admin' ? office.enforceAdmin : office.enforceSme;
+  // Operation managers follow the same location rule as admins.
+  const enforce = (role === 'admin' || role === 'operation_manager') ? office.enforceAdmin : office.enforceSme;
 
   const lat = parseFloat(body.latitude);
   const lng = parseFloat(body.longitude);

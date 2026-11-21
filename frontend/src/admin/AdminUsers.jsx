@@ -7,7 +7,7 @@ import AssignCompaniesModal from '../components/AssignCompaniesModal';
 import ManageSopsModal from '../components/ManageSopsModal';
 import "../styles/adminusers.css";
 import { roleName } from '../roleNames';
-const ROLES = ['ADMIN', 'REPORTING_MANAGER', 'SME', 'SMI', 'DES', 'HR',
+const ROLES = ['ADMIN', 'OPERATION_MANAGER', 'REPORTING_MANAGER', 'SME', 'SMI', 'DES', 'HR',
    'CLIENTS'];
 const roleLabel = roleName; // full role name, e.g. SME -> Social Media Executive
 const emptyForm = { name: '', contact: '', email: '', password: '', reportingManagerId: '', role: 'SME', profileImage: null };

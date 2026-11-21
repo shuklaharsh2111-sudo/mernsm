@@ -46,7 +46,7 @@ app.use('/api/hr', hrRoutes);
 app.use('/api/music', musicRoutes);
 app.use('/api/account', accountRoutes);
 app.use('/api/rm', rmRoutes);
-app.get('/api/admin/dashboard', protect(['admin']), (req, res) => {
+app.get('/api/admin/dashboard', protect(['admin', 'operation_manager']), (req, res) => {
     res.json({ message: 'Admin access granted' });
 });
 app.get('/api/sme/dashboard', protect(['sme']), (req, res) => {

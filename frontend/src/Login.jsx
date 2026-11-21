@@ -28,6 +28,7 @@ const Login = () => {
       const user = await login(email, password);
       const dashboardPath = {
         admin: '/admin',
+        operation_manager: '/om',
         reporting_manager: '/rm',
         sme: '/sme',
         des: '/des',

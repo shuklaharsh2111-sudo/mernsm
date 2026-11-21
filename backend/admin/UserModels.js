@@ -20,8 +20,10 @@ export const Smi = createModel('Smi', 'smis');
 export const Des = createModel('Des', 'des');
 export const Hr = createModel('Hr', 'hrs');
 export const Client = createModel('Client', 'clients');
+export const OperationManager = createModel('OperationManager', 'operation_managers');
 export const roleModels = {
   admin: Admin,
+  operation_manager: OperationManager,
   reporting_manager: ReportingManager,
   sme: Sme,
   smi: Smi,
@@ -31,6 +33,7 @@ export const roleModels = {
 };
 export const roleCollections = {
   admin: 'admins',
+  operation_manager: 'operation_managers',
   reporting_manager: 'reporting_managers',
   sme: 'smes',
   smi: 'smis',
