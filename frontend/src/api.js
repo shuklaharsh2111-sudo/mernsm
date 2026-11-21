@@ -31,6 +31,10 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    // the admin banned this account while the person was signed in
+    if (error?.response?.data?.code === 'ACCOUNT_BANNED' && !String(error.config?.url || '').startsWith('/auth/login')) {
+      window.dispatchEvent(new CustomEvent('account-banned', { detail: error.response.data }));
+    }
     if (error?.response && error.response.status !== 401 && isAction(error.config)) playError();
     return Promise.reject(error);
   }

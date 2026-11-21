@@ -9,18 +9,26 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [banned, setBanned] = useState(null); // { message, reason } when the admin has banned this account
   const fetchUser = async () => {
     try {
       const response = await api.get('/auth/me');
       setUser(response.data.user);
-    } catch {
+    } catch (err) {
       setUser(null);
+      if (err.response?.data?.code === 'ACCOUNT_BANNED') setBanned(err.response.data);
     } finally {
       setLoading(false);
     }
   };
   useEffect(() => {
     fetchUser();
+  }, []);
+  // a ban can happen while someone is signed in: the next request is refused and we land here
+  useEffect(() => {
+    const onBanned = (e) => { setUser(null); setBanned(e.detail || { message: 'Your account has been banned.' }); };
+    window.addEventListener('account-banned', onBanned);
+    return () => window.removeEventListener('account-banned', onBanned);
   }, []);
   // Ask the browser for the current position (used for the office-only login)
   const getPosition = () =>
@@ -85,6 +93,8 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         loading,
+        banned,
+        clearBanned: () => setBanned(null),
         login,
         logout,
         fetchUser

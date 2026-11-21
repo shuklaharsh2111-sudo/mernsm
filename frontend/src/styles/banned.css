@@ -1,0 +1,10 @@
+.ban-page { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: 20px; background: #09090b; font-family: var(--app-font, system-ui, sans-serif); }
+.ban-card { width: min(440px, 100%); padding: 34px 28px 28px; text-align: center; color: #f6f2ef; border: 1px solid #2b2b32; border-radius: 18px; background: #131316; box-shadow: 0 24px 70px rgba(0, 0, 0, .55); }
+.ban-icon { width: 64px; height: 64px; margin: 0 auto 14px; display: grid; place-items: center; border-radius: 50%; color: #ff8a73; background: rgba(217, 45, 10, .16); border: 1px solid rgba(217, 45, 10, .4); }
+.ban-card h1 { margin: 0 0 6px; font-size: 24px; font-weight: 700; }
+.ban-lead { margin: 6px 0 0; font-size: 13.5px; line-height: 1.55; color: #cfc8c3; }
+.ban-msg { margin: 18px 0 4px; padding: 14px 16px; text-align: left; border: 1px solid rgba(217, 45, 10, .35); border-left: 3px solid #d92d0a; border-radius: 10px; background: rgba(217, 45, 10, .08); }
+.ban-msg small { display: block; margin-bottom: 4px; font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #ff8a73; }
+.ban-msg p { margin: 0; font-size: 14px; line-height: 1.55; color: #f6f2ef; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ban-btn { margin-top: 22px; width: 100%; padding: 11px 14px; border: 1px solid #2b2b32; border-radius: 10px; background: #1a1a1f; color: #f6f2ef; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.ban-btn:hover { background: #222228; }
