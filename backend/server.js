@@ -20,6 +20,7 @@ import notificationRoutes from './notifications/notificationRoutes.js';
 import suggestionRoutes from './suggestion/suggestionRoutes.js';
 import { startGrainPoller } from './meeting/grainSync.js';
 import { googleCallback } from './meeting/integrationRoutes.js';
+import aiRoutes from './ai/aiRoutes.js';
 dotenv.config();
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -29,6 +30,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use('/api/des', desRoutes);
+app.use('/api/ai', aiRoutes);
 await connectDB();
 app.get('/api/health', (req, res) => {
     res.json({
