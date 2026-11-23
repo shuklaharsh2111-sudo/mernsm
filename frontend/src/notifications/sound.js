@@ -1,7 +1,7 @@
 import notiUrl from '../assets/noti.mp3';
 
 // Notification sound: the default is noti.mp3 (src/assets/noti.mp3). In Settings a person can pick another built-in tone or upload their own file
-// (saved in this browser). The small action ticks / error buzz are generated with the Web Audio API.
+// (saved in this browser). Only notifications play this sound; nothing else in the app makes a sound.
 // Browsers keep audio LOCKED until the person has clicked or pressed a key on the page once.
 // After a page refresh it is locked again until the next click.
 let ctx = null;
@@ -305,21 +305,3 @@ export const playNotification = () => {
 export const playTest = () => {
   ring();
 };
-
-// You did something and it worked: a short, clear tick.
-let lastTick = 0;
-export const playAction = () => {
-  const now = Date.now();
-  if (now - lastTick < 350) return;
-  lastTick = now;
-  play((c, t) => {
-    note(c, 740, t, 0.13, 0.3);
-    note(c, 988, t + 0.07, 0.15, 0.25);
-  });
-};
-
-// You did something and it failed.
-export const playError = () => play((c, t) => {
-  note(c, 220, t, 0.2, 0.3, 'sawtooth');
-  note(c, 165, t + 0.12, 0.3, 0.3, 'sawtooth');
-});
