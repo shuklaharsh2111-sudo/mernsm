@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
-import { isMuted, setMuted as saveMuted, playNotification, audioState, showSystemNotification } from './sound';
+import { isMuted, setMuted as saveMuted, setSoundOwner, playNotification, audioState, showSystemNotification } from './sound';
 
 const NotificationContext = createContext(null);
 const TONE_ORDER = ['danger', 'warning', 'success', 'info'];
@@ -13,10 +13,14 @@ const TOAST_MS = 7000;
 export const NotificationProvider = ({ children }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  // each panel (role) has its own notification sound settings; switch to this role's before anything reads them
+  const role = user?.role || 'guest';
+  setSoundOwner(role);
   const [items, setItems] = useState([]);
   const [unread, setUnread] = useState(0);
   const [toasts, setToasts] = useState([]);
-  const [muted, setMutedState] = useState(isMuted());
+  const [mutedBy, setMutedBy] = useState({ role, value: isMuted() });
+  const muted = mutedBy.role === role ? mutedBy.value : isMuted();
   // ids already shown. null until the first load, so old notifications do not ring when you open the app.
   const known = useRef(null);
   const baseTitle = useRef(typeof document !== 'undefined' ? document.title : '');
@@ -106,11 +110,10 @@ export const NotificationProvider = ({ children }) => {
   }, [dismiss, markRead, navigate]);
 
   const toggleMuted = useCallback(() => {
-    setMutedState((m) => {
-      saveMuted(!m);
-      return !m;
-    });
-  }, []);
+    const next = !isMuted();
+    saveMuted(next);
+    setMutedBy({ role, value: next });
+  }, [role]);
 
   const value = useMemo(() => ({
     items, unread, toasts, muted, dismiss, open, markRead, markAllRead, clearAll, toggleMuted, reload: load
