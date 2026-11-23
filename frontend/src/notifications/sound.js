@@ -1,10 +1,13 @@
-// Notification sounds are generated with the Web Audio API, so no audio files are needed.
+import notiUrl from '../assets/noti.mp3';
+
+// Notification sound: the default is noti.mp3 (src/assets/noti.mp3). In Settings a person can pick another built-in tone or upload their own file
+// (saved in this browser). The small action ticks / error buzz are generated with the Web Audio API.
 // Browsers keep audio LOCKED until the person has clicked or pressed a key on the page once.
 // After a page refresh it is locked again until the next click.
 let ctx = null;
 let master = null;
 // a notification that arrived while the browser was blocking sound: it rings on the very next click / key press
-let pending = null;
+let pending = false;
 // Sound is ON by default. (v2 key: an old saved "muted" value from earlier versions is ignored.)
 const KEY = 'notifSoundMuted_v2';
 const listeners = new Set();
@@ -75,6 +78,7 @@ const getCtx = () => {
 let asked = false;
 const unlock = () => {
   if (!asked) { asked = true; askSystemNotifications(); }
+  primeFile();
   const c = getCtx();
   if (!c) return;
   const done = () => {
@@ -87,10 +91,9 @@ const unlock = () => {
     } catch { /* ignore */ }
     if (c.state === 'running') { try { localStorage.setItem(ENABLED_KEY, '1'); } catch { /* ignore */ } }
     emit();
-    if (c.state === 'running' && pending) {
-      const t = pending;
-      pending = null;
-      play((cc, tt) => ding(cc, tt, t));
+    if (pending && (usesFile() || c.state === 'running')) {
+      pending = false;
+      ring(() => { pending = true; });
     }
     if (c.state === 'running') EVENTS.forEach((e) => window.removeEventListener(e, unlock, true));
   };
@@ -114,69 +117,115 @@ if (typeof window !== 'undefined') {
 }
 
 
-// ---- Backup sound: a plain <audio> element playing a generated WAV file.
-// Used whenever the Web Audio context is still locked/suspended, so a new notification is never silent.
-// [frequency Hz, start s, length s, volume, triangle?]  info/success rise, danger/warning fall
-const TONES = {
-  info: [[784, 0, 0.4, 0.85], [1175, 0.12, 0.85, 0.9]],
-  success: [[784, 0, 0.35, 0.85], [988, 0.1, 0.35, 0.85], [1319, 0.2, 0.9, 0.9]],
-  danger: [[659, 0, 0.5, 0.9], [523, 0.16, 0.9, 0.95]]
+// ---- Notification sound preferences (saved in this browser)
+const SOUND_KEY = 'notifSoundChoice';
+const CUSTOM_KEY = 'notifSoundCustom'; // JSON { name, data } where data is a data: URL
+const VOLUME_KEY = 'notifSoundVolume';
+export const MAX_SOUND_BYTES = 1024 * 1024;
+export const SOUND_PRESETS = [
+  { id: 'default', name: 'Default', hint: 'The standard notification sound' },
+  { id: 'classic', name: 'Classic ding', hint: 'Two rising notes' },
+  { id: 'soft', name: 'Soft bell', hint: 'One gentle note' },
+  { id: 'alert', name: 'Alert', hint: 'Two falling notes' }
+];
+const readKey = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const writeKey = (k, v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } };
+
+let file = null; // the <audio> element used for the default / custom file
+let custom = (() => {
+  try { const j = JSON.parse(readKey(CUSTOM_KEY)); return j && j.data ? j : null; } catch { return null; }
+})();
+
+export const getCustomSound = () => (custom ? { name: custom.name } : null);
+export const getSoundChoice = () => {
+  const c = readKey(SOUND_KEY);
+  if (c === 'custom') return custom ? 'custom' : 'default';
+  return SOUND_PRESETS.some((p) => p.id === c) ? c : 'default';
 };
-const wavCache = {};
-const makeWav = (notes) => {
-  const rate = 22050;
-  const tail = 1.1; // room for the echo
-  const total = Math.ceil(rate * (Math.max(...notes.map((n) => n[1] + n[2])) + tail));
-  const mix = new Float32Array(total);
-  const parts = [[1, 1], [2, 0.12]];
-  const sum = parts.reduce((a, [, amp]) => a + amp, 0);
-  notes.forEach(([freq, start, len, vol, tri]) => {
-    const from = Math.floor(start * rate);
-    const count = Math.floor(len * 1.75 * rate);
-    const tau = len / 4;
-    for (let i = 0; i < count && from + i < total; i += 1) {
-      const t = i / rate;
-      const env = Math.min(1, t / 0.025) * Math.exp(-t / tau);
-      let v = 0;
-      parts.forEach(([mult, amp]) => {
-        const phase = 2 * Math.PI * freq * mult * (t - 0.015 * 0.02 * (1 - Math.exp(-t / 0.02)));
-        v += (tri ? (2 / Math.PI) * Math.asin(Math.sin(phase)) : Math.sin(phase)) * amp;
-      });
-      mix[from + i] += (v / sum) * env * vol;
-    }
-  });
-  // soft echo tail
-  const d = Math.floor(0.16 * rate);
-  for (let i = d; i < total; i += 1) mix[i] += 0.25 * mix[i - d];
-  // soften it: one-pole low-pass (about 4.5 kHz) takes the sharp edge off
-  const a = 1 - Math.exp((-2 * Math.PI * 4500) / rate);
-  for (let i = 1; i < total; i += 1) mix[i] = mix[i - 1] + a * (mix[i] - mix[i - 1]);
-  // normalise to a loud level (about 90% of full scale)
-  let peak = 0;
-  for (let i = 0; i < total; i += 1) peak = Math.max(peak, Math.abs(mix[i]));
-  const k = peak ? (0.9 * 32767) / peak : 0;
-  const pcm = new Int16Array(total);
-  for (let i = 0; i < total; i += 1) pcm[i] = Math.round(mix[i] * k);
-  const bytes = new Uint8Array(44 + pcm.length * 2);
-  const dv = new DataView(bytes.buffer);
-  const str = (o, v) => [...v].forEach((ch, i) => dv.setUint8(o + i, ch.charCodeAt(0)));
-  str(0, 'RIFF'); dv.setUint32(4, 36 + pcm.length * 2, true); str(8, 'WAVE'); str(12, 'fmt ');
-  dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
-  dv.setUint32(24, rate, true); dv.setUint32(28, rate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
-  str(36, 'data'); dv.setUint32(40, pcm.length * 2, true);
-  pcm.forEach((v, i) => dv.setInt16(44 + i * 2, v, true));
-  let bin = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return `data:audio/wav;base64,${btoa(bin)}`;
+export const setSoundChoice = (id) => { writeKey(SOUND_KEY, id); file = null; };
+export const getVolume = () => {
+  const v = parseFloat(readKey(VOLUME_KEY));
+  return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1;
 };
-const playFallback = (tone, onBlocked) => {
+export const setVolume = (v) => {
+  const x = Math.min(1, Math.max(0, v));
+  writeKey(VOLUME_KEY, String(x));
+  if (file) file.volume = x;
+};
+// Saves an uploaded audio file as the custom sound and selects it. Rejects with a readable message.
+export const saveCustomSound = (f) => new Promise((resolve, reject) => {
+  if (!f || !/^audio\//.test(f.type)) { reject(new Error('Please choose an audio file (MP3, WAV, OGG or M4A).')); return; }
+  if (f.size > MAX_SOUND_BYTES) { reject(new Error('The sound must be 1 MB or smaller.')); return; }
+  const reader = new FileReader();
+  reader.onerror = () => reject(new Error('Could not read that file.'));
+  reader.onload = () => {
+    const next = { name: f.name.slice(0, 60), data: String(reader.result) };
+    if (!writeKey(CUSTOM_KEY, JSON.stringify(next))) { reject(new Error('This browser has no room left to save the sound.')); return; }
+    custom = next;
+    setSoundChoice('custom');
+    resolve(getCustomSound());
+  };
+  reader.readAsDataURL(f);
+});
+export const removeCustomSound = () => {
+  try { localStorage.removeItem(CUSTOM_KEY); } catch { /* ignore */ }
+  custom = null;
+  if (readKey(SOUND_KEY) === 'custom') setSoundChoice('default');
+  file = null;
+};
+
+// ---- Playing it
+const usesFile = () => { const c = getSoundChoice(); return c === 'default' || c === 'custom'; };
+const makeAudio = (id) => {
+  const a = new Audio(id === 'custom' && custom ? custom.data : notiUrl);
+  a.preload = 'auto';
+  a.volume = getVolume();
+  return a;
+};
+const getFile = () => {
+  if (!file && typeof Audio !== 'undefined') file = makeAudio(getSoundChoice() === 'custom' ? 'custom' : 'default');
+  return file;
+};
+// Inside a real click: play it silently once so the browser allows the file to play later without a click.
+const primeFile = () => {
   try {
-    const key = tone === 'warning' ? 'danger' : (TONES[tone] ? tone : 'info');
-    if (!wavCache[key]) wavCache[key] = makeWav(TONES[key]);
-    const a = new Audio(wavCache[key]);
-    a.volume = 1;
+    const a = getFile();
+    if (!a || !a.paused) return;
+    a.muted = true;
+    a.play().then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; });
+  } catch { /* ignore */ }
+};
+const ringFile = (onBlocked) => {
+  try {
+    const a = getFile();
+    if (!a) return;
+    a.muted = false;
+    a.volume = getVolume();
+    a.currentTime = 0;
     a.play().catch(() => { if (onBlocked) onBlocked(); });
   } catch { if (onBlocked) onBlocked(); }
+};
+// Plays whichever sound is chosen. onBlocked runs when the browser is still blocking sound.
+const ring = (onBlocked) => {
+  if (usesFile()) { ringFile(onBlocked); return; }
+  if (ctx && ctx.state === 'running') { play((c, t) => generated(c, t, getSoundChoice()), true); return; }
+  try { const c = getCtx(); if (c) c.resume().catch(() => { }); } catch { /* ignore */ }
+  if (onBlocked) onBlocked();
+};
+let previewing = null;
+// Settings page: hear any sound without selecting it (works even when sound is switched off).
+export const previewSound = (id) => {
+  try { if (previewing) { previewing.pause(); previewing = null; } } catch { /* ignore */ }
+  if (id === 'default' || id === 'custom') {
+    try {
+      previewing = makeAudio(id);
+      previewing.play().catch(() => { });
+    } catch { /* ignore */ }
+    return;
+  }
+  const c = getCtx();
+  if (c) c.resume().catch(() => { });
+  play((cc, t) => generated(cc, t, id), true);
 };
 
 // ---- System notification: the operating system plays its own notification sound, even with the tab in the background.
@@ -223,6 +272,16 @@ const note = (c, freq, start, length, volume, type = 'sine') => {
   });
 };
 
+// Built-in tones: [frequency Hz, start s, length s, volume]
+const GEN = {
+  classic: [[784, 0, 0.4, 0.85], [1175, 0.12, 0.85, 0.9]],
+  soft: [[587, 0, 1.2, 0.8]],
+  alert: [[659, 0, 0.5, 0.9], [523, 0.16, 0.9, 0.95]]
+};
+const generated = (c, t, id) => {
+  (GEN[id] || GEN.classic).forEach(([freq, at, len, vol]) => note(c, freq, t + at, len, vol, 'sine'));
+};
+
 // Waits until the browser has actually unlocked audio, THEN schedules the notes (scheduling on a
 // suspended context would put them in the past and they would never be heard).
 const play = (fn, force = false) => {
@@ -230,33 +289,21 @@ const play = (fn, force = false) => {
   try {
     const c = getCtx();
     if (!c) return;
-    const go = () => fn(c, c.currentTime + 0.03);
+    const go = () => { if (master) master.gain.value = 1.6 * getVolume(); fn(c, c.currentTime + 0.03); };
     if (c.state === 'running') go();
     else c.resume().then(() => { if (c.state === 'running') go(); }).catch(() => { });
   } catch { /* sound is optional */ }
 };
 
-const ding = (c, t, tone) => {
-  (TONES[tone === 'warning' ? 'danger' : tone] || TONES.info).forEach(([freq, at, len, vol, tri]) => {
-    note(c, freq, t + at, len, vol, 'sine');
-  });
-};
-
-// Someone else did something for you: a two-note "ding". Warnings and rejections get a lower, falling tone.
-export const playNotification = (tone = 'info') => {
+// Someone else did something for you: plays the chosen notification sound. If the browser is still blocking sound, it rings on the next click / key press.
+export const playNotification = () => {
   if (muted) return;
-  if (ctx && ctx.state === 'running') play((c, t) => ding(c, t, tone));
-  else playFallback(tone, () => { pending = tone; });
+  ring(() => { pending = true; });
 };
 
 // The "Test sound" button in the bell panel: plays even when sound is switched off, so it can be checked.
 export const playTest = () => {
-  if (ctx && ctx.state === 'running') play((c, t) => ding(c, t, 'info'), true);
-  else {
-    // locked context: ask the browser to wake it (this runs inside the click), and play the backup sound right away
-    try { const c = getCtx(); if (c) c.resume().catch(() => { }); } catch { /* ignore */ }
-    playFallback('info');
-  }
+  ring();
 };
 
 // You did something and it worked: a short, clear tick.
