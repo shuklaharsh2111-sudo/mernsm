@@ -7,11 +7,9 @@ import { extractResume, parseResumeText, RESUME_EXTS, IMAGE_EXTS, extOf } from '
 import { parseWithPython } from './pythonParser.js';
 import { findSkills, cleanSkills } from './skills.js';
 import { evaluateMatch } from './skillMatch.js';
-
 const router = express.Router();
 const validId = (id) => mongoose.Types.ObjectId.isValid(id);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 const MAX_MB = 8;
 const resumeUpload = multer({
   storage: multer.memoryStorage(),
@@ -21,7 +19,6 @@ const resumeUpload = multer({
     cb(new Error('Unsupported file. Upload a PDF, Word (DOC/DOCX), TXT, RTF or an image (JPG, PNG, WEBP).'));
   }
 }).single('resume');
-
 // Turn multer errors into a normal 400 JSON message
 const withUpload = (handler) => (req, res, next) =>
   resumeUpload(req, res, (err) => {
@@ -31,7 +28,6 @@ const withUpload = (handler) => (req, res, next) =>
     }
     return Promise.resolve(handler(req, res, next)).catch(next);
   });
-
 const uploadResume = (file) => new Promise((resolve, reject) => {
   const ext = extOf(file);
   // PDFs and pictures are stored as "image" (browsers can open them); Word/text files must be "raw"
@@ -44,7 +40,6 @@ const uploadResume = (file) => new Promise((resolve, reject) => {
     resolve({ url: result.secure_url, publicId: result.public_id, resourceType: resource_type, originalName: file.originalname || '' });
   }).end(file.buffer);
 });
-
 const view = (c) => ({
   id: String(c._id),
   name: c.name,
@@ -70,10 +65,9 @@ const view = (c) => ({
   interviewStatus: c.interviewStatus || '',
   createdAt: c.createdAt
 });
-
 // Compare skills with the role's base skills and store the result on the candidate (no shortlisting here)
-const applyMatch = async (c) => {
-  const m = await evaluateMatch(c.position, c.skills);
+const applyMatch = async (c, hrId) => {
+  const m = await evaluateMatch(c.position, c.skills, hrId); i
   c.matchRole = m ? m.role : '';
   c.matchScore = m ? m.score : null;
   c.matchNeeded = m ? m.needed : null;
@@ -82,15 +76,12 @@ const applyMatch = async (c) => {
   if (!m) c.autoShortlisted = false;
   return m;
 };
-
 const cleanMobile = (v) => String(v || '').replace(/[^\d+]/g, '').slice(0, 16);
-
 // Step 1 — read the resume and suggest the details (name, mobile, email, position). Nothing is saved yet.
 // The Python reader (pdfplumber / python-docx / OCR) is used first; if Python or its packages are
 // not installed on the server, the built-in JavaScript reader takes over.
 router.post('/parse', withUpload(async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'Choose a resume file first.' });
-
   const py = await parseWithPython(req.file);
   if (py.ok) {
     // Some designs trip one reader but not the other: when Python left something empty, ask the JS reader
@@ -117,7 +108,6 @@ router.post('/parse', withUpload(async (req, res) => {
   if (py.code === 'no_python' || py.code === 'missing_dependency' || py.code === 'crashed') {
     console.warn(`Python resume reader unavailable (${py.error}) - using the JavaScript reader. Run "pip install -r requirements.txt" in backend/hr/python.`);
   }
-
   let read;
   try {
     read = await extractResume(req.file);
@@ -133,16 +123,17 @@ router.post('/parse', withUpload(async (req, res) => {
   fields.skills = findSkills(read.text);
   res.json({ fields, missing, engine: 'js' });
 }));
-
 router.get('/', async (req, res) => {
-  const list = await Candidate.find().sort({ createdAt: -1 }).limit(1000);
+  const list = await Candidate.find({ createdBy: req.user.id })
+    .sort({ createdAt: -1 })
+    .limit(1000);
   res.json({ candidates: list.map(view) });
 });
-
 // Export all candidates as CSV
 router.get('/export-csv', async (req, res) => {
   try {
-    const list = await Candidate.find().sort({ createdAt: -1 });
+    const list = await Candidate.find({ createdBy: req.user.id })
+      .sort({ createdAt: -1 });
     const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
     const header = [
       'Candidate Name',
@@ -188,7 +179,6 @@ router.get('/export-csv', async (req, res) => {
     res.status(500).json({ message: err.message || 'Failed to export candidates CSV.' });
   }
 });
-
 // Step 2 — save the candidate (with the resume file) after HR has checked the details.
 router.post('/', withUpload(async (req, res) => {
   const name = String(req.body.name || '').trim();
@@ -199,10 +189,8 @@ router.post('/', withUpload(async (req, res) => {
   if (!name) return res.status(400).json({ message: 'Candidate name is required.' });
   if (email && !EMAIL_RE.test(email)) return res.status(400).json({ message: 'Enter a valid email address.' });
   if (!email && !mobile) return res.status(400).json({ message: 'Add an email or a mobile number.' });
-
-  const dup = await Candidate.findOne({ $or: [email ? { email } : null, mobile ? { mobile } : null].filter(Boolean) });
+  const dup = await Candidate.findOne({ createdBy: req.user.id, $or: [email ? { email } : null, mobile ? { mobile } : null].filter(Boolean) });
   if (dup) return res.status(409).json({ message: `${dup.name} is already in the list with the same email or mobile.` });
-
   let resume;
   let warning = '';
   if (req.file) {
@@ -214,19 +202,17 @@ router.post('/', withUpload(async (req, res) => {
     }
   }
   const candidate = new Candidate({ name, email, mobile, position, skills, resume, createdBy: req.user.id });
-  const m = await applyMatch(candidate);
+  const m = await applyMatch(candidate, req.user.id);;
   if (m && m.pass && m.autoShortlist) { candidate.shortlisted = true; candidate.autoShortlisted = true; }
   await candidate.save();
   res.status(201).json({ candidate: view(candidate), warning });
 }));
-
 // Inline edits from the table (checkboxes, interview schedule, remark, details)
 router.put('/:id', async (req, res) => {
   if (!validId(req.params.id)) return res.status(404).json({ message: 'Candidate not found.' });
-  const c = await Candidate.findById(req.params.id);
+  const c = await Candidate.findOne({ _id: req.params.id, createdBy: req.user.id });
   if (!c) return res.status(404).json({ message: 'Candidate not found.' });
   const b = req.body || {};
-
   if ('name' in b) {
     const name = String(b.name || '').trim();
     if (!name) return res.status(400).json({ message: 'Candidate name is required.' });
@@ -264,15 +250,16 @@ router.put('/:id', async (req, res) => {
     const remark = String(b.remark || '').trim().slice(0, 1000);
     if (remark !== c.remark) { c.remark = remark; c.remarkAt = remark ? new Date() : null; }
   }
-  if ('skills' in b || 'position' in b) await applyMatch(c);
+  if ('skills' in b || 'position' in b) {
+    await applyMatch(c, req.user.id);
+  }
   if ('shortlisted' in b && c.autoShortlisted && !c.shortlisted) c.autoShortlisted = false; // HR overrode the automatic choice
   await c.save();
   res.json({ candidate: view(c) });
 });
-
 router.delete('/:id', async (req, res) => {
   if (!validId(req.params.id)) return res.status(404).json({ message: 'Candidate not found.' });
-  const c = await Candidate.findByIdAndDelete(req.params.id);
+  const c = await Candidate.findOneAndDelete({ _id: req.params.id, createdBy: req.user.id });
   if (!c) return res.status(404).json({ message: 'Candidate not found.' });
   if (c.resume?.publicId) {
     await cloudinary.uploader.destroy(c.resume.publicId, { resource_type: c.resume.resourceType || 'image' })
@@ -280,5 +267,4 @@ router.delete('/:id', async (req, res) => {
   }
   res.json({ message: 'Candidate removed.' });
 });
-
 export default router;
