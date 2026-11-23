@@ -10,6 +10,7 @@ const LINKS = {
   sops: { sme: '/sme', smi: '/smi' },
   invoices: { admin: '/admin/invoices', operation_manager: '/om/invoices' },
   team: { reporting_manager: '/rm/team' },
+  suggestions: { admin: '/admin/suggestions', hr: '/hr/suggestions' },
   home: { admin: '/admin', operation_manager: '/om', reporting_manager: '/rm', sme: '/sme', smi: '/smi', des: '/des', hr: '/hr/recruitment' }
 };
 export const linkFor = (role, topic) => LINKS[topic]?.[role] || LINKS.home[role] || '/';

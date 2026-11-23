@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Settings, CalendarDays, FolderOpen, Bookmark,
   ChartNoAxesCombined, FileBarChart, Clock, Building2, Receipt,
-  CalendarCheck, Palette, UserCheck, Briefcase, Wifi, Music, Megaphone, ListChecks
+  CalendarCheck, Palette, UserCheck, Briefcase, Wifi, Music, Megaphone, ListChecks, Lightbulb
 } from 'lucide-react';
 export const RM_NAV = [
   {
@@ -24,6 +24,7 @@ export const RM_NAV = [
   },
   {
     heading: 'Account', items: [
+      { title: 'Suggestions', path: '/rm/suggestions', icon: Lightbulb },
       { title: 'Settings', path: '/rm/settings', icon: Settings }
     ]
   },
@@ -56,6 +57,7 @@ export const ADMIN_NAV = [
   },
   {
     heading: 'Account', items: [
+      { title: 'Suggestions', path: '/admin/suggestions', icon: Lightbulb },
       { title: 'Settings', path: '/admin/settings', icon: Settings }
     ]
   },
@@ -98,6 +100,7 @@ export const SME_NAV = [
   },
   {
     heading: 'Account', items: [
+      { title: 'Suggestions', path: '/sme/suggestions', icon: Lightbulb },
       { title: 'Settings', path: '/sme/settings', icon: Settings }
     ]
   },
@@ -129,6 +132,7 @@ export const DES_NAV = [
   },
   {
     heading: 'Account', items: [
+      { title: 'Suggestions', path: '/des/suggestions', icon: Lightbulb },
       { title: 'Settings', path: '/des/settings', icon: Settings }
     ]
   },
@@ -155,6 +159,7 @@ export const SMI_NAV = [
   },
   {
     heading: 'Account', items: [
+      { title: 'Suggestions', path: '/smi/suggestions', icon: Lightbulb },
       { title: 'Settings', path: '/smi/settings', icon: Settings }
     ]
   },
@@ -182,6 +187,7 @@ export const HR_NAV = [
   },
   {
     heading: 'Account', items: [
+      { title: 'Suggestions', path: '/hr/suggestions', icon: Lightbulb },
       { title: 'Settings', path: '/hr/settings', icon: Settings }
     ]
   },

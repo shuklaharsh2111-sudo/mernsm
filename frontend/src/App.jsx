@@ -35,6 +35,7 @@ import HrOnline from './hr/HrOnline';
 import HrRecruitment from './hr/HrRecruitment';
 import HrBaseSkills from './hr/HrBaseSkills';
 import InfluencerPage from './components/InfluencerPage';
+import SuggestionsPage from './components/SuggestionsPage';
 import PlaylistPage from './music/PlaylistPage';
 import { MusicProvider } from './music/MusicContext';
 import MiniPlayer from './music/MiniPlayer';
@@ -115,6 +116,7 @@ const AppRoutes = () => {
           <Route path="/admin/attendance" element={<AdminAttendance />} />
           <Route path="/admin/calendar" element={<AdminCalendar />} />
           <Route path="/admin/playlist" element={<PlaylistPage workspace="ADMIN WORKSPACE" />} />
+          <Route path="/admin/suggestions" element={<SuggestionsPage />} />
           <Route path="/admin/settings" element={<ProfileSettings workspace="ADMIN WORKSPACE" />} />
         </Route>
       </Route>
@@ -127,6 +129,7 @@ const AppRoutes = () => {
           <Route path="/om/attendance" element={<AdminAttendance label="OPERATION MANAGER" />} />
           <Route path="/om/calendar" element={<AdminCalendar />} />
           <Route path="/om/playlist" element={<PlaylistPage workspace="OPERATION MANAGER WORKSPACE" />} />
+          <Route path="/om/suggestions" element={<SuggestionsPage />} />
           <Route path="/om/settings" element={<ProfileSettings workspace="OPERATION MANAGER WORKSPACE" />} />
         </Route>
       </Route>
@@ -138,6 +141,7 @@ const AppRoutes = () => {
           <Route path="/rm/creatives" element={<AdminCreatives base="/rm" label="REPORTING MANAGER" scopeText="your team’s SMEs" />} />
           <Route path="/rm/meetings" element={<AdminMeetings base="/rm" label="REPORTING MANAGER" scopeText="your team’s SMEs" />} />
           <Route path="/rm/playlist" element={<PlaylistPage workspace="REPORTING MANAGER WORKSPACE" />} />
+          <Route path="/rm/suggestions" element={<SuggestionsPage />} />
           <Route path="/rm/settings" element={<ProfileSettings workspace="REPORTING MANAGER WORKSPACE" />} />
         </Route>
       </Route>
@@ -148,6 +152,7 @@ const AppRoutes = () => {
           <Route path="/sme/saved" element={<SmeSaved />} />
           <Route path="/sme/records" element={<SmeRecords />} />
           <Route path="/sme/pending-creatives" element={<SmePendingCreatives />} />
+          <Route path="/sme/suggestions" element={<SuggestionsPage />} />
           <Route path="/sme/settings" element={<SmeSettings />} />
           <Route path="/sme/analytics" element={<SmeAnalytics />} />
           <Route path="/sme/monthly-reports" element={<SmeMonthlyReports />} />
@@ -162,6 +167,7 @@ const AppRoutes = () => {
           <Route path="/des/calendar" element={<DesCalendar />} />
           <Route path="/des/monthly-reports" element={<DesMonthlyReports />} />
           <Route path="/des/playlist" element={<PlaylistPage workspace="DESIGNER WORKSPACE" />} />
+          <Route path="/des/suggestions" element={<SuggestionsPage />} />
           <Route path="/des/settings" element={<ProfileSettings workspace="DESIGNER WORKSPACE" />} />
         </Route>
       </Route>
@@ -171,6 +177,7 @@ const AppRoutes = () => {
           <Route path="/smi/saved" element={<SmiSaved />} />
           <Route path="/smi/influencers" element={<InfluencerPage role="smi" />} />
           <Route path="/smi/playlist" element={<PlaylistPage workspace="SMI WORKSPACE" />} />
+          <Route path="/smi/suggestions" element={<SuggestionsPage />} />
           <Route path="/smi/settings" element={<ProfileSettings workspace="SMI WORKSPACE" />} />
         </Route>
       </Route>
@@ -182,6 +189,7 @@ const AppRoutes = () => {
           <Route path="/hr/employees" element={<HrEmployees />} />
           <Route path="/hr/online" element={<HrOnline />} />
           <Route path="/hr/playlist" element={<PlaylistPage workspace="HR WORKSPACE" />} />
+          <Route path="/hr/suggestions" element={<SuggestionsPage />} />
           <Route path="/hr/settings" element={<ProfileSettings workspace="HR WORKSPACE" />} />
         </Route>
       </Route>

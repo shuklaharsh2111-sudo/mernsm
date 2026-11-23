@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, Trash2, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Camera, Trash2, Eye, EyeOff, CheckCircle2, AlertCircle, User, ShieldCheck, Bell, Palette } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../AuthContext';
 import { errMsg } from '../sopUtils';
 import ThemeSettings from '../theme/ThemeSettings';
+import NotificationSettings from './NotificationSettings';
 import '../styles/settings.css';
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -17,8 +18,16 @@ const Notice = ({ notice }) =>
         </div>
     ) : null;
 
-// Same page as the SME settings, shared by the other panels (admin, des, smi, hr).
-const ProfileSettings = ({ workspace = 'WORKSPACE' }) => {
+const SECTIONS = [
+    { id: 'profile', title: 'Profile', desc: 'Your photo, name and email', icon: User },
+    { id: 'security', title: 'Security', desc: 'Change your password', icon: ShieldCheck },
+    { id: 'notifications', title: 'Notifications', desc: 'Sound, volume and your own tone', icon: Bell },
+    { id: 'appearance', title: 'Appearance', desc: 'Theme, colours and layout', icon: Palette }
+];
+
+// One settings page for every panel. SME uses the same page with its own profile / password endpoints.
+const ProfileSettings = ({ workspace = 'WORKSPACE', profileUrl = '/account/profile', passwordUrl = '/account/password' }) => {
+    const [section, setSection] = useState('profile');
     const { user, fetchUser } = useAuth();
     const fileRef = useRef(null);
 
@@ -90,7 +99,7 @@ const ProfileSettings = ({ workspace = 'WORKSPACE' }) => {
             if (file) fd.append('avatar', file);
             else if (removeAvatar) fd.append('removeAvatar', 'true');
 
-            await api.put('/account/profile', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+            await api.put(profileUrl, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
             await fetchUser();
 
             setFile(null);
@@ -125,7 +134,7 @@ const ProfileSettings = ({ workspace = 'WORKSPACE' }) => {
 
         try {
             setSavingPassword(true);
-            await api.put('/account/password', {
+            await api.put(passwordUrl, {
                 currentPassword: passwords.currentPassword,
                 newPassword: passwords.newPassword
             });
@@ -140,127 +149,168 @@ const ProfileSettings = ({ workspace = 'WORKSPACE' }) => {
 
     const passwordType = showPasswords ? 'text' : 'password';
 
+    const current = SECTIONS.find(item => item.id === section) || SECTIONS[0];
+
     return (
         <div className="dashboard-content scrollable">
             <div className="page-header">
                 <div>
                     <span className="page-label">{workspace}</span>
                     <h1>Settings</h1>
-                    <p>Update your profile image, name, password and theme.</p>
+                    <p>Manage your profile, security, notifications and look.</p>
                 </div>
             </div>
 
-            <div className="st-grid">
-                <form className="st-card" onSubmit={saveProfile}>
-                    <h2>Profile</h2>
+            <div className="st-layout">
+                <nav className="st-nav" aria-label="Settings sections">
+                    {SECTIONS.map(({ id, title, desc, icon: Icon }) => (
+                        <button
+                            key={id}
+                            type="button"
+                            className={`st-nav-item ${section === id ? 'active' : ''}`}
+                            onClick={() => setSection(id)}
+                            aria-current={section === id ? 'page' : undefined}
+                        >
+                            <span className="st-nav-icon"><Icon size={17} /></span>
+                            <span className="st-nav-text">
+                                <strong>{title}</strong>
+                                <small>{desc}</small>
+                            </span>
+                        </button>
+                    ))}
+                </nav>
 
-                    <div className="st-avatar-row">
-                        <img className="st-avatar" src={currentAvatar} alt="Profile" />
-                        <div className="st-avatar-actions">
-                            <input
-                                ref={fileRef}
-                                type="file"
-                                accept={IMAGE_TYPES.join(',')}
-                                onChange={pickImage}
-                                hidden
-                            />
-                            <button type="button" className="st-btn ghost" onClick={() => fileRef.current?.click()}>
-                                <Camera size={15} /> Change image
-                            </button>
-                            {(user?.avatar || file) && !removeAvatar && (
-                                <button type="button" className="st-btn danger" onClick={clearImage}>
-                                    <Trash2 size={15} /> Remove
+                <div className="st-panel">
+                    <div className="st-panel-head">
+                        <h2>{current.title}</h2>
+                        <p>{current.desc}</p>
+                    </div>
+
+                    {section === 'profile' && (
+                        <div className="st-stack">
+                    <form className="st-card" onSubmit={saveProfile}>
+                            <h2>Personal details</h2>
+        
+                            <div className="st-avatar-row">
+                                <img className="st-avatar" src={currentAvatar} alt="Profile" />
+                                <div className="st-avatar-actions">
+                                    <input
+                                        ref={fileRef}
+                                        type="file"
+                                        accept={IMAGE_TYPES.join(',')}
+                                        onChange={pickImage}
+                                        hidden
+                                    />
+                                    <button type="button" className="st-btn ghost" onClick={() => fileRef.current?.click()}>
+                                        <Camera size={15} /> Change image
+                                    </button>
+                                    {(user?.avatar || file) && !removeAvatar && (
+                                        <button type="button" className="st-btn danger" onClick={clearImage}>
+                                            <Trash2 size={15} /> Remove
+                                        </button>
+                                    )}
+                                    <small>JPG, PNG, WEBP or GIF, up to 5 MB</small>
+                                </div>
+                            </div>
+        
+                            <div className="st-field">
+                                <label htmlFor="st-name">Name</label>
+                                <input
+                                    id="st-name"
+                                    type="text"
+                                    value={name}
+                                    maxLength={60}
+                                    onChange={event => { setName(event.target.value); setProfileNotice(null); }}
+                                    required
+                                />
+                            </div>
+        
+                            <div className="st-field">
+                                <label htmlFor="st-email">Email</label>
+                                <input id="st-email" type="email" value={user?.email || ''} disabled />
+                            </div>
+        
+                            <Notice notice={profileNotice} />
+        
+                            <div className="st-actions">
+                                <button type="submit" className="st-btn primary" disabled={savingProfile || !profileDirty}>
+                                    {savingProfile ? 'Saving...' : 'Save profile'}
                                 </button>
-                            )}
-                            <small>JPG, PNG, WEBP or GIF, up to 5 MB</small>
+                            </div>
+                        </form>
                         </div>
-                    </div>
+                    )}
 
-                    <div className="st-field">
-                        <label htmlFor="st-name">Name</label>
-                        <input
-                            id="st-name"
-                            type="text"
-                            value={name}
-                            maxLength={60}
-                            onChange={event => { setName(event.target.value); setProfileNotice(null); }}
-                            required
-                        />
-                    </div>
+                    {section === 'security' && (
+                        <div className="st-stack">
+                    <form className="st-card" onSubmit={savePassword}>
+                            <h2>Change password</h2>
+        
+                            <div className="st-field">
+                                <label htmlFor="st-current">Current password</label>
+                                <input
+                                    id="st-current"
+                                    name="currentPassword"
+                                    type={passwordType}
+                                    value={passwords.currentPassword}
+                                    onChange={handlePasswordChange}
+                                    autoComplete="current-password"
+                                    required
+                                />
+                            </div>
+        
+                            <div className="st-field">
+                                <label htmlFor="st-new">New password</label>
+                                <input
+                                    id="st-new"
+                                    name="newPassword"
+                                    type={passwordType}
+                                    value={passwords.newPassword}
+                                    onChange={handlePasswordChange}
+                                    autoComplete="new-password"
+                                    minLength={8}
+                                    maxLength={72}
+                                    required
+                                />
+                            </div>
+        
+                            <div className="st-field">
+                                <label htmlFor="st-confirm">Confirm new password</label>
+                                <input
+                                    id="st-confirm"
+                                    name="confirmPassword"
+                                    type={passwordType}
+                                    value={passwords.confirmPassword}
+                                    onChange={handlePasswordChange}
+                                    autoComplete="new-password"
+                                    required
+                                />
+                            </div>
+        
+                            <button type="button" className="st-toggle" onClick={() => setShowPasswords(v => !v)}>
+                                {showPasswords ? <EyeOff size={15} /> : <Eye size={15} />}
+                                {showPasswords ? 'Hide passwords' : 'Show passwords'}
+                            </button>
+        
+                            <Notice notice={passwordNotice} />
+        
+                            <div className="st-actions">
+                                <button type="submit" className="st-btn primary" disabled={savingPassword}>
+                                    {savingPassword ? 'Updating...' : 'Update password'}
+                                </button>
+                            </div>
+                        </form>
+                        </div>
+                    )}
 
-                    <div className="st-field">
-                        <label htmlFor="st-email">Email</label>
-                        <input id="st-email" type="email" value={user?.email || ''} disabled />
-                    </div>
+                    {section === 'notifications' && <NotificationSettings />}
 
-                    <Notice notice={profileNotice} />
-
-                    <div className="st-actions">
-                        <button type="submit" className="st-btn primary" disabled={savingProfile || !profileDirty}>
-                            {savingProfile ? 'Saving...' : 'Save profile'}
-                        </button>
-                    </div>
-                </form>
-
-                <form className="st-card" onSubmit={savePassword}>
-                    <h2>Change password</h2>
-
-                    <div className="st-field">
-                        <label htmlFor="st-current">Current password</label>
-                        <input
-                            id="st-current"
-                            name="currentPassword"
-                            type={passwordType}
-                            value={passwords.currentPassword}
-                            onChange={handlePasswordChange}
-                            autoComplete="current-password"
-                            required
-                        />
-                    </div>
-
-                    <div className="st-field">
-                        <label htmlFor="st-new">New password</label>
-                        <input
-                            id="st-new"
-                            name="newPassword"
-                            type={passwordType}
-                            value={passwords.newPassword}
-                            onChange={handlePasswordChange}
-                            autoComplete="new-password"
-                            minLength={8}
-                            maxLength={72}
-                            required
-                        />
-                    </div>
-
-                    <div className="st-field">
-                        <label htmlFor="st-confirm">Confirm new password</label>
-                        <input
-                            id="st-confirm"
-                            name="confirmPassword"
-                            type={passwordType}
-                            value={passwords.confirmPassword}
-                            onChange={handlePasswordChange}
-                            autoComplete="new-password"
-                            required
-                        />
-                    </div>
-
-                    <button type="button" className="st-toggle" onClick={() => setShowPasswords(v => !v)}>
-                        {showPasswords ? <EyeOff size={15} /> : <Eye size={15} />}
-                        {showPasswords ? 'Hide passwords' : 'Show passwords'}
-                    </button>
-
-                    <Notice notice={passwordNotice} />
-
-                    <div className="st-actions">
-                        <button type="submit" className="st-btn primary" disabled={savingPassword}>
-                            {savingPassword ? 'Updating...' : 'Update password'}
-                        </button>
-                    </div>
-                </form>
-
-                <ThemeSettings />
+                    {section === 'appearance' && (
+                        <div className="st-stack wide">
+                            <ThemeSettings />
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

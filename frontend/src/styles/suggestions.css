@@ -1,0 +1,54 @@
+/* Suggestions — everyone sends (one box), admin + HR read an anonymous feed. */
+.sg-page { display: flex; flex-direction: column; gap: 20px; }
+.sg-h-icon { vertical-align: -3px; margin-right: 6px; color: var(--orange-light, #ffb04d); }
+
+/* sender: one box */
+.sg-compose { width: 100%; max-width: 820px; margin: 0 auto; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); overflow: hidden; }
+.sg-compose-head { display: flex; align-items: center; gap: 14px; padding: 18px 22px; border-bottom: 1px solid var(--line-soft, var(--line)); }
+.sg-compose-icon { flex: none; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: rgba(var(--accent-rgb), .16); color: var(--orange-light, #ffb04d); }
+.sg-compose-head h3 { margin: 0; font-size: 16px; font-weight: 700; color: var(--ink); }
+.sg-compose-head p { margin: 3px 0 0; font-size: 12.5px; color: var(--ink-3); }
+
+.sg-compose form { display: flex; flex-direction: column; gap: 14px; padding: 20px 22px 22px; }
+.sg-compose textarea {
+  width: 100%; box-sizing: border-box; min-height: 240px; resize: vertical; padding: 14px 16px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); color: var(--ink);
+  font: inherit; font-size: 14px; line-height: 1.6;
+}
+.sg-compose textarea:focus { outline: none; border-color: var(--orange-light, #ffb04d); }
+
+.sg-compose-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px 18px; flex-wrap: wrap; padding-top: 4px; }
+.sg-compose-actions { display: flex; align-items: center; gap: 14px; margin-left: auto; }
+.sg-anon { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--ink-3); }
+.sg-count { font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.sg-ok { margin: 0; padding: 10px 12px; border-radius: 10px; background: rgba(52, 211, 153, .12); font-size: 13px; color: #a8f1d4; }
+.sg-compose .error-message { margin: 0; }
+@media (max-width: 560px) {
+  .sg-compose-head, .sg-compose form { padding-left: 16px; padding-right: 16px; }
+  .sg-compose-actions { width: 100%; justify-content: space-between; }
+}
+
+/* reviewers: stats, toolbar, feed */
+.sg-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 220px)); gap: 12px; }
+@media (max-width: 520px) { .sg-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.sg-stat { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.sg-stat svg { color: var(--orange-light, #ffb04d); flex: none; }
+.sg-stat b { display: block; font-size: 22px; color: var(--ink); line-height: 1.1; }
+.sg-stat span { font-size: 11px; color: var(--ink-3); }
+
+.sg-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.sg-search { position: relative; flex: 1; min-width: 220px; }
+.sg-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-3); }
+.sg-search input { width: 100%; padding: 10px 12px 10px 36px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--ink); font: inherit; font-size: 13px; box-sizing: border-box; }
+.sg-toolbar select { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--ink); font: inherit; font-size: 13px; }
+.sg-search input:focus, .sg-toolbar select:focus { outline: none; border-color: var(--orange-light, #ffb04d); }
+
+.sg-feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; align-items: start; }
+.sg-card { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); min-width: 0; }
+.sg-card p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.sg-card footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 10px; border-top: 1px solid var(--line-soft, var(--line)); }
+.sg-card small { font-size: 11px; color: var(--ink-3); }
+.sg-empty { padding: 36px 10px; text-align: center; color: var(--ink-3); font-size: 13px; margin: 0; }
+.sg-del { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 9px; background: transparent; color: #ff9d8a; cursor: pointer; }
+.sg-del:hover:not(:disabled) { background: rgba(var(--accent2-rgb), .16); }
+.sg-del:disabled { opacity: .5; cursor: not-allowed; }
