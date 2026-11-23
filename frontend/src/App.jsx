@@ -41,7 +41,7 @@ import { MusicProvider } from './music/MusicContext';
 import MiniPlayer from './music/MiniPlayer';
 import { NotificationProvider } from './notifications/NotificationContext';
 import { ThemeProvider } from './theme/ThemeContext';
-
+import AskAI from './components/AskAI';
 
 const getDashboardPath = (role) => {
   if (role === 'admin') return '/admin';
@@ -91,6 +91,7 @@ const DashboardLayout = () => {
             <Outlet />
           </main>
           <MiniPlayer />
+          <AskAI />
         </div>
       </div>
       </NotificationProvider>
