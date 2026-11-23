@@ -1,7 +1,11 @@
 import notiUrl from '../assets/noti.mp3';
 
 // Notification sound: the default is noti.mp3 (src/assets/noti.mp3). In Settings a person can pick another built-in tone or upload their own file
+<<<<<<< HEAD
+// (saved in this browser, separately for each panel). Only notifications play this sound; nothing else in the app makes a sound.
+=======
 // (saved in this browser). Only notifications play this sound; nothing else in the app makes a sound.
+>>>>>>> 6cc24dc5db2478acc9788462a3bd9b39020ec9d6
 // Browsers keep audio LOCKED until the person has clicked or pressed a key on the page once.
 // After a page refresh it is locked again until the next click.
 let ctx = null;
@@ -12,9 +16,13 @@ let pending = false;
 const KEY = 'notifSoundMuted_v2';
 const listeners = new Set();
 
-let muted = (() => {
-  try { return localStorage.getItem(KEY) === '1'; } catch { return false; }
-})();
+// Every panel (role) keeps its own sound settings: on/off, which sound, the uploaded file and the volume.
+let owner = 'guest';
+const keyFor = (base) => `${base}_${owner}`;
+const loadMuted = () => {
+  try { return localStorage.getItem(keyFor(KEY)) === '1'; } catch { return false; }
+};
+let muted = false;
 
 const ENABLED_KEY = 'notifSoundEnabled';
 // true once the person has unlocked sound in this browser (browsers still re-lock audio after a refresh,
@@ -25,7 +33,7 @@ export const wasEnabled = () => {
 export const isMuted = () => muted;
 export const setMuted = (value) => {
   muted = Boolean(value);
-  try { localStorage.setItem(KEY, muted ? '1' : '0'); } catch { /* storage unavailable */ }
+  try { localStorage.setItem(keyFor(KEY), muted ? '1' : '0'); } catch { /* storage unavailable */ }
 };
 
 // 'running' = sound will play, anything else = the browser is still blocking it
@@ -128,6 +136,38 @@ export const SOUND_PRESETS = [
   { id: 'soft', name: 'Soft bell', hint: 'One gentle note' },
   { id: 'alert', name: 'Alert', hint: 'Two falling notes' }
 ];
+<<<<<<< HEAD
+const readKey = (k) => { try { return localStorage.getItem(keyFor(k)); } catch { return null; } };
+const writeKey = (k, v) => { try { localStorage.setItem(keyFor(k), v); return true; } catch { return false; } };
+const loadCustom = () => {
+  try { const j = JSON.parse(readKey(CUSTOM_KEY)); return j && j.data ? j : null; } catch { return null; }
+};
+
+let file = null; // the <audio> element used for the default / custom file
+let custom = null;
+
+// Called with the signed-in role (admin, hr, sme ...) so each panel uses its own saved sound.
+export const setSoundOwner = (role) => {
+  const next = role || 'guest';
+  if (next === owner) return;
+  owner = next;
+  file = null;
+  custom = loadCustom();
+  muted = loadMuted();
+};
+
+export const getCustomSound = () => (custom ? { name: custom.name } : null);
+export const getSoundChoice = () => {
+  const c = readKey(SOUND_KEY);
+  if (c === 'custom') return custom ? 'custom' : 'default';
+  return SOUND_PRESETS.some((p) => p.id === c) ? c : 'default';
+};
+export const setSoundChoice = (id) => { writeKey(SOUND_KEY, id); file = null; };
+export const getVolume = () => {
+  const v = parseFloat(readKey(VOLUME_KEY));
+  return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1;
+};
+=======
 const readKey = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
 const writeKey = (k, v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } };
 
@@ -147,6 +187,7 @@ export const getVolume = () => {
   const v = parseFloat(readKey(VOLUME_KEY));
   return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1;
 };
+>>>>>>> 6cc24dc5db2478acc9788462a3bd9b39020ec9d6
 export const setVolume = (v) => {
   const x = Math.min(1, Math.max(0, v));
   writeKey(VOLUME_KEY, String(x));
@@ -168,7 +209,11 @@ export const saveCustomSound = (f) => new Promise((resolve, reject) => {
   reader.readAsDataURL(f);
 });
 export const removeCustomSound = () => {
+<<<<<<< HEAD
+  try { localStorage.removeItem(keyFor(CUSTOM_KEY)); } catch { /* ignore */ }
+=======
   try { localStorage.removeItem(CUSTOM_KEY); } catch { /* ignore */ }
+>>>>>>> 6cc24dc5db2478acc9788462a3bd9b39020ec9d6
   custom = null;
   if (readKey(SOUND_KEY) === 'custom') setSoundChoice('default');
   file = null;
