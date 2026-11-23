@@ -1,6 +1,7 @@
 import notiUrl from '../assets/noti.mp3';
 
-// The notification sound is the noti.mp3 file (src/assets/noti.mp3). The small action ticks / error buzz are still generated with the Web Audio API.
+// Notification sound: the default is noti.mp3 (src/assets/noti.mp3). In Settings a person can pick another built-in tone or upload their own file
+// (saved in this browser). The small action ticks / error buzz are generated with the Web Audio API.
 // Browsers keep audio LOCKED until the person has clicked or pressed a key on the page once.
 // After a page refresh it is locked again until the next click.
 let ctx = null;
@@ -90,9 +91,9 @@ const unlock = () => {
     } catch { /* ignore */ }
     if (c.state === 'running') { try { localStorage.setItem(ENABLED_KEY, '1'); } catch { /* ignore */ } }
     emit();
-    if (pending) {
+    if (pending && (usesFile() || c.state === 'running')) {
       pending = false;
-      ringFile(() => { pending = true; });
+      ring(() => { pending = true; });
     }
     if (c.state === 'running') EVENTS.forEach((e) => window.removeEventListener(e, unlock, true));
   };
@@ -116,14 +117,73 @@ if (typeof window !== 'undefined') {
 }
 
 
-// ---- Notification sound: noti.mp3 played through one reusable <audio> element.
-let file = null;
+// ---- Notification sound preferences (saved in this browser)
+const SOUND_KEY = 'notifSoundChoice';
+const CUSTOM_KEY = 'notifSoundCustom'; // JSON { name, data } where data is a data: URL
+const VOLUME_KEY = 'notifSoundVolume';
+export const MAX_SOUND_BYTES = 1024 * 1024;
+export const SOUND_PRESETS = [
+  { id: 'default', name: 'Default', hint: 'The standard notification sound' },
+  { id: 'classic', name: 'Classic ding', hint: 'Two rising notes' },
+  { id: 'soft', name: 'Soft bell', hint: 'One gentle note' },
+  { id: 'alert', name: 'Alert', hint: 'Two falling notes' }
+];
+const readKey = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const writeKey = (k, v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } };
+
+let file = null; // the <audio> element used for the default / custom file
+let custom = (() => {
+  try { const j = JSON.parse(readKey(CUSTOM_KEY)); return j && j.data ? j : null; } catch { return null; }
+})();
+
+export const getCustomSound = () => (custom ? { name: custom.name } : null);
+export const getSoundChoice = () => {
+  const c = readKey(SOUND_KEY);
+  if (c === 'custom') return custom ? 'custom' : 'default';
+  return SOUND_PRESETS.some((p) => p.id === c) ? c : 'default';
+};
+export const setSoundChoice = (id) => { writeKey(SOUND_KEY, id); file = null; };
+export const getVolume = () => {
+  const v = parseFloat(readKey(VOLUME_KEY));
+  return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1;
+};
+export const setVolume = (v) => {
+  const x = Math.min(1, Math.max(0, v));
+  writeKey(VOLUME_KEY, String(x));
+  if (file) file.volume = x;
+};
+// Saves an uploaded audio file as the custom sound and selects it. Rejects with a readable message.
+export const saveCustomSound = (f) => new Promise((resolve, reject) => {
+  if (!f || !/^audio\//.test(f.type)) { reject(new Error('Please choose an audio file (MP3, WAV, OGG or M4A).')); return; }
+  if (f.size > MAX_SOUND_BYTES) { reject(new Error('The sound must be 1 MB or smaller.')); return; }
+  const reader = new FileReader();
+  reader.onerror = () => reject(new Error('Could not read that file.'));
+  reader.onload = () => {
+    const next = { name: f.name.slice(0, 60), data: String(reader.result) };
+    if (!writeKey(CUSTOM_KEY, JSON.stringify(next))) { reject(new Error('This browser has no room left to save the sound.')); return; }
+    custom = next;
+    setSoundChoice('custom');
+    resolve(getCustomSound());
+  };
+  reader.readAsDataURL(f);
+});
+export const removeCustomSound = () => {
+  try { localStorage.removeItem(CUSTOM_KEY); } catch { /* ignore */ }
+  custom = null;
+  if (readKey(SOUND_KEY) === 'custom') setSoundChoice('default');
+  file = null;
+};
+
+// ---- Playing it
+const usesFile = () => { const c = getSoundChoice(); return c === 'default' || c === 'custom'; };
+const makeAudio = (id) => {
+  const a = new Audio(id === 'custom' && custom ? custom.data : notiUrl);
+  a.preload = 'auto';
+  a.volume = getVolume();
+  return a;
+};
 const getFile = () => {
-  if (!file && typeof Audio !== 'undefined') {
-    file = new Audio(notiUrl);
-    file.preload = 'auto';
-    file.volume = 1;
-  }
+  if (!file && typeof Audio !== 'undefined') file = makeAudio(getSoundChoice() === 'custom' ? 'custom' : 'default');
   return file;
 };
 // Inside a real click: play it silently once so the browser allows the file to play later without a click.
@@ -140,9 +200,32 @@ const ringFile = (onBlocked) => {
     const a = getFile();
     if (!a) return;
     a.muted = false;
+    a.volume = getVolume();
     a.currentTime = 0;
     a.play().catch(() => { if (onBlocked) onBlocked(); });
   } catch { if (onBlocked) onBlocked(); }
+};
+// Plays whichever sound is chosen. onBlocked runs when the browser is still blocking sound.
+const ring = (onBlocked) => {
+  if (usesFile()) { ringFile(onBlocked); return; }
+  if (ctx && ctx.state === 'running') { play((c, t) => generated(c, t, getSoundChoice()), true); return; }
+  try { const c = getCtx(); if (c) c.resume().catch(() => { }); } catch { /* ignore */ }
+  if (onBlocked) onBlocked();
+};
+let previewing = null;
+// Settings page: hear any sound without selecting it (works even when sound is switched off).
+export const previewSound = (id) => {
+  try { if (previewing) { previewing.pause(); previewing = null; } } catch { /* ignore */ }
+  if (id === 'default' || id === 'custom') {
+    try {
+      previewing = makeAudio(id);
+      previewing.play().catch(() => { });
+    } catch { /* ignore */ }
+    return;
+  }
+  const c = getCtx();
+  if (c) c.resume().catch(() => { });
+  play((cc, t) => generated(cc, t, id), true);
 };
 
 // ---- System notification: the operating system plays its own notification sound, even with the tab in the background.
@@ -189,6 +272,16 @@ const note = (c, freq, start, length, volume, type = 'sine') => {
   });
 };
 
+// Built-in tones: [frequency Hz, start s, length s, volume]
+const GEN = {
+  classic: [[784, 0, 0.4, 0.85], [1175, 0.12, 0.85, 0.9]],
+  soft: [[587, 0, 1.2, 0.8]],
+  alert: [[659, 0, 0.5, 0.9], [523, 0.16, 0.9, 0.95]]
+};
+const generated = (c, t, id) => {
+  (GEN[id] || GEN.classic).forEach(([freq, at, len, vol]) => note(c, freq, t + at, len, vol, 'sine'));
+};
+
 // Waits until the browser has actually unlocked audio, THEN schedules the notes (scheduling on a
 // suspended context would put them in the past and they would never be heard).
 const play = (fn, force = false) => {
@@ -196,21 +289,21 @@ const play = (fn, force = false) => {
   try {
     const c = getCtx();
     if (!c) return;
-    const go = () => fn(c, c.currentTime + 0.03);
+    const go = () => { if (master) master.gain.value = 1.6 * getVolume(); fn(c, c.currentTime + 0.03); };
     if (c.state === 'running') go();
     else c.resume().then(() => { if (c.state === 'running') go(); }).catch(() => { });
   } catch { /* sound is optional */ }
 };
 
-// Someone else did something for you: plays noti.mp3. If the browser is still blocking sound, it rings on the next click / key press.
+// Someone else did something for you: plays the chosen notification sound. If the browser is still blocking sound, it rings on the next click / key press.
 export const playNotification = () => {
   if (muted) return;
-  ringFile(() => { pending = true; });
+  ring(() => { pending = true; });
 };
 
 // The "Test sound" button in the bell panel: plays even when sound is switched off, so it can be checked.
 export const playTest = () => {
-  ringFile();
+  ring();
 };
 
 // You did something and it worked: a short, clear tick.
