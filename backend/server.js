@@ -17,6 +17,7 @@ import musicRoutes from './music/musicRoutes.js';
 import accountRoutes from './account/accountRoutes.js';
 import rmRoutes from './rm/rmRoutes.js';
 import notificationRoutes from './notifications/notificationRoutes.js';
+import suggestionRoutes from './suggestion/suggestionRoutes.js';
 import { startGrainPoller } from './meeting/grainSync.js';
 import { googleCallback } from './meeting/integrationRoutes.js';
 dotenv.config();
@@ -48,6 +49,7 @@ app.use('/api/music', musicRoutes);
 app.use('/api/account', accountRoutes);
 app.use('/api/rm', rmRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/suggestions', suggestionRoutes);
 app.get('/api/admin/dashboard', protect(['admin', 'operation_manager']), (req, res) => {
     res.json({ message: 'Admin access granted' });
 });
