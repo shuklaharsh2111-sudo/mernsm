@@ -49,8 +49,8 @@ export const splitSkills = (value) =>
   (Array.isArray(value) ? value : String(value || '').split(/[,;\n]/)).map((s) => String(s).trim()).filter(Boolean);
 
 // -> null when there is nothing to compare with, otherwise the result of the comparison
-export const evaluateMatch = async (position, skillsText) => {
-  const roles = await RoleSkill.find().lean();
+export const evaluateMatch = async (position, skillsText, hrId) => {
+  const roles = await RoleSkill.find({ createdBy: hrId }).lean();
   const role = findRole(roles, position);
   if (!role || !role.skills.length) return null;
   const have = splitSkills(skillsText).map(normSkill);
@@ -74,8 +74,9 @@ export const evaluateMatch = async (position, skillsText) => {
 
 // Re-compare every candidate after a role's base skills change, so the badges never show an old result.
 // Only the stored result is refreshed; nobody is shortlisted or un-shortlisted here.
-export const refreshAllMatches = async () => {
-  const roles = await RoleSkill.find().lean();
+export const refreshAllMatches = async (hrId) => {
+  const roles = await RoleSkill.find({ createdBy: hrId }).lean();
+  const candidates = await Candidate.find({ createdBy: hrId });
   const list = await Candidate.find().select('position skills matchRole matchScore matchNeeded matchedSkills missingSkills').lean();
   const ops = [];
   list.forEach((c) => {

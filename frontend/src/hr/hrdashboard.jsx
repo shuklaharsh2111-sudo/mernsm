@@ -9,18 +9,15 @@ import { initialsOf, fmtTime, fmtDate, dayKey } from './hrUtils';
 import '../style.css';
 import '../styles/dashboard-glass.css';
 import '../styles/hr.css';
-
 const Avatar = ({ name, src }) => (
   <div className="hr-avatar">{src ? <img src={src} alt={name} /> : initialsOf(name)}</div>
 );
-
 const HrDashboard = () => {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
-
   useEffect(() => {
     let cancelled = false;
     api.get('/hr/dashboard')
@@ -29,7 +26,6 @@ const HrDashboard = () => {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [reloadKey]);
-
   const s = data?.summary;
   const val = (n) => (s ? n : '–');
   const maxPresent = Math.max(1, ...(data?.trend || []).map((t) => t.present));
@@ -38,7 +34,6 @@ const HrDashboard = () => {
   const todayKey = dayKey(new Date());
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-
   return (
     <div className="dashboard-content scrollable dash-glass hr-page">
       <div className="dash-hero">
@@ -51,9 +46,7 @@ const HrDashboard = () => {
           <RefreshCw size={15} /> Refresh
         </button>
       </div>
-
       {error && <p className="error-message" role="alert">{error}</p>}
-
       <div className="kpi-grid">
         <div className="kpi-card">
           <div className="kpi-top"><span className="kpi-label">Total employees</span><span className="kpi-icon"><Users size={17} /></span></div>
@@ -82,7 +75,6 @@ const HrDashboard = () => {
           <div className="kpi-sub">First login after {data?.lateAfter || '10:30'}</div>
         </div>
       </div>
-
       <div className="hr-grid">
         <section className="hr-card">
           <div className="hr-card-head">
@@ -100,7 +92,6 @@ const HrDashboard = () => {
             {!data && <p className="hr-empty">{loading ? 'Loading…' : 'No data'}</p>}
           </div>
         </section>
-
         <section className="hr-card">
           <div className="hr-card-head"><h3>Headcount by role</h3><small>{s?.totalEmployees ?? 0} total</small></div>
           <div className="hr-roles">
@@ -115,7 +106,6 @@ const HrDashboard = () => {
           </div>
         </section>
       </div>
-
       <div className="hr-grid even">
         <section className="hr-card">
           <div className="hr-card-head"><h3>In today</h3><small>{data?.presentToday.length ?? 0} people</small></div>
@@ -135,7 +125,6 @@ const HrDashboard = () => {
             ))}
           </div>
         </section>
-
         <section className="hr-card">
           <div className="hr-card-head"><h3>Not in yet</h3><small>{data?.absentToday.length ?? 0} people</small></div>
           <div className="hr-list">
@@ -153,7 +142,6 @@ const HrDashboard = () => {
           </div>
         </section>
       </div>
-
       <section className="hr-card">
         <div className="hr-card-head">
           <h3><UserPlus size={15} style={{ verticalAlign: '-2px', marginRight: 6 }} />New joiners</h3>
@@ -173,5 +161,4 @@ const HrDashboard = () => {
     </div>
   );
 };
-
 export default HrDashboard;
