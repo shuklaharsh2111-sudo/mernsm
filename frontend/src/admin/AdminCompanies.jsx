@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Plus, Trash2, Building2, ImagePlus, X } from 'lucide-react';
+import { Plus, Trash2, Building2, ImagePlus, X, Key } from 'lucide-react';
 import api from '../api';
 import { errMsg } from '../sopUtils';
 import '../styles/admincompanies.css';
@@ -8,6 +8,12 @@ const AdminCompanies = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [loginFor, setLoginFor] = useState(null); // company whose login is being edited
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPw, setLoginPw] = useState('');
   const [logo, setLogo] = useState(null);
   const [preview, setPreview] = useState('');
   const [busy, setBusy] = useState(false);
@@ -69,15 +75,36 @@ const AdminCompanies = () => {
     try {
       const formData = new FormData();
       formData.append('name', name.trim());
+      formData.append('email', email.trim());
+      formData.append('password', password);
       formData.append('logo', logo);
       await api.post('/admin/companies', formData);
       setName('');
+      setEmail('');
+      setPassword('');
       clearLogo();
       reload();
     } catch (err) {
       setError(errMsg(err));
     } finally {
       setBusy(false);
+    }
+  };
+  const openLogin = (c) => {
+    if (loginFor === c.id) { setLoginFor(null); return; }
+    setLoginFor(c.id);
+    setLoginEmail(c.email || '');
+    setLoginPw('');
+  };
+  const saveLogin = async (e, c) => {
+    e.preventDefault();
+    setError('');
+    try {
+      await api.put(`/admin/companies/${c.id}/login`, { email: loginEmail.trim(), password: loginPw });
+      setLoginFor(null);
+      reload();
+    } catch (err) {
+      setError(errMsg(err));
     }
   };
   const remove = async (c) => {
@@ -132,6 +159,30 @@ const AdminCompanies = () => {
               onChange={(e) => setName(e.target.value)}
             />
           </label>
+          <label className="x-field">
+            <span>Company email *</span>
+            <input
+              type="email"
+              value={email}
+              required
+              autoComplete="off"
+              placeholder="company@example.com"
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </label>
+          <label className="x-field">
+            <span>Password * (min 8 characters)</span>
+            <input
+              type={showPw ? 'text' : 'password'}
+              value={password}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              placeholder="Set a password"
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button type="button" className="ac-remove" onClick={() => setShowPw((v) => !v)}>{showPw ? 'Hide' : 'Show'} password</button>
+          </label>
           <button className="btn-primary" disabled={busy}>
             <Plus size={16} />
             {busy ? 'Uploading…' : 'Add company'}
@@ -148,7 +199,8 @@ const AdminCompanies = () => {
       ) : (
         <div className="user-list">
           {companies.map((c) => (
-            <div key={c.id} className="glass-panel user-row">
+            <div key={c.id}>
+            <div className="glass-panel user-row">
               <div className="user-main" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 {c.logo ? (
                   <img
@@ -164,10 +216,13 @@ const AdminCompanies = () => {
                 <div>
                   <h3>{c.name}</h3>
                   <span className="muted" style={{ fontSize: 12 }}>
-                    {c.logo ? 'Logo uploaded' : 'No logo available'}
+                    {c.email || 'No email set'}
                   </span>
                 </div>
               </div>
+              <button type="button" className="btn-ghost" onClick={() => openLogin(c)}>
+                <Key size={15} /> {c.hasLogin ? 'Login' : 'Set login'}
+              </button>
               <button
                 type="button"
                 className="btn-ghost danger"
@@ -176,6 +231,14 @@ const AdminCompanies = () => {
               >
                 <Trash2 size={15} />
               </button>
+            </div>
+            {loginFor === c.id && (
+              <form className="ac-login" onSubmit={(e) => saveLogin(e, c)}>
+                <input type="email" required value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="Company email" autoComplete="off" />
+                <input type="password" minLength={8} required={!c.hasLogin} value={loginPw} onChange={(e) => setLoginPw(e.target.value)} placeholder={c.hasLogin ? 'New password (leave empty to keep)' : 'Password (min 8)'} autoComplete="new-password" />
+                <button className="btn-primary">Save login</button>
+              </form>
+            )}
             </div>
           ))}
         </div>

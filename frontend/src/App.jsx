@@ -11,6 +11,8 @@ import AdminCompanies from './admin/AdminCompanies';
 import AdminMeetings from './admin/AdminMeetings';
 import AdminCreatives from './admin/AdminCreatives';
 import AdminAttendance from './admin/AdminAttendance';
+// ON HOLD (device tracking): import AdminDevices from './admin/AdminDevices';
+// ON HOLD (device tracking): import DeviceTracker from './DeviceTracker';
 import AdminCalendar from './admin/AdminCalendar';
 import RmDashboard from './rm/RmDashboard';
 import RmTeam from './rm/RmTeam';
@@ -42,6 +44,8 @@ import MiniPlayer from './music/MiniPlayer';
 import { NotificationProvider } from './notifications/NotificationContext';
 import { ThemeProvider } from './theme/ThemeContext';
 import AskAI from './components/AskAI';
+import ClientDashboard from './client/ClientDashboard';
+import ClientCalendar from './client/ClientCalendar';
 
 const getDashboardPath = (role) => {
   if (role === 'admin') return '/admin';
@@ -51,6 +55,7 @@ const getDashboardPath = (role) => {
   if (role === 'des') return '/des';
   if (role === 'smi') return '/smi';
   if (role === 'hr') return '/hr/recruitment';
+  if (role === 'clients') return '/client';
   return '/login';
 };
 const ProtectedRoute = ({ role }) => {
@@ -98,6 +103,29 @@ const DashboardLayout = () => {
     </MusicProvider>
   );
 };
+// Client companies get a lean shell: no music player and no AI assistant.
+const ClientLayout = () => {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const { pathname } = useLocation();
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+  return (
+    <NotificationProvider>
+      <div className={`app-shell ${collapsed ? 'collapsed' : ''}`}>
+        <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+        {mobileOpen && <div className="app-scrim" onClick={() => setMobileOpen(false)} />}
+        <div className="app-main">
+          <Topbar onMenu={() => setMobileOpen(true)} />
+          <main className="app-content">
+            <Outlet />
+          </main>
+        </div>
+      </div>
+    </NotificationProvider>
+  );
+};
 const AppRoutes = () => {
   const { user, loading, banned } = useAuth();
   if (loading) return <div className="loading-screen">Loading...</div>;
@@ -105,6 +133,7 @@ const AppRoutes = () => {
   const dashboardPath = getDashboardPath(user?.role);
   return (
     <Routes>
+      {/* ON HOLD: <Route path="/track" element={<DeviceTracker />} /> */}
       <Route path="/login" element={user ? <Navigate to={dashboardPath} replace /> : <Login />} />
       <Route element={<ProtectedRoute role="admin" />}>
         <Route element={<DashboardLayout />}>
@@ -115,6 +144,7 @@ const AppRoutes = () => {
           <Route path="/admin/invoices" element={<Invoices />} />
           <Route path="/admin/creatives" element={<AdminCreatives />} />
           <Route path="/admin/attendance" element={<AdminAttendance />} />
+          {/* ON HOLD: <Route path="/admin/devices" element={<AdminDevices />} /> */}
           <Route path="/admin/calendar" element={<AdminCalendar />} />
           <Route path="/admin/playlist" element={<PlaylistPage workspace="ADMIN WORKSPACE" />} />
           <Route path="/admin/suggestions" element={<SuggestionsPage />} />
@@ -128,6 +158,7 @@ const AppRoutes = () => {
           <Route path="/om/invoices" element={<Invoices />} />
           <Route path="/om/creatives" element={<AdminCreatives label="OPERATION MANAGER" />} />
           <Route path="/om/attendance" element={<AdminAttendance label="OPERATION MANAGER" />} />
+          {/* ON HOLD: <Route path="/om/devices" element={<AdminDevices canEdit={false} label="OPERATION MANAGER" />} /> */}
           <Route path="/om/calendar" element={<AdminCalendar />} />
           <Route path="/om/playlist" element={<PlaylistPage workspace="OPERATION MANAGER WORKSPACE" />} />
           <Route path="/om/suggestions" element={<SuggestionsPage />} />
@@ -192,6 +223,13 @@ const AppRoutes = () => {
           <Route path="/hr/playlist" element={<PlaylistPage workspace="HR WORKSPACE" />} />
           <Route path="/hr/suggestions" element={<SuggestionsPage />} />
           <Route path="/hr/settings" element={<ProfileSettings workspace="HR WORKSPACE" />} />
+        </Route>
+      </Route>
+      <Route element={<ProtectedRoute role="clients" />}>
+        <Route element={<ClientLayout />}>
+          <Route path="/client" element={<ClientDashboard />} />
+          <Route path="/client/calendar" element={<ClientCalendar />} />
+          <Route path="/client/settings" element={<ProfileSettings workspace="CLIENT WORKSPACE" />} />
         </Route>
       </Route>
       <Route path="/" element={<Navigate to={dashboardPath} replace />} />

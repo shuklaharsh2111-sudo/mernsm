@@ -34,6 +34,8 @@ const validCoords = (lat, lng) =>
  * `location` is what gets stored on the attendance record (or null).
  */
 export const checkLocation = (role, body = {}) => {
+  // client companies are not office staff: no location rule
+  if (role === 'clients') return { ok: true, location: null };
   const office = getOfficeConfig();
   // Operation managers follow the same location rule as admins.
   const enforce = (role === 'admin' || role === 'operation_manager') ? office.enforceAdmin : office.enforceSme;
