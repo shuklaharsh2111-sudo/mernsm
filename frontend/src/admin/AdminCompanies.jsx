@@ -8,6 +8,9 @@ const AdminCompanies = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [logo, setLogo] = useState(null);
   const [preview, setPreview] = useState('');
   const [busy, setBusy] = useState(false);
@@ -69,9 +72,13 @@ const AdminCompanies = () => {
     try {
       const formData = new FormData();
       formData.append('name', name.trim());
+      formData.append('email', email.trim());
+      formData.append('password', password);
       formData.append('logo', logo);
       await api.post('/admin/companies', formData);
       setName('');
+      setEmail('');
+      setPassword('');
       clearLogo();
       reload();
     } catch (err) {
@@ -132,6 +139,30 @@ const AdminCompanies = () => {
               onChange={(e) => setName(e.target.value)}
             />
           </label>
+          <label className="x-field">
+            <span>Company email *</span>
+            <input
+              type="email"
+              value={email}
+              required
+              autoComplete="off"
+              placeholder="company@example.com"
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </label>
+          <label className="x-field">
+            <span>Password * (min 8 characters)</span>
+            <input
+              type={showPw ? 'text' : 'password'}
+              value={password}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              placeholder="Set a password"
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button type="button" className="ac-remove" onClick={() => setShowPw((v) => !v)}>{showPw ? 'Hide' : 'Show'} password</button>
+          </label>
           <button className="btn-primary" disabled={busy}>
             <Plus size={16} />
             {busy ? 'Uploading…' : 'Add company'}
@@ -164,7 +195,7 @@ const AdminCompanies = () => {
                 <div>
                   <h3>{c.name}</h3>
                   <span className="muted" style={{ fontSize: 12 }}>
-                    {c.logo ? 'Logo uploaded' : 'No logo available'}
+                    {c.email || 'No email set'}
                   </span>
                 </div>
               </div>

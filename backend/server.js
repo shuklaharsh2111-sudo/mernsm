@@ -21,6 +21,7 @@ import suggestionRoutes from './suggestion/suggestionRoutes.js';
 import { startGrainPoller } from './meeting/grainSync.js';
 import { googleCallback } from './meeting/integrationRoutes.js';
 import aiRoutes from './ai/aiRoutes.js';
+// ON HOLD (device tracking): import deviceRoutes, { publicRouter as devicePublicRoutes } from './attendance/deviceRoutes.js';
 dotenv.config();
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -52,6 +53,8 @@ app.use('/api/account', accountRoutes);
 app.use('/api/rm', rmRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/suggestions', suggestionRoutes);
+// ON HOLD (device tracking): app.use('/api/device', devicePublicRoutes);
+// ON HOLD (device tracking): app.use('/api/devices', deviceRoutes);
 app.get('/api/admin/dashboard', protect(['admin', 'operation_manager']), (req, res) => {
     res.json({ message: 'Admin access granted' });
 });

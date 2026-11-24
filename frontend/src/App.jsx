@@ -11,6 +11,8 @@ import AdminCompanies from './admin/AdminCompanies';
 import AdminMeetings from './admin/AdminMeetings';
 import AdminCreatives from './admin/AdminCreatives';
 import AdminAttendance from './admin/AdminAttendance';
+// ON HOLD (device tracking): import AdminDevices from './admin/AdminDevices';
+// ON HOLD (device tracking): import DeviceTracker from './DeviceTracker';
 import AdminCalendar from './admin/AdminCalendar';
 import RmDashboard from './rm/RmDashboard';
 import RmTeam from './rm/RmTeam';
@@ -105,6 +107,7 @@ const AppRoutes = () => {
   const dashboardPath = getDashboardPath(user?.role);
   return (
     <Routes>
+      {/* ON HOLD: <Route path="/track" element={<DeviceTracker />} /> */}
       <Route path="/login" element={user ? <Navigate to={dashboardPath} replace /> : <Login />} />
       <Route element={<ProtectedRoute role="admin" />}>
         <Route element={<DashboardLayout />}>
@@ -115,6 +118,7 @@ const AppRoutes = () => {
           <Route path="/admin/invoices" element={<Invoices />} />
           <Route path="/admin/creatives" element={<AdminCreatives />} />
           <Route path="/admin/attendance" element={<AdminAttendance />} />
+          {/* ON HOLD: <Route path="/admin/devices" element={<AdminDevices />} /> */}
           <Route path="/admin/calendar" element={<AdminCalendar />} />
           <Route path="/admin/playlist" element={<PlaylistPage workspace="ADMIN WORKSPACE" />} />
           <Route path="/admin/suggestions" element={<SuggestionsPage />} />
@@ -128,6 +132,7 @@ const AppRoutes = () => {
           <Route path="/om/invoices" element={<Invoices />} />
           <Route path="/om/creatives" element={<AdminCreatives label="OPERATION MANAGER" />} />
           <Route path="/om/attendance" element={<AdminAttendance label="OPERATION MANAGER" />} />
+          {/* ON HOLD: <Route path="/om/devices" element={<AdminDevices canEdit={false} label="OPERATION MANAGER" />} /> */}
           <Route path="/om/calendar" element={<AdminCalendar />} />
           <Route path="/om/playlist" element={<PlaylistPage workspace="OPERATION MANAGER WORKSPACE" />} />
           <Route path="/om/suggestions" element={<SuggestionsPage />} />

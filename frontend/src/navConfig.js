@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Settings, CalendarDays, FolderOpen, Bookmark,
   ChartNoAxesCombined, FileBarChart, Clock, Building2, Receipt,
-  CalendarCheck, Palette, UserCheck, Briefcase, Wifi, Music, Megaphone, ListChecks, Lightbulb
+  CalendarCheck, Palette, UserCheck, Briefcase, Wifi, MapPin, Music, Megaphone, ListChecks, Lightbulb
 } from 'lucide-react';
 export const RM_NAV = [
   {
@@ -52,6 +52,7 @@ export const ADMIN_NAV = [
       { title: 'Meetings', path: '/admin/meetings', icon: CalendarCheck },
       { title: 'Creatives', path: '/admin/creatives', icon: Palette },
       { title: 'Attendance', path: '/admin/attendance', icon: UserCheck },
+      // ON HOLD: { title: 'Devices & Locations', path: '/admin/devices', icon: MapPin },
       { title: 'Calendar', path: '/admin/calendar', icon: CalendarDays }
     ]
   },
