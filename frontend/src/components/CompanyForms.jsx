@@ -56,7 +56,7 @@ export default function CompanyForms({ workspace }) {
         <div>
           <span className="page-label">{workspace}</span>
           <h1>Companies</h1>
-          <p>Details of every company assigned to you. Send the onboarding form and see what they submit.</p>
+          <p>Every company assigned to you, one per row. Send the onboarding form and see what they submit.</p>
         </div>
       </div>
 
@@ -64,25 +64,27 @@ export default function CompanyForms({ workspace }) {
       {companies === null && !error && <p className="muted">Loading…</p>}
       {companies && companies.length === 0 && <p className="muted">No companies are assigned to you yet.</p>}
 
-      <div className="fm-grid">
+      <div className="fm-rows">
         {(companies || []).map((c) => {
           const forms = formsBy[c.id];
           return (
-            <article key={c.id} className="fm-card">
-              <header className="fm-card-head">
-                <CompanyBadge company={c} size={56} />
+            <article key={c.id} className="fm-co">
+              {/* 1 · the company */}
+              <div className="fm-col fm-col-id">
+                <CompanyBadge company={c} size={52} />
                 <div className="fm-card-title">
                   <h2>{c.name}</h2>
                   {c.email
                     ? <a href={`mailto:${c.email}`} className="fm-line"><Mail size={13} /> {c.email}</a>
                     : <span className="fm-line muted"><Mail size={13} /> No company email</span>}
                 </div>
-              </header>
+              </div>
 
-              <div className="fm-section">
-                <span className="fm-label"><Users size={13} /> Company contact{c.clients.length === 1 ? '' : 's'}</span>
-                {c.clients.length === 0 ? <p className="muted fm-small">No login account is linked to this company yet.</p> : (
-                  <ul className="fm-contacts">
+              {/* 2 · who to contact */}
+              <div className="fm-col">
+                <span className="fm-label"><Users size={13} /> Contact{c.clients.length === 1 ? '' : 's'}</span>
+                {c.clients.length === 0 ? <p className="muted fm-small">No login account linked yet.</p> : (
+                  <ul className="fm-contacts fm-contacts-h">
                     {c.clients.map((cl) => (
                       <li key={cl.id}>
                         <b>{cl.name}</b>
@@ -94,7 +96,8 @@ export default function CompanyForms({ workspace }) {
                 )}
               </div>
 
-              <div className="fm-section">
+              {/* 3 · onboarding form status */}
+              <div className="fm-col">
                 <span className="fm-label"><FileText size={13} /> Onboarding form</span>
                 {c.latest ? (
                   <div className="fm-onb">
@@ -102,17 +105,22 @@ export default function CompanyForms({ workspace }) {
                       <StatusPill status={c.latest.status} />
                       <small>Filled by {c.latest.contactPerson || 'the company'} · {fmtStamp(c.latest.submittedAt)}</small>
                     </div>
-                    <button type="button" className="btn-ghost" onClick={() => setViewing({ formId: c.latest.formId })}><Eye size={14} /> View submitted form</button>
+                    <button type="button" className="btn-ghost" onClick={() => setViewing({ formId: c.latest.formId })}><Eye size={14} /> View</button>
                   </div>
-                ) : <p className="muted fm-small">This company has not completed the onboarding form yet.</p>}
+                ) : (
+                  <div className="fm-form-text">
+                    {c.forms.pending > 0 ? <StatusPill status="pending" /> : <span className="fm-pill none">Not sent yet</span>}
+                    <small>{c.forms.pending > 0 ? 'Waiting for the company to fill it in.' : 'Send the form to get their answers.'}</small>
+                  </div>
+                )}
+                <div className="fm-counts">
+                  <span><b>{c.forms.pending}</b> waiting</span>
+                  <span><b>{c.forms.submitted}</b> completed</span>
+                </div>
               </div>
 
-              <div className="fm-counts">
-                <span><b>{c.forms.pending}</b> waiting</span>
-                <span><b>{c.forms.submitted}</b> completed</span>
-              </div>
-
-              <div className="fm-actions">
+              {/* 4 · actions */}
+              <div className="fm-col fm-col-actions">
                 <button type="button" className="btn-primary" onClick={() => setSending(c)} disabled={c.clients.length === 0} title={c.clients.length === 0 ? 'This company has no login account to receive forms' : 'Send the onboarding form to this company'}>
                   <Send size={15} /> Send form
                 </button>
@@ -121,8 +129,9 @@ export default function CompanyForms({ workspace }) {
                 </button>
               </div>
 
+              {/* all forms sent to this company, across the full width of the row */}
               {open === c.id && (
-                <div className="fm-forms">
+                <div className="fm-forms fm-forms-wide">
                   {!forms && <p className="muted fm-small">Loading…</p>}
                   {forms && forms.length === 0 && <p className="muted fm-small">You have not sent the onboarding form to this company yet.</p>}
                   {(forms || []).map((f) => (
