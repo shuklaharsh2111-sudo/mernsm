@@ -58,12 +58,8 @@ const companyView = (c) => ({
   name: c.name,
   logo: c.logo || '',
   logoPublicId: c.logoPublicId || '',
-<<<<<<< HEAD
   email: c.email || '',
   hasLogin: Boolean(c.clientUser)
-=======
-  email: c.email || ''
->>>>>>> d2be6f229e4adff1ccae5f94159ddd2242b7d675
 });
 const sopView = (a) => ({
   id: a._id,
@@ -385,13 +381,8 @@ router.post('/companies', imageUpload.single('logo'), async (req, res) => {
   if (await Company.exists({ nameKey })) {
     return res.status(409).json({ message: 'That company already exists' });
   }
-<<<<<<< HEAD
   if (await emailInUse(email)) {
     return res.status(409).json({ message: 'That email is already in use' });
-=======
-  if (await Company.exists({ email })) {
-    return res.status(409).json({ message: 'That email is already used by another company' });
->>>>>>> d2be6f229e4adff1ccae5f94159ddd2242b7d675
   }
   const uploadedLogo = await uploadToCloudinary(req.file, 'creative-manager/company-logos');
   try {
@@ -399,10 +390,6 @@ router.post('/companies', imageUpload.single('logo'), async (req, res) => {
       name,
       nameKey,
       email,
-<<<<<<< HEAD
-=======
-      password: await bcrypt.hash(password, 10),
->>>>>>> d2be6f229e4adff1ccae5f94159ddd2242b7d675
       logo: uploadedLogo.secure_url,
       logoPublicId: uploadedLogo.public_id
     });

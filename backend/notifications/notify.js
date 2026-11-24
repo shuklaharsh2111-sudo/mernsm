@@ -1,17 +1,18 @@
 import Notification from './Notification.js';
 import Sme from '../sme/Sme.js';
-import { roleModels } from '../admin/UserModels.js';
+import { roleModels, Client } from '../admin/UserModels.js';
 
 // Where a notification should take each role when it is clicked.
 const LINKS = {
-  creatives: { admin: '/admin/creatives', operation_manager: '/om/creatives', reporting_manager: '/rm/creatives', sme: '/sme/pending-creatives', des: '/des/creatives' },
+  creatives: { admin: '/admin/creatives', operation_manager: '/om/creatives', reporting_manager: '/rm/creatives', sme: '/sme/pending-creatives', des: '/des/creatives', clients: '/client/calendar' },
   meetings: { admin: '/admin/meetings', operation_manager: '/om/meetings', reporting_manager: '/rm/meetings', sme: '/sme' },
   tasks: { sme: '/sme', smi: '/smi' },
   sops: { sme: '/sme', smi: '/smi' },
   invoices: { admin: '/admin/invoices', operation_manager: '/om/invoices' },
   team: { reporting_manager: '/rm/team' },
+  forms: { sme: '/sme/companies', smi: '/smi/companies', clients: '/client/forms' },
   suggestions: { admin: '/admin/suggestions', hr: '/hr/suggestions' },
-  home: { admin: '/admin', operation_manager: '/om', reporting_manager: '/rm', sme: '/sme', smi: '/smi', des: '/des', hr: '/hr/recruitment' }
+  home: { admin: '/admin', operation_manager: '/om', reporting_manager: '/rm', sme: '/sme', smi: '/smi', des: '/des', hr: '/hr/recruitment', clients: '/client' }
 };
 export const linkFor = (role, topic) => LINKS[topic]?.[role] || LINKS.home[role] || '/';
 
@@ -88,6 +89,17 @@ export const notifyReviewers = async (smeId, payload, actor) => {
     const sme = await Sme.findById(smeId).select('reportingManagerId').lean();
     if (sme?.reportingManagerId) recipients.push({ id: sme.reportingManagerId, role: 'reporting_manager' });
     return await notifyUsers(recipients, payload, actor);
+  } catch (error) {
+    console.error('Notification error:', error.message);
+  }
+};
+
+// The client accounts linked to a company (they see that company's final creatives on their calendar).
+export const notifyCompanyClients = async (companyId, payload, actor) => {
+  try {
+    if (!companyId) return;
+    const clients = await Client.find({ companies: companyId }).select('_id').lean();
+    return await notifyUsers(clients.map((c) => ({ id: c._id, role: 'clients' })), payload, actor);
   } catch (error) {
     console.error('Notification error:', error.message);
   }

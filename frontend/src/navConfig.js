@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Settings, CalendarDays, FolderOpen, Bookmark,
   ChartNoAxesCombined, FileBarChart, Clock, Building2, Receipt,
-  CalendarCheck, Palette, UserCheck, Briefcase, Wifi, MapPin, Music, Megaphone, ListChecks, Lightbulb
+  CalendarCheck, Palette, UserCheck, Briefcase, Wifi, MapPin, Music, Megaphone, ListChecks, Lightbulb, FileText
 } from 'lucide-react';
 export const RM_NAV = [
   {
@@ -82,7 +82,8 @@ export const SME_NAV = [
   {
     heading: 'Overview', items: [
       { title: 'Dashboard', path: '/sme', icon: LayoutDashboard },
-      { title: 'Calendar', path: '/sme/calendar', icon: CalendarDays }
+      { title: 'Calendar', path: '/sme/calendar', icon: CalendarDays },
+      { title: 'Companies', path: '/sme/companies', icon: Building2 }
     ]
   },
   {
@@ -148,7 +149,8 @@ export const SMI_NAV = [
   {
     heading: 'Overview',
     items: [
-      { title: 'Dashboard', path: '/smi', icon: LayoutDashboard }
+      { title: 'Dashboard', path: '/smi', icon: LayoutDashboard },
+      { title: 'Companies', path: '/smi/companies', icon: Building2 }
     ]
   },
   {
@@ -203,7 +205,8 @@ export const CLIENT_NAV = [
   {
     heading: 'Overview', items: [
       { title: 'Dashboard', path: '/client', icon: LayoutDashboard },
-      { title: 'Calendar', path: '/client/calendar', icon: CalendarDays }
+      { title: 'Calendar', path: '/client/calendar', icon: CalendarDays },
+      { title: 'Forms', path: '/client/forms', icon: FileText }
     ]
   },
   {

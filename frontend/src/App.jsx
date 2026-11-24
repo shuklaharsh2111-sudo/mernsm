@@ -46,6 +46,8 @@ import { ThemeProvider } from './theme/ThemeContext';
 import AskAI from './components/AskAI';
 import ClientDashboard from './client/ClientDashboard';
 import ClientCalendar from './client/ClientCalendar';
+import ClientForms from './client/ClientForms';
+import CompanyForms from './components/CompanyForms';
 
 const getDashboardPath = (role) => {
   if (role === 'admin') return '/admin';
@@ -181,6 +183,7 @@ const AppRoutes = () => {
         <Route element={<DashboardLayout />}>
           <Route path="/sme" element={<SmeDashboard />} />
           <Route path="/sme/calendar" element={<SmeCalendar />} />
+          <Route path="/sme/companies" element={<CompanyForms workspace="SME WORKSPACE" />} />
           <Route path="/sme/saved" element={<SmeSaved />} />
           <Route path="/sme/records" element={<SmeRecords />} />
           <Route path="/sme/pending-creatives" element={<SmePendingCreatives />} />
@@ -207,6 +210,7 @@ const AppRoutes = () => {
         <Route element={<DashboardLayout />}>
           <Route path="/smi" element={<SmiDashboard />} />
           <Route path="/smi/saved" element={<SmiSaved />} />
+          <Route path="/smi/companies" element={<CompanyForms workspace="SMI WORKSPACE" />} />
           <Route path="/smi/influencers" element={<InfluencerPage role="smi" />} />
           <Route path="/smi/playlist" element={<PlaylistPage workspace="SMI WORKSPACE" />} />
           <Route path="/smi/suggestions" element={<SuggestionsPage />} />
@@ -229,6 +233,7 @@ const AppRoutes = () => {
         <Route element={<ClientLayout />}>
           <Route path="/client" element={<ClientDashboard />} />
           <Route path="/client/calendar" element={<ClientCalendar />} />
+          <Route path="/client/forms" element={<ClientForms />} />
           <Route path="/client/settings" element={<ProfileSettings workspace="CLIENT WORKSPACE" />} />
         </Route>
       </Route>
