@@ -50,6 +50,8 @@ const onboardingSchema = new mongoose.Schema({
       message: 'Exactly 23 answers are required'
     }
   },
+  // id of the CompanyForm that was sent (the onboarding link carries ?form=<id>)
+  formId: { type: String, default: '', trim: true, index: true },
   status: {
     type: String,
     enum: ['submitted', 'reviewed'],

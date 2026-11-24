@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Mail, Send, Eye, Trash2, ChevronDown, Users, Phone, FileText } from 'lucide-react';
 import api from '../api';
 import { CompanyBadge } from './CompanyBadge';
-import { SendFormModal, ViewFormModal, LinkSubmissionModal, StatusPill, fmtStamp } from './FormModals';
+import { SendFormModal, ViewFormModal, StatusPill, fmtStamp } from './FormModals';
 import { errMsg } from '../sopUtils';
 import '../style.css';
 import '../styles/forms.css';
@@ -15,8 +15,7 @@ export default function CompanyForms({ workspace }) {
   const [open, setOpen] = useState(''); // company whose form list is expanded
   const [formsBy, setFormsBy] = useState({}); // companyId -> forms
   const [sending, setSending] = useState(null); // company
-  const [viewing, setViewing] = useState(null); // { formId } | { submissionId }
-  const [linking, setLinking] = useState(null); // company
+  const [viewing, setViewing] = useState(null); // { formId }
 
   const loadCompanies = useCallback(() => api.get('/forms/companies')
     .then((res) => setCompanies(res.data.companies))
@@ -29,7 +28,7 @@ export default function CompanyForms({ workspace }) {
   useEffect(() => { loadCompanies(); }, [loadCompanies]);
   // pick up a form the company has just completed without a manual refresh
   useEffect(() => {
-    const t = setInterval(() => { loadCompanies(); if (open) loadForms(open); }, 20000);
+    const t = setInterval(() => { loadCompanies(); if (open) loadForms(open); }, 30000);
     const onFocus = () => { loadCompanies(); if (open) loadForms(open); };
     window.addEventListener('focus', onFocus);
     return () => { clearInterval(t); window.removeEventListener('focus', onFocus); };
@@ -97,20 +96,15 @@ export default function CompanyForms({ workspace }) {
 
               <div className="fm-section">
                 <span className="fm-label"><FileText size={13} /> Onboarding form</span>
-                {c.onboarding ? (
+                {c.latest ? (
                   <div className="fm-onb">
                     <div className="fm-form-text">
-                      <StatusPill status={c.onboarding.status} />
-                      <small>Filled by {c.onboarding.contactPerson} · {fmtStamp(c.onboarding.submittedAt)}</small>
+                      <StatusPill status={c.latest.status} />
+                      <small>Filled by {c.latest.contactPerson || 'the company'} · {fmtStamp(c.latest.submittedAt)}</small>
                     </div>
-                    <button type="button" className="btn-ghost" onClick={() => setViewing({ submissionId: c.onboarding.id })}><Eye size={14} /> View submitted form</button>
+                    <button type="button" className="btn-ghost" onClick={() => setViewing({ formId: c.latest.formId })}><Eye size={14} /> View submitted form</button>
                   </div>
-                ) : (
-                  <>
-                    <p className="muted fm-small">This company has not completed the onboarding form yet.</p>
-                    <button type="button" className="btn-ghost" onClick={() => setLinking(c)}><FileText size={14} /> Link a submitted form</button>
-                  </>
-                )}
+                ) : <p className="muted fm-small">This company has not completed the onboarding form yet.</p>}
               </div>
 
               <div className="fm-counts">
@@ -163,13 +157,6 @@ export default function CompanyForms({ workspace }) {
             loadForms(id);
             loadCompanies();
           }}
-        />
-      )}
-      {linking && (
-        <LinkSubmissionModal
-          company={linking}
-          onClose={() => setLinking(null)}
-          onLinked={() => { const id = linking.id; setLinking(null); loadCompanies(); if (open === id) loadForms(id); }}
         />
       )}
       {viewing && <ViewFormModal {...viewing} canReview onClose={() => setViewing(null)} onReviewed={() => { loadCompanies(); if (open) loadForms(open); }} />}

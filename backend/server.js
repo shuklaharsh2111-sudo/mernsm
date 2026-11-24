@@ -22,8 +22,7 @@ import { startGrainPoller } from './meeting/grainSync.js';
 import { googleCallback } from './meeting/integrationRoutes.js';
 import aiRoutes from './ai/aiRoutes.js';
 import clientRoutes from './client/clientRoutes.js';
-import formRoutes, { syncOnboarding } from './forms/formRoutes.js';
-import { refreshOnboardingDb } from './forms/Onboarding.js';
+import formRoutes from './forms/formRoutes.js';
 // ON HOLD (device tracking): import deviceRoutes, { publicRouter as devicePublicRoutes } from './attendance/deviceRoutes.js';
 dotenv.config();
 const app = express();
@@ -36,7 +35,6 @@ app.use(cookieParser());
 app.use('/api/des', desRoutes);
 app.use('/api/ai', aiRoutes);
 await connectDB();
-await refreshOnboardingDb(true);
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'success',
@@ -91,6 +89,4 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     startGrainPoller();
-    // pick up onboarding form submissions even when nobody has the Companies / Forms page open
-    setInterval(() => syncOnboarding(), 2 * 60 * 1000).unref();
 });

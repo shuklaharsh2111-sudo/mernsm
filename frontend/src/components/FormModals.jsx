@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Send, Check, Loader2, ExternalLink, CheckCheck } from 'lucide-react';
+import { X, Send, Check, Loader2, CheckCheck } from 'lucide-react';
 import api from '../api';
 import { errMsg } from '../sopUtils';
 import '../style.css';
@@ -58,7 +58,7 @@ export function SendFormModal({ company, onClose, onSent }) {
     setBusy(true);
     try {
       const res = await api.post(`/forms/companies/${company.id}/forms`, { note: note.trim() });
-      setLink(res.data.form.url);
+      setLink(res.data.form.id);
       onSent(res.data.form);
     } catch (e) {
       setError(errMsg(e));
@@ -83,7 +83,7 @@ export function SendFormModal({ company, onClose, onSent }) {
     >
       <div className="fm-stack">
         <p className="fm-note">
-          {company.name} gets a notification in their panel with a button that opens the onboarding questions form.
+          {company.name} gets the onboarding questions on their dashboard (Forms page) and a notification.
           Their answers show up here once they submit it.
         </p>
         <label className="fm-field">
@@ -97,9 +97,8 @@ export function SendFormModal({ company, onClose, onSent }) {
 }
 
 // The submitted onboarding answers, grouped by section (read-only). Reviewers can mark it as reviewed.
-// Open it by form id (a form that was sent from here) or by submission id (data already in the database).
-export function ViewFormModal({ formId, submissionId, onClose, canReview = false, onReviewed }) {
-  const base = submissionId ? `/forms/onboarding/${submissionId}` : `/forms/${formId}`;
+export function ViewFormModal({ formId, onClose, canReview = false, onReviewed }) {
+  const base = `/forms/${formId}`;
   const [form, setForm] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -117,7 +116,7 @@ export function ViewFormModal({ formId, submissionId, onClose, canReview = false
     setError('');
     try {
       await api.put(`${base}/reviewed`);
-      setForm((f) => ({ ...f, status: 'reviewed', onboarding: f.onboarding ? { ...f.onboarding, status: 'reviewed' } : f.onboarding }));
+      setForm((f) => ({ ...f, status: 'reviewed' }));
       onReviewed?.();
     } catch (e) {
       setError(errMsg(e));
@@ -126,7 +125,7 @@ export function ViewFormModal({ formId, submissionId, onClose, canReview = false
     }
   };
 
-  const sub = form?.onboarding;
+  const sub = form?.submission;
   // keep the sections in the order the questions come in
   const sections = [];
   (sub?.answers || []).forEach((a) => {
@@ -138,7 +137,7 @@ export function ViewFormModal({ formId, submissionId, onClose, canReview = false
   return (
     <Shell
       title={form ? form.title : 'Onboarding form'}
-      sub={form ? `${form.companyName}${form.createdAt ? ` · sent by ${form.senderName || 'your team'} on ${fmtStamp(form.createdAt)}` : ''}` : ''}
+      sub={form ? `${form.companyName} · sent by ${form.senderName || 'your team'} on ${fmtStamp(form.createdAt)}` : ''}
       onClose={onClose}
       busy={busy}
       foot={(
@@ -158,15 +157,15 @@ export function ViewFormModal({ formId, submissionId, onClose, canReview = false
         <div className="fm-stack">
           <div className="fm-meta">
             <StatusPill status={form.status} />
-            {sub && <small>Submitted on {fmtStamp(sub.submittedAt)}</small>}
+            {sub && <small>Completed on {fmtStamp(sub.submittedAt)}</small>}
           </div>
           {!sub && <p className="muted">The company has not completed this form yet.</p>}
           {sub && (
             <>
               <dl className="fm-who">
-                <div><dt>Company</dt><dd>{sub.companyName}</dd></div>
-                <div><dt>Contact person</dt><dd>{sub.contactPerson}</dd></div>
-                <div><dt>Email</dt><dd><a href={`mailto:${sub.email}`}>{sub.email}</a></dd></div>
+                <div><dt>Company</dt><dd>{form.companyName}</dd></div>
+                <div><dt>Filled by</dt><dd>{sub.contactPerson || '—'}</dd></div>
+                {sub.email && <div><dt>Email</dt><dd><a href={`mailto:${sub.email}`}>{sub.email}</a></dd></div>}
               </dl>
               {sections.map((s) => (
                 <section key={s.name} className="fm-sec">
@@ -186,61 +185,3 @@ export function ViewFormModal({ formId, submissionId, onClose, canReview = false
     </Shell>
   );
 }
-
-// SME / SMI: pick a submitted onboarding form and link it to a company (when it was not matched automatically).
-export function LinkSubmissionModal({ company, onClose, onLinked }) {
-  const [list, setList] = useState(null);
-  const [pick, setPick] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    api.get('/forms/submissions/unlinked').then((res) => setList(res.data.submissions)).catch((e) => setError(errMsg(e)));
-  }, []);
-
-  const link = async () => {
-    setBusy(true);
-    setError('');
-    try {
-      await api.post(`/forms/companies/${company.id}/link`, { submissionId: pick });
-      onLinked();
-    } catch (e) {
-      setError(errMsg(e));
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Shell
-      title="Link a submitted form"
-      sub={`For ${company.name}`}
-      onClose={onClose}
-      busy={busy}
-      foot={(
-        <>
-          <button type="button" className="btn-ghost" onClick={onClose} disabled={busy}>Cancel</button>
-          <button type="button" className="btn-primary" onClick={link} disabled={busy || !pick}>
-            {busy ? <Loader2 size={15} className="fm-spin" /> : <Check size={15} />} Link and mark completed
-          </button>
-        </>
-      )}
-    >
-      <div className="fm-stack">
-        <p className="fm-note">These submitted onboarding forms did not match any of your companies by email or name. Pick the one this company filled in.</p>
-        {error && <p className="error-message" role="alert">{error}</p>}
-        {!list && !error && <p className="muted">Loading…</p>}
-        {list && list.length === 0 && <p className="muted">No unmatched submissions found.</p>}
-        {(list || []).map((s) => (
-          <label key={s.id} className="fm-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-            <input type="radio" name="sub" value={s.id} checked={pick === s.id} onChange={() => setPick(s.id)} />
-            <span><b>{s.companyName}</b><br /><small>{s.contactPerson} · {s.email} · {fmtStamp(s.submittedAt)}</small></span>
-          </label>
-        ))}
-      </div>
-    </Shell>
-  );
-}
-
-export const OpenFormLink = ({ url, children = 'Open onboarding form' }) => (
-  <a className="btn-primary fm-open" href={url} target="_blank" rel="noreferrer noopener"><ExternalLink size={14} /> {children}</a>
-);
