@@ -57,7 +57,8 @@ const companyView = (c) => ({
   id: String(c._id),
   name: c.name,
   logo: c.logo || '',
-  logoPublicId: c.logoPublicId || ''
+  logoPublicId: c.logoPublicId || '',
+  email: c.email || ''
 });
 const sopView = (a) => ({
   id: a._id,
@@ -365,15 +366,25 @@ router.post('/companies', imageUpload.single('logo'), async (req, res) => {
   if (!name) return res.status(400).json({ message: 'Company name is required' });
   if (name.length > 60) return res.status(400).json({ message: 'Company name is too long (max 60)' });
   if (!req.file) return res.status(400).json({ message: 'Company logo is required' });
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const password = String(req.body.password || '');
+  if (!email || !password) return res.status(400).json({ message: 'Company email and password are required' });
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ message: 'Enter a valid email address' });
+  if (password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters' });
   const nameKey = name.toLowerCase();
   if (await Company.exists({ nameKey })) {
     return res.status(409).json({ message: 'That company already exists' });
+  }
+  if (await Company.exists({ email })) {
+    return res.status(409).json({ message: 'That email is already used by another company' });
   }
   const uploadedLogo = await uploadToCloudinary(req.file, 'creative-manager/company-logos');
   try {
     const company = await Company.create({
       name,
       nameKey,
+      email,
+      password: await bcrypt.hash(password, 10),
       logo: uploadedLogo.secure_url,
       logoPublicId: uploadedLogo.public_id
     });
