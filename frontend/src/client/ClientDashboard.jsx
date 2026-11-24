@@ -81,7 +81,7 @@ const ClientDashboard = () => {
               {team.map((m) => (
                 <li key={m.id}>
                   {m.avatar ? <img src={m.avatar} alt="" /> : <span className="cl-av">{initials(m.name)}</span>}
-                  <div><b>{m.name}</b><small>{m.role}</small></div>
+                  <div><b>{m.name}</b><small>{m.role}</small>{m.email && <small><a href={`mailto:${m.email}`} style={{ color: 'inherit' }}>{m.email}</a></small>}</div>
                 </li>
               ))}
             </ul>

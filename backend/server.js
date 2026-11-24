@@ -22,6 +22,7 @@ import { startGrainPoller } from './meeting/grainSync.js';
 import { googleCallback } from './meeting/integrationRoutes.js';
 import aiRoutes from './ai/aiRoutes.js';
 import clientRoutes from './client/clientRoutes.js';
+import formRoutes, { syncOnboarding } from './forms/formRoutes.js';
 // ON HOLD (device tracking): import deviceRoutes, { publicRouter as devicePublicRoutes } from './attendance/deviceRoutes.js';
 dotenv.config();
 const app = express();
@@ -55,6 +56,7 @@ app.use('/api/rm', rmRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/suggestions', suggestionRoutes);
 app.use('/api/client', clientRoutes);
+app.use('/api/forms', formRoutes);
 // ON HOLD (device tracking): app.use('/api/device', devicePublicRoutes);
 // ON HOLD (device tracking): app.use('/api/devices', deviceRoutes);
 app.get('/api/admin/dashboard', protect(['admin', 'operation_manager']), (req, res) => {
@@ -87,4 +89,6 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     startGrainPoller();
+    // pick up onboarding form submissions even when nobody has the Companies / Forms page open
+    setInterval(() => syncOnboarding(), 2 * 60 * 1000).unref();
 });

@@ -21,7 +21,7 @@ import Creative, { CREATIVE_PLATFORMS, CREATIVE_STATUSES } from './Creative.js';
 import SocialMetrics from './SocialMetrics.js';
 import Admin from '../admin/Admin.js';
 import { Smi, Des } from '../admin/UserModels.js';
-import { notifyUsers, notifyReviewers, notifyRoles } from '../notifications/notify.js';
+import { notifyUsers, notifyReviewers, notifyRoles, notifyCompanyClients } from '../notifications/notify.js';
 const allowedMimeTypes = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
   'video/mp4', 'video/webm', 'video/quicktime',
@@ -1480,6 +1480,9 @@ router.put('/creatives/:id/design-review', async (req, res) => {
       notifyUsers([{ id: creative.assignedDesigner._id, role: 'des' }], action === 'approve'
         ? { topic: 'creatives', tone: 'success', title: 'Design approved', message: '{actor} approved your design.' }
         : { topic: 'creatives', tone: 'warning', title: 'Redo requested', message: `{actor} asked for changes: ${note}` }, req.user);
+    }
+    if (action === 'approve') {
+      notifyCompanyClients(creative.company?._id || creative.company, { topic: 'creatives', tone: 'success', title: 'New creative ready', message: `"${creative.contentPillar?.title || 'A creative'}" is approved and added to your calendar for ${creative.date}.` }, req.user);
     }
     res.json({ creative: creativeView(creative) });
   } catch (error) {

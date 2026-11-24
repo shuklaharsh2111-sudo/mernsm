@@ -24,8 +24,8 @@ router.get('/dashboard', async (req, res) => {
 
     const today = resolveToday(req.query.today);
     const [smes, smis, smeSops, smiSops, meetings] = await Promise.all([
-      Sme.find({ companies: company._id }).select('name fullname profileImage avatar').lean(),
-      Smi.find({ companies: company._id }).select('name fullname profileImage avatar').lean(),
+      Sme.find({ companies: company._id }).select('name fullname email profileImage avatar').lean(),
+      Smi.find({ companies: company._id }).select('name fullname email profileImage avatar').lean(),
       SopAssignment.find({ company: company._id }).populate('user', 'name fullname').sort({ createdAt: -1 }).limit(200).lean(),
       // SMI copies of an SME's SOP (sourceSop) are skipped so one SOP is not counted twice
       SmiSopAssignment.find({ company: company._id, sourceSop: null }).populate('smi', 'name fullname').sort({ createdAt: -1 }).limit(200).lean(),
@@ -33,8 +33,8 @@ router.get('/dashboard', async (req, res) => {
     ]);
 
     const team = [
-      ...smes.map((u) => ({ id: String(u._id), name: personName(u), role: 'Social Media Executive', avatar: u.profileImage || u.avatar || '' })),
-      ...smis.map((u) => ({ id: String(u._id), name: personName(u), role: 'Social Media Intern', avatar: u.profileImage || u.avatar || '' }))
+      ...smes.map((u) => ({ id: String(u._id), name: personName(u), role: 'Social Media Executive', email: u.email || '', avatar: u.profileImage || u.avatar || '' })),
+      ...smis.map((u) => ({ id: String(u._id), name: personName(u), role: 'Social Media Intern', email: u.email || '', avatar: u.profileImage || u.avatar || '' }))
     ];
 
     const sopView = (s, who) => ({
@@ -80,12 +80,14 @@ router.get('/creatives', async (req, res) => {
     const client = await Client.findById(req.user.id).select('companies').lean();
     const companyId = client?.companies?.[0];
     if (!companyId) return res.status(404).json({ message: 'No company is linked to this account. Please contact your admin.' });
+    const company = await Company.findById(companyId).select('name logo').lean();
     const list = await Creative.find({ company: companyId, 'designOutput.status': 'approved' })
       .select('date contentPillar designOutput.url designOutput.resourceType designOutput.mimeType designOutput.originalName')
       .sort({ date: 1, createdAt: 1 })
       .limit(1000)
       .lean();
     res.json({
+      company: company ? { id: String(company._id), name: company.name, logo: company.logo || '' } : null,
       creatives: list.map((c) => ({
         id: String(c._id),
         date: c.date,
