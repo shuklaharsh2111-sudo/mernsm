@@ -1,28 +1,28 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FileText, Eye } from 'lucide-react';
+import { FileText, Eye, PencilLine } from 'lucide-react';
 import api from '../api';
-import { OpenFormLink, ViewFormModal, StatusPill, fmtStamp } from '../components/FormModals';
+import { ViewFormModal, StatusPill, fmtStamp } from '../components/FormModals';
+import OnboardingFill from '../components/OnboardingFill';
 import { errMsg } from '../sopUtils';
 import '../style.css';
 import '../styles/forms.css';
 
-// Company panel: the onboarding form your SME / SMI sent. Open it to fill it in; once submitted it can be viewed here.
+// Company panel: the onboarding form your SME / SMI sent. Fill it in right here; once submitted it can be viewed here.
 const ClientForms = () => {
   const [forms, setForms] = useState(null);
   const [error, setError] = useState('');
-  const [viewing, setViewing] = useState(null); // { formId } | { submissionId }
-  const [existing, setExisting] = useState(null); // onboarding answers already in the database
+  const [viewing, setViewing] = useState(null); // { formId }
+  const [filling, setFilling] = useState(''); // form id being filled in
 
   const load = useCallback(() => api.get('/forms/received')
-    .then((res) => { setForms(res.data.forms); setExisting(res.data.onboarding || null); })
+    .then((res) => setForms(res.data.forms))
     .catch((e) => setError(errMsg(e))), []);
 
   useEffect(() => { load(); }, [load]);
-  // after filling the form in the other tab, coming back here picks up the submission
-  useEffect(() => {
-    window.addEventListener('focus', load);
-    return () => window.removeEventListener('focus', load);
-  }, [load]);
+
+  if (filling) {
+    return <OnboardingFill formId={filling} onBack={() => setFilling('')} onDone={() => { setFilling(''); load(); }} />;
+  }
 
   const waiting = (forms || []).filter((f) => f.status === 'pending');
   const done = (forms || []).filter((f) => f.status !== 'pending');
@@ -32,12 +32,12 @@ const ClientForms = () => {
       <span className="fm-row-icon"><FileText size={18} /></span>
       <div className="fm-form-text">
         <b>{f.title}</b>
-        <small>From {f.senderName || 'your team'} · sent {fmtStamp(f.createdAt)}</small>
+        <small>From {f.senderName || 'your team'} · sent {fmtStamp(f.createdAt)}{f.submittedAt ? ` · completed ${fmtStamp(f.submittedAt)}` : ''}</small>
         {f.note && <small className="fm-row-note">{f.note}</small>}
         <StatusPill status={f.status} />
       </div>
       {f.status === 'pending'
-        ? <OpenFormLink url={f.url} />
+        ? <button type="button" className="btn-primary" onClick={() => setFilling(f.id)}><PencilLine size={14} /> Fill form</button>
         : <button type="button" className="btn-ghost" onClick={() => setViewing({ formId: f.id })}><Eye size={14} /> View submitted form</button>}
     </div>
   );
@@ -48,29 +48,13 @@ const ClientForms = () => {
         <div>
           <span className="page-label">CLIENT DASHBOARD</span>
           <h1>Forms</h1>
-          <p>The onboarding form your social media team sent you. Open it, answer the questions and submit.</p>
+          <p>The onboarding form your social media team sent you. Answer the questions and submit.</p>
         </div>
       </div>
 
       {error && <p className="error-message" role="alert">{error}</p>}
       {forms === null && !error && <p className="muted">Loading…</p>}
-      {forms && forms.length === 0 && !existing && <p className="muted">No forms yet. When your team sends you one it will show up here.</p>}
-
-      {/* answers already on file (submitted before any form was sent from the dashboard) */}
-      {existing && done.length === 0 && (
-        <section className="fm-list">
-          <h3 className="fm-list-title">Completed (1)</h3>
-          <div className="fm-card fm-row">
-            <span className="fm-row-icon"><FileText size={18} /></span>
-            <div className="fm-form-text">
-              <b>Onboarding questions</b>
-              <small>Filled by {existing.contactPerson} · {fmtStamp(existing.submittedAt)}</small>
-              <StatusPill status={existing.status} />
-            </div>
-            <button type="button" className="btn-ghost" onClick={() => setViewing({ submissionId: existing.id })}><Eye size={14} /> View submitted form</button>
-          </div>
-        </section>
-      )}
+      {forms && forms.length === 0 && <p className="muted">No forms yet. When your team sends you one it will show up here.</p>}
 
       {waiting.length > 0 && <section className="fm-list"><h3 className="fm-list-title">Waiting for you ({waiting.length})</h3>{waiting.map(row)}</section>}
       {done.length > 0 && <section className="fm-list"><h3 className="fm-list-title">Completed ({done.length})</h3>{done.map(row)}</section>}
