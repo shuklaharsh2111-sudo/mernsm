@@ -44,6 +44,8 @@ import MiniPlayer from './music/MiniPlayer';
 import { NotificationProvider } from './notifications/NotificationContext';
 import { ThemeProvider } from './theme/ThemeContext';
 import AskAI from './components/AskAI';
+import ClientDashboard from './client/ClientDashboard';
+import ClientCalendar from './client/ClientCalendar';
 
 const getDashboardPath = (role) => {
   if (role === 'admin') return '/admin';
@@ -53,6 +55,7 @@ const getDashboardPath = (role) => {
   if (role === 'des') return '/des';
   if (role === 'smi') return '/smi';
   if (role === 'hr') return '/hr/recruitment';
+  if (role === 'clients') return '/client';
   return '/login';
 };
 const ProtectedRoute = ({ role }) => {
@@ -98,6 +101,29 @@ const DashboardLayout = () => {
       </div>
       </NotificationProvider>
     </MusicProvider>
+  );
+};
+// Client companies get a lean shell: no music player and no AI assistant.
+const ClientLayout = () => {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const { pathname } = useLocation();
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+  return (
+    <NotificationProvider>
+      <div className={`app-shell ${collapsed ? 'collapsed' : ''}`}>
+        <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+        {mobileOpen && <div className="app-scrim" onClick={() => setMobileOpen(false)} />}
+        <div className="app-main">
+          <Topbar onMenu={() => setMobileOpen(true)} />
+          <main className="app-content">
+            <Outlet />
+          </main>
+        </div>
+      </div>
+    </NotificationProvider>
   );
 };
 const AppRoutes = () => {
@@ -197,6 +223,13 @@ const AppRoutes = () => {
           <Route path="/hr/playlist" element={<PlaylistPage workspace="HR WORKSPACE" />} />
           <Route path="/hr/suggestions" element={<SuggestionsPage />} />
           <Route path="/hr/settings" element={<ProfileSettings workspace="HR WORKSPACE" />} />
+        </Route>
+      </Route>
+      <Route element={<ProtectedRoute role="clients" />}>
+        <Route element={<ClientLayout />}>
+          <Route path="/client" element={<ClientDashboard />} />
+          <Route path="/client/calendar" element={<ClientCalendar />} />
+          <Route path="/client/settings" element={<ProfileSettings workspace="CLIENT WORKSPACE" />} />
         </Route>
       </Route>
       <Route path="/" element={<Navigate to={dashboardPath} replace />} />

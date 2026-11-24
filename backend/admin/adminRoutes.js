@@ -16,7 +16,7 @@ import { mountIntegrationRoutes } from '../meeting/integrationRoutes.js';
 import Creative from '../sme/Creative.js';
 import Attendance from '../attendance/Attendance.js';
 import { getOfficeConfig } from '../attendance/geo.js';
-import { ReportingManager, Smi, roleModels } from './UserModels.js';
+import { ReportingManager, Smi, Client, roleModels } from './UserModels.js';
 import { notifyUsers } from '../notifications/notify.js';
 const router = express.Router();
 const imageUpload = multer({
@@ -58,7 +58,12 @@ const companyView = (c) => ({
   name: c.name,
   logo: c.logo || '',
   logoPublicId: c.logoPublicId || '',
+<<<<<<< HEAD
+  email: c.email || '',
+  hasLogin: Boolean(c.clientUser)
+=======
   email: c.email || ''
+>>>>>>> d2be6f229e4adff1ccae5f94159ddd2242b7d675
 });
 const sopView = (a) => ({
   id: a._id,
@@ -356,6 +361,11 @@ router.get('/attendance', async (req, res) => {
     }))
   });
 });
+// An email may belong to only one account across every role.
+const emailInUse = async (email, exceptId = null) => {
+  const checks = await Promise.all(Object.values(roleModels).map((Model) => Model.exists(exceptId ? { email, _id: { $ne: exceptId } } : { email })));
+  return checks.some(Boolean);
+};
 // ---------------- Companies ----------------
 router.get('/companies', async (req, res) => {
   const list = await Company.find().sort({ name: 1 });
@@ -375,8 +385,13 @@ router.post('/companies', imageUpload.single('logo'), async (req, res) => {
   if (await Company.exists({ nameKey })) {
     return res.status(409).json({ message: 'That company already exists' });
   }
+<<<<<<< HEAD
+  if (await emailInUse(email)) {
+    return res.status(409).json({ message: 'That email is already in use' });
+=======
   if (await Company.exists({ email })) {
     return res.status(409).json({ message: 'That email is already used by another company' });
+>>>>>>> d2be6f229e4adff1ccae5f94159ddd2242b7d675
   }
   const uploadedLogo = await uploadToCloudinary(req.file, 'creative-manager/company-logos');
   try {
@@ -384,15 +399,72 @@ router.post('/companies', imageUpload.single('logo'), async (req, res) => {
       name,
       nameKey,
       email,
+<<<<<<< HEAD
+=======
       password: await bcrypt.hash(password, 10),
+>>>>>>> d2be6f229e4adff1ccae5f94159ddd2242b7d675
       logo: uploadedLogo.secure_url,
       logoPublicId: uploadedLogo.public_id
     });
+    try {
+      // the company's login: a "clients" account linked to this company -> client dashboard
+      const client = await Client.create({
+        name,
+        fullname: name,
+        contact: 'N/A',
+        email,
+        password: await bcrypt.hash(password, 10),
+        role: 'clients',
+        avatar: company.logo,
+        profileImage: company.logo,
+        companies: [company._id]
+      });
+      company.clientUser = client._id;
+      await company.save();
+    } catch (clientError) {
+      await Company.deleteOne({ _id: company._id });
+  if (company.clientUser) await Client.deleteOne({ _id: company.clientUser });
+      throw clientError;
+    }
     res.status(201).json({ company: companyView(company) });
   } catch (error) {
     await deleteFromCloudinary(uploadedLogo.public_id).catch(() => { });
     throw error;
   }
+});
+// Set or change the login of a company (also used for companies created before logins existed).
+router.put('/companies/:id/login', async (req, res) => {
+  if (!validId(req.params.id)) return res.status(404).json({ message: 'Company not found' });
+  const company = await Company.findById(req.params.id);
+  if (!company) return res.status(404).json({ message: 'Company not found' });
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const password = String(req.body.password || '');
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ message: 'Enter a valid email address' });
+  if (password && password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters' });
+  let client = company.clientUser ? await Client.findById(company.clientUser).select('+password') : null;
+  if (!client && !password) return res.status(400).json({ message: 'Set a password (min 8 characters) to create this company login' });
+  if (await emailInUse(email, client?._id)) return res.status(409).json({ message: 'That email is already in use' });
+  if (client) {
+    client.email = email;
+    if (password) client.password = await bcrypt.hash(password, 10);
+    await client.save();
+  } else {
+    client = await Client.create({
+      name: company.name,
+      fullname: company.name,
+      contact: 'N/A',
+      email,
+      password: await bcrypt.hash(password, 10),
+      role: 'clients',
+      avatar: company.logo,
+      profileImage: company.logo,
+      companies: [company._id]
+    });
+    company.clientUser = client._id;
+  }
+  company.email = email;
+  await company.save();
+  res.json({ company: companyView(company) });
 });
 router.delete('/companies/:id', async (req, res) => {
   if (!validId(req.params.id)) return res.status(404).json({ message: 'Company not found' });

@@ -199,6 +199,19 @@ export const HR_NAV = [
     ]
   }
 ];
+export const CLIENT_NAV = [
+  {
+    heading: 'Overview', items: [
+      { title: 'Dashboard', path: '/client', icon: LayoutDashboard },
+      { title: 'Calendar', path: '/client/calendar', icon: CalendarDays }
+    ]
+  },
+  {
+    heading: 'Account', items: [
+      { title: 'Settings', path: '/client/settings', icon: Settings }
+    ]
+  }
+];
 export const navFor = (role) => {
   switch (role) {
     case 'admin': return ADMIN_NAV;
@@ -208,6 +221,7 @@ export const navFor = (role) => {
     case 'des': return DES_NAV;
     case 'smi': return SMI_NAV;
     case 'hr': return HR_NAV;
+    case 'clients': return CLIENT_NAV;
     default: return [];
   }
 };

@@ -6,6 +6,7 @@ const companySchema = new mongoose.Schema({
   logo: { type: String, default: '' },
   logoPublicId: { type: String, default: '' },
   email: { type: String, lowercase: true, trim: true, unique: true, sparse: true },
-  password: { type: String, select: false }
+  // the login account (role "clients") that belongs to this company
+  clientUser: { type: mongoose.Schema.Types.ObjectId, ref: 'Client', default: null }
 }, { timestamps: true });
 export default mongoose.models.Company || mongoose.model('Company', companySchema);
