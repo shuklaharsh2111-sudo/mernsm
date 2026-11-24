@@ -1,3 +1,8 @@
 Pearl White + Royal Blue + Soft Lavender
 
 Get-ChildItem -Recurse -Force -Exclude node_modules | Where-Object { $_.FullName -notmatch '\\(node_modules|\.git)\\' } | ForEach-Object { $_.FullName }
+
+urls:
+for users/admin/agencies : https://mernsm-lxvy.onrender.com/
+for influencers: https://uspinfluencer.onrender.com/
+for onboarding questions: https://onboardingquestions.onrender.com/
