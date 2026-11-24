@@ -23,6 +23,7 @@ import { googleCallback } from './meeting/integrationRoutes.js';
 import aiRoutes from './ai/aiRoutes.js';
 import clientRoutes from './client/clientRoutes.js';
 import formRoutes, { syncOnboarding } from './forms/formRoutes.js';
+import { refreshOnboardingDb } from './forms/Onboarding.js';
 // ON HOLD (device tracking): import deviceRoutes, { publicRouter as devicePublicRoutes } from './attendance/deviceRoutes.js';
 dotenv.config();
 const app = express();
@@ -35,6 +36,7 @@ app.use(cookieParser());
 app.use('/api/des', desRoutes);
 app.use('/api/ai', aiRoutes);
 await connectDB();
+await refreshOnboardingDb(true);
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'success',
