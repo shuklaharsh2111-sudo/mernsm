@@ -59,7 +59,7 @@ const ClientForms = () => {
       {/* answers already on file (submitted before any form was sent from the dashboard) */}
       {existing && done.length === 0 && (
         <section className="fm-list">
-          <h3 className="fm-list-title">Submitted (1)</h3>
+          <h3 className="fm-list-title">Completed (1)</h3>
           <div className="fm-card fm-row">
             <span className="fm-row-icon"><FileText size={18} /></span>
             <div className="fm-form-text">
@@ -73,7 +73,7 @@ const ClientForms = () => {
       )}
 
       {waiting.length > 0 && <section className="fm-list"><h3 className="fm-list-title">Waiting for you ({waiting.length})</h3>{waiting.map(row)}</section>}
-      {done.length > 0 && <section className="fm-list"><h3 className="fm-list-title">Submitted ({done.length})</h3>{done.map(row)}</section>}
+      {done.length > 0 && <section className="fm-list"><h3 className="fm-list-title">Completed ({done.length})</h3>{done.map(row)}</section>}
 
       {viewing && <ViewFormModal {...viewing} onClose={() => setViewing(null)} />}
     </div>

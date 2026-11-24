@@ -4,7 +4,7 @@ import { protect } from '../auth.js';
 import { Client, roleModels } from '../admin/UserModels.js';
 import Company from '../company/Company.js';
 import CompanyForm from './CompanyForm.js';
-import Onboarding from './Onboarding.js';
+import Onboarding, { refreshOnboardingDb } from './Onboarding.js';
 import { notifyUsers, notifyCompanyClients } from '../notifications/notify.js';
 
 // The form that "Send form" sends. Override with ONBOARDING_FORM_URL in .env if the site moves.
@@ -17,7 +17,37 @@ const anyone = protect(['sme', 'smi', 'clients']);
 
 const validId = (id) => mongoose.Types.ObjectId.isValid(id);
 const personName = (u) => (u ? u.name || u.fullname || u.email || '' : '');
-const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Lenient company <-> submission matching, done on the whole "onboardings" collection:
+// same email as the company or one of its logins, or the same company name ignoring case, spaces and punctuation
+// (or one name contained in the other).
+const norm = (v) => String(v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const allSubmissions = async () => {
+  await refreshOnboardingDb();
+  return Onboarding.find().select('companyName contactPerson email status createdAt').sort({ createdAt: -1 }).limit(2000).lean();
+};
+const FREE_MAIL = new Set(['gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.in', 'ymail.com', 'outlook.com', 'hotmail.com', 'live.com', 'icloud.com', 'rediffmail.com', 'proton.me', 'protonmail.com']);
+const STOP_WORDS = new Set(['company', 'private', 'limited', 'pvt', 'ltd', 'india', 'solutions', 'services', 'group', 'technologies', 'enterprises', 'industries', 'the', 'and']);
+const words = (v) => String(v || '').toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !STOP_WORDS.has(w));
+const domainOf = (e) => (String(e || '').split('@')[1] || '').trim().toLowerCase();
+const isMatch = (sub, company, emails) => {
+  if (emails.includes(String(sub.email || '').trim().toLowerCase())) return true;
+  // same (non-free) email domain as the company or one of its logins, e.g. anyone@brand.com
+  const dom = domainOf(sub.email);
+  if (dom && !FREE_MAIL.has(dom) && emails.some((e) => domainOf(e) === dom)) return true;
+  // every meaningful word of the shorter company name is in the other one ("Sunrise Bakery" vs "Sunrise Bakery & Cafe Pvt Ltd")
+  const wa = words(company.name);
+  const wb = words(sub.companyName);
+  if (wa.length && wb.length) {
+    const [short, long] = wa.length <= wb.length ? [wa, wb] : [wb, wa];
+    if (short.every((w) => long.includes(w))) return true;
+  }
+  // the person who filled the form is one of the company's logins (entries stored as "name:<normalised>")
+  if (norm(sub.contactPerson) && emails.includes(`name:${norm(sub.contactPerson)}`)) return true;
+  const a = norm(company.name);
+  const b = norm(sub.companyName);
+  return Boolean(a && b && (a === b || (Math.min(a.length, b.length) >= 4 && (a.includes(b) || b.includes(a)))));
+};
 
 const formView = (f, company) => ({
   id: String(f._id),
@@ -41,21 +71,19 @@ export const syncOnboarding = async (filter = {}) => {
     const pending = await CompanyForm.find({ ...filter, status: 'pending' }).lean();
     if (!pending.length) return;
     const companyIds = [...new Set(pending.map((f) => String(f.company)))];
+    const all = await allSubmissions();
     const [companies, clients] = await Promise.all([
       Company.find({ _id: { $in: companyIds } }).select('name email').lean(),
-      Client.find({ companies: { $in: companyIds } }).select('email companies').lean()
+      Client.find({ companies: { $in: companyIds } }).select('name fullname email companies').lean()
     ]);
     for (const form of pending) {
       const company = companies.find((c) => String(c._id) === String(form.company));
       if (!company) continue;
-      const emails = [
-        company.email,
-        ...clients.filter((cl) => (cl.companies || []).map(String).includes(String(company._id))).map((cl) => cl.email)
-      ].filter(Boolean).map((e) => String(e).toLowerCase());
-      const match = await Onboarding.findOne({
-        createdAt: { $gte: form.createdAt },
-        $or: [{ email: { $in: emails } }, { companyName: new RegExp(`^${escapeRe(company.name)}$`, 'i') }]
-      }).sort({ createdAt: 1 }).lean();
+      const emails = companyEmails(company, clients);
+      // prefer the first submission saved after the form was sent; otherwise the company's latest submission
+      // (it may have been filled in earlier or the clocks differ) - either way the form is completed
+      const mine = all.filter((sub) => isMatch(sub, company, emails));
+      const match = [...mine].reverse().find((sub) => new Date(sub.createdAt) >= new Date(form.createdAt)) || mine[0];
       if (!match) continue;
       // only the first sync to flip the form notifies the sender
       const won = await CompanyForm.findOneAndUpdate(
@@ -72,19 +100,28 @@ export const syncOnboarding = async (filter = {}) => {
   }
 };
 
-const companyEmails = (company, clients) => [
-  company.email,
-  ...clients.filter((cl) => (cl.companies || []).map(String).includes(String(company._id))).map((cl) => cl.email)
-].filter(Boolean).map((e) => String(e).toLowerCase());
+const companyEmails = (company, clients) => {
+  const mine = clients.filter((cl) => (cl.companies || []).map(String).includes(String(company._id)));
+  return [
+    company.email,
+    ...mine.map((cl) => cl.email),
+    ...mine.map((cl) => (norm(personName(cl)) && !String(personName(cl)).includes('@') ? `name:${norm(personName(cl))}` : ''))
+  ].filter(Boolean).map((e) => String(e).trim().toLowerCase());
+};
 
-const matchQuery = (company, emails) => ({
-  $or: [{ email: { $in: emails } }, { companyName: new RegExp(`^${escapeRe(company.name)}$`, 'i') }]
-});
+// A submission that staff linked to the company by hand ("Link a submitted form").
+const linkedSubmissionFor = async (companyId) => {
+  const f = await CompanyForm.findOne({ company: companyId, onboarding: { $ne: null } }).sort({ submittedAt: -1 }).select('onboarding').lean();
+  if (!f) return null;
+  await refreshOnboardingDb();
+  return Onboarding.findById(f.onboarding).select('companyName contactPerson email status createdAt').lean();
+};
 
 // Whatever this company already submitted on the onboarding site (also before any form was sent from here).
 const latestSubmission = async (company) => {
-  const clients = await Client.find({ companies: company._id }).select('email companies').lean();
-  return Onboarding.findOne(matchQuery(company, companyEmails(company, clients))).sort({ createdAt: -1 }).lean();
+  const [clients, all] = await Promise.all([Client.find({ companies: company._id }).select('name fullname email companies').lean(), allSubmissions()]);
+  const emails = companyEmails(company, clients);
+  return all.find((sub) => isMatch(sub, company, emails)) || (await linkedSubmissionFor(company._id));
 };
 
 const submissionSummary = (sub) => (sub ? { id: String(sub._id), status: sub.status, submittedAt: sub.createdAt, contactPerson: sub.contactPerson } : null);
@@ -128,7 +165,8 @@ router.get('/companies', staff, async (req, res) => {
       Client.find({ companies: { $in: ids } }).select('name fullname email contact companies').lean(),
       CompanyForm.find({ company: { $in: ids }, sender: req.user.id }).select('company status').lean()
     ]);
-    const subs = await Promise.all(companies.map((c) => Onboarding.findOne(matchQuery(c, companyEmails(c, clients))).sort({ createdAt: -1 }).lean()));
+    const all = await allSubmissions();
+    const subs = await Promise.all(companies.map(async (c) => { const emails = companyEmails(c, clients); return all.find((sub) => isMatch(sub, c, emails)) || (await linkedSubmissionFor(c._id)); }));
     res.json({
       companies: companies.map((c, i) => {
         const cid = String(c._id);
@@ -190,9 +228,56 @@ router.post('/companies/:companyId/forms', staff, async (req, res) => {
   }
 });
 
+// Submissions on the onboarding site that are not matched to any of my companies yet (newest first), to link by hand.
+router.get('/submissions/unlinked', staff, async (req, res) => {
+  try {
+    const me = await roleModels[req.user.role].findById(req.user.id).select('companies').lean();
+    const ids = (me?.companies || []).map(String);
+    const [companies, clients, all, linked] = await Promise.all([
+      Company.find({ _id: { $in: ids } }).select('name email').lean(),
+      Client.find({ companies: { $in: ids } }).select('name fullname email companies').lean(),
+      allSubmissions(),
+      CompanyForm.find({ onboarding: { $ne: null } }).select('onboarding').lean()
+    ]);
+    const taken = new Set(linked.map((f) => String(f.onboarding)));
+    const free = all.filter((sub) => !taken.has(String(sub._id)) && !companies.some((c) => isMatch(sub, c, companyEmails(c, clients))));
+    res.json({ submissions: free.slice(0, 50).map((s) => ({ id: String(s._id), companyName: s.companyName, contactPerson: s.contactPerson, email: s.email, status: s.status, submittedAt: s.createdAt })) });
+  } catch (e) {
+    console.error('forms unlinked', e);
+    res.status(500).json({ message: 'Could not load the submissions' });
+  }
+});
+
+// Link a submitted onboarding form to a company by hand: its waiting form becomes completed.
+router.post('/companies/:companyId/link', staff, async (req, res) => {
+  try {
+    const company = await assignedCompany(req, req.params.companyId);
+    if (!company) return res.status(403).json({ message: 'This company is not assigned to you' });
+    const subId = req.body?.submissionId;
+    if (!validId(subId)) return res.status(400).json({ message: 'Choose a submission to link' });
+    await refreshOnboardingDb();
+    const sub = await Onboarding.findById(subId).select('companyName contactPerson email status createdAt').lean();
+    if (!sub) return res.status(404).json({ message: 'Submission not found' });
+    const patch = { status: sub.status === 'reviewed' ? 'reviewed' : 'submitted', onboarding: sub._id, submittedAt: sub.createdAt, submittedByName: sub.contactPerson };
+    const pending = await CompanyForm.findOne({ company: company._id, sender: req.user.id, status: 'pending' }).sort({ createdAt: -1 });
+    if (pending) {
+      Object.assign(pending, patch);
+      await pending.save();
+    } else {
+      const me = await roleModels[req.user.role].findById(req.user.id).select('name fullname email').lean();
+      await CompanyForm.create({ company: company._id, sender: req.user.id, senderRole: req.user.role, senderName: personName(me), url: ONBOARDING_URL, ...patch });
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('forms link', e);
+    res.status(500).json({ message: 'Could not link the submission' });
+  }
+});
+
 // Open one existing submission (staff: of a company assigned to them; company: its own).
 const submissionAccess = async (req) => {
   if (!validId(req.params.id)) return null;
+  await refreshOnboardingDb();
   const sub = await Onboarding.findById(req.params.id).lean();
   if (!sub) return null;
   let companyIds;
@@ -205,9 +290,10 @@ const submissionAccess = async (req) => {
   }
   const companies = await Company.find({ _id: { $in: companyIds } }).select('name email').lean();
   for (const c of companies) {
-    const clients = await Client.find({ companies: c._id }).select('email companies').lean();
+    const clients = await Client.find({ companies: c._id }).select('name fullname email companies').lean();
     const emails = companyEmails(c, clients);
-    if (emails.includes(sub.email) || String(sub.companyName).toLowerCase() === String(c.name).toLowerCase()) return { sub, company: c };
+    if (isMatch(sub, c, emails)) return { sub, company: c };
+    if (await CompanyForm.exists({ company: c._id, onboarding: sub._id })) return { sub, company: c };
   }
   return null;
 };

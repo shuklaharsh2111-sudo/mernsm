@@ -11,8 +11,8 @@ import '../styles/forms.css';
 export const fmtStamp = (d) => (d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '');
 
 export const StatusPill = ({ status }) => {
-  if (status === 'reviewed') return <span className="fm-pill reviewed"><CheckCheck size={11} /> Reviewed</span>;
-  if (status === 'submitted') return <span className="fm-pill submitted"><Check size={11} /> Submitted</span>;
+  if (status === 'reviewed') return <span className="fm-pill reviewed"><CheckCheck size={11} /> Completed · Reviewed</span>;
+  if (status === 'submitted') return <span className="fm-pill submitted"><Check size={11} /> Completed</span>;
   return <span className="fm-pill">Waiting for company</span>;
 };
 
@@ -160,7 +160,7 @@ export function ViewFormModal({ formId, submissionId, onClose, canReview = false
             <StatusPill status={form.status} />
             {sub && <small>Submitted on {fmtStamp(sub.submittedAt)}</small>}
           </div>
-          {!sub && <p className="muted">The company has not submitted this form yet.</p>}
+          {!sub && <p className="muted">The company has not completed this form yet.</p>}
           {sub && (
             <>
               <dl className="fm-who">
@@ -183,6 +183,60 @@ export function ViewFormModal({ formId, submissionId, onClose, canReview = false
           )}
         </div>
       )}
+    </Shell>
+  );
+}
+
+// SME / SMI: pick a submitted onboarding form and link it to a company (when it was not matched automatically).
+export function LinkSubmissionModal({ company, onClose, onLinked }) {
+  const [list, setList] = useState(null);
+  const [pick, setPick] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api.get('/forms/submissions/unlinked').then((res) => setList(res.data.submissions)).catch((e) => setError(errMsg(e)));
+  }, []);
+
+  const link = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await api.post(`/forms/companies/${company.id}/link`, { submissionId: pick });
+      onLinked();
+    } catch (e) {
+      setError(errMsg(e));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Shell
+      title="Link a submitted form"
+      sub={`For ${company.name}`}
+      onClose={onClose}
+      busy={busy}
+      foot={(
+        <>
+          <button type="button" className="btn-ghost" onClick={onClose} disabled={busy}>Cancel</button>
+          <button type="button" className="btn-primary" onClick={link} disabled={busy || !pick}>
+            {busy ? <Loader2 size={15} className="fm-spin" /> : <Check size={15} />} Link and mark completed
+          </button>
+        </>
+      )}
+    >
+      <div className="fm-stack">
+        <p className="fm-note">These submitted onboarding forms did not match any of your companies by email or name. Pick the one this company filled in.</p>
+        {error && <p className="error-message" role="alert">{error}</p>}
+        {!list && !error && <p className="muted">Loading…</p>}
+        {list && list.length === 0 && <p className="muted">No unmatched submissions found.</p>}
+        {(list || []).map((s) => (
+          <label key={s.id} className="fm-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+            <input type="radio" name="sub" value={s.id} checked={pick === s.id} onChange={() => setPick(s.id)} />
+            <span><b>{s.companyName}</b><br /><small>{s.contactPerson} · {s.email} · {fmtStamp(s.submittedAt)}</small></span>
+          </label>
+        ))}
+      </div>
     </Shell>
   );
 }
