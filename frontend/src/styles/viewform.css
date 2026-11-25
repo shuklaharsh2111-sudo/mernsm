@@ -47,10 +47,39 @@
   .vf-top .vf-total { margin-left: 0; }
 }
 
-/* print: only the pop-up content */
+/* print: only the form pop-up, as a normal black-on-white document.
+   The pop-up is a fixed, scrolling, dark-glass layer on screen, which prints blank or cut off,
+   so on paper it becomes plain flowing content (rules are specific enough to beat theme.css). */
 @media print {
+  @page { margin: 14mm; }
+  html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
   body > *:not(.modal-overlay) { display: none !important; }
-  .modal-overlay { position: static; background: none; }
-  .modal-card { box-shadow: none; max-height: none; width: 100%; max-width: none; }
-  .modal-foot, .modal-close, .vf-jump { display: none !important; }
+  body .modal-overlay {
+    position: static !important; display: block !important; inset: auto !important;
+    height: auto !important; padding: 0 !important; overflow: visible !important;
+    background: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+  }
+  body .modal-overlay .modal-card {
+    --ink: #111; --ink-2: #333; --ink-3: #666;
+    --surface: #fff; --surface-2: #f5f5f5; --surface-3: #eaeaea;
+    --line: #cfcfcf; --line-soft: #e0e0e0; --orange-light: #b34700;
+    display: block !important; width: 100% !important; max-width: none !important;
+    height: auto !important; max-height: none !important; margin: 0 !important; padding: 0 !important;
+    overflow: visible !important; color: #111 !important; background: #fff !important;
+    border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+    backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+  }
+  body .modal-overlay .modal-body { max-height: none !important; overflow: visible !important; padding: 12px 0 0 !important; }
+  body .modal-overlay .modal-head { padding-bottom: 10px; border-bottom: 2px solid #111; }
+  body .modal-overlay .modal-head h2 { color: #111 !important; font-size: 22px; }
+  body .modal-overlay .creative-sub { color: #555 !important; }
+  .modal-foot, .modal-close, .vf-jump, .vf-print { display: none !important; }
+  .vf-sec, .vf-qa, .vf-who-item { background: #fff !important; border-color: #cfcfcf !important; box-shadow: none !important; }
+  .vf-sec { break-inside: auto; }
+  .vf-qa { break-inside: avoid; }
+  .vf-sec header { break-after: avoid; }
+  .vf-sec-num, .vf-who-icon, .vf-qa h4 span { color: #111 !important; background: #eee !important; border: 1px solid #bbb; }
+  .vf-qa p { color: #111 !important; border-left-color: #999; }
+  .vf a { color: #111 !important; text-decoration: none; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
