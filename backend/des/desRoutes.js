@@ -3,6 +3,7 @@ import multer from 'multer';
 import mongoose from 'mongoose';
 import { protect } from '../auth.js';
 import Creative from '../sme/Creative.js';
+import CreativeComment from '../client/CreativeComment.js';
 import cloudinary from '../config/cloudinary.js';
 import Admin from '../admin/Admin.js';
 import { Des, ReportingManager } from '../admin/UserModels.js';
@@ -52,6 +53,7 @@ export const designView = (d) => (d ? {
   reviewedAt: d.reviewedAt,
   version: d.version || 1,
   redoCount: d.redoCount || 0,
+  redoBy: d.redoBy || '',
   // earlier versions the SME sent back, newest first
   history: (d.history || [])
     .map((h) => ({
@@ -111,12 +113,35 @@ router.get('/creatives', async (req, res) => {
       .populate('user', 'name fullname email')
       .sort({ date: 1, createdAt: -1 })
       .lean();
+    // Where the client wants improvements: the pins on the version that was sent back for a redo.
+    const redoing = creatives.filter((c) => c.designOutput?.status === 'redo');
+    const pinsByCreative = {};
+    if (redoing.length) {
+      const versionOf = new Map(redoing.map((c) => [String(c._id), c.designOutput.version || 1]));
+      const pins = await CreativeComment.find({ creative: { $in: redoing.map((c) => c._id) }, deletedAt: null }).sort({ n: 1 }).lean();
+      pins.forEach((p) => {
+        const key = String(p.creative);
+        if (versionOf.get(key) !== p.version) return;
+        (pinsByCreative[key] = pinsByCreative[key] || []).push({
+          id: String(p._id),
+          n: p.n,
+          x: p.x,
+          y: p.y,
+          text: p.text,
+          status: p.status,
+          createdAt: p.createdAt,
+          author: p.author?.name || 'Client',
+          replies: (p.replies || []).map((r) => ({ id: String(r._id), text: r.text, createdAt: r.createdAt, author: r.author?.name || '' }))
+        });
+      });
+    }
     return res.status(200).json({
       success: true,
       count: creatives.length,
       creatives: creatives.map((c) => ({
         ...c,
-        designOutput: designView(c.designOutput)
+        designOutput: designView(c.designOutput),
+        clientFeedback: { version: c.designOutput?.version || 1, pins: pinsByCreative[String(c._id)] || [] }
       }))
     });
   } catch (error) {

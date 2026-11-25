@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Palette, UploadCloud, FileText, ExternalLink, CheckCircle2, Clock3, RotateCcw, UserCheck, Eye,
-  BadgeCheck, X, LoaderCircle, AlertCircle, Layers, CalendarClock, Hourglass, Info, ChevronDown
+  BadgeCheck, X, LoaderCircle, AlertCircle, Layers, CalendarClock, Hourglass, Info, ChevronDown, MessageSquare
 } from 'lucide-react';
 import api from '../api';
 import { fmtDateTime } from '../sopUtils';
 import { workflowOf } from './desWorkflow';
 import '../styles/desupload.css';
+import '../styles/designfeedback.css';
 
 const MAX_FILE_MB = 10;
 const TYPE_LABEL = {
@@ -73,6 +74,10 @@ export default function DesignUpload({ creative, onChange }) {
   const BannerIcon = banner.icon;
   const steps = STEP_STATES[flow.key];
   const due = dueInfo(creative, flow.key);
+  // the client's pinned improvements, shown while this design is sent back
+  const pins = flow.key === 'redo' ? (creative.clientFeedback?.pins || []) : [];
+  const openPins = pins.filter((p) => p.status === 'open');
+  const [activePin, setActivePin] = useState('');
   const stepTime = [
     creative.assignedAt,
     output?.uploadedAt,
@@ -167,7 +172,7 @@ export default function DesignUpload({ creative, onChange }) {
           <span>{banner.text}</span>
           {flow.key === 'redo' && (
             <p className="dsu-quote">
-              <b>SME’s note</b>
+              <b>{output?.redoBy === 'client' ? 'Client’s feedback' : 'SME’s note'}</b>
               {output?.note || 'No note was added.'}
             </p>
           )}
@@ -207,6 +212,40 @@ export default function DesignUpload({ creative, onChange }) {
             </div>
             <a className="dsu-open" href={output.url} target="_blank" rel="noopener noreferrer"><ExternalLink size={12} /> Open full file</a>
           </div>
+        </div>
+      )}
+
+      {pins.length > 0 && output && (
+        <div className="dfb" aria-label="Client improvements">
+          <h3><MessageSquare size={15} /> What the client wants improved <span className="muted">· {openPins.length} open</span></h3>
+          {isImg(output.mimeType) && (
+            <div className="dfb-stage">
+              <img src={output.url} alt="Your delivered design with the client's pins" />
+              {pins.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`dfb-pin ${p.status} ${p.id === activePin ? 'active' : ''}`}
+                  style={{ left: `${p.x}%`, top: `${p.y}%` }}
+                  title={p.text}
+                  aria-label={`Client comment ${p.n}: ${p.text}`}
+                  onClick={() => setActivePin(p.id)}
+                >{p.n}</button>
+              ))}
+            </div>
+          )}
+          <ul className="dfb-list">
+            {pins.map((p) => (
+              <li key={p.id} className={`${p.status} ${p.id === activePin ? 'active' : ''}`} onClick={() => setActivePin(p.id)}>
+                <span className="dfb-badge">{p.n}</span>
+                <div>
+                  <b>{p.author}</b> <small>{fmtDateTime(p.createdAt)}{p.status === 'resolved' ? ' · resolved' : ''}</small>
+                  <p>{p.text}</p>
+                  {p.replies.map((r) => <p key={r.id} className="dfb-reply"><b>{r.author}:</b> {r.text}</p>)}
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

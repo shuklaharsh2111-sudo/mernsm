@@ -49,7 +49,9 @@ const creativeSchema = new mongoose.Schema({
       note: { type: String, trim: true, maxlength: 500, default: '' },
       reviewedAt: { type: Date, default: null },
       version: { type: Number, default: 1 },
-      redoCount: { type: Number, default: 0 }
+      redoCount: { type: Number, default: 0 },
+      // who sent it back for a redo: the SME ('sme') or the client's pinpoint revision ('client')
+      redoBy: { type: String, enum: ['', 'sme', 'client'], default: '' }
     }, { _id: false }),
     default: null
   },

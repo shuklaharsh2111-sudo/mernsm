@@ -45,7 +45,7 @@ export default function DesignOutputModal({ creative, onUpdated, onClose }) {
   const [activePin, setActivePin] = useState('');
 
   useEffect(() => {
-    if (creative.designOutput?.status !== 'approved') return undefined;
+    if (!['approved', 'redo'].includes(creative.designOutput?.status)) return undefined;
     let cancelled = false;
     api.get(`/sme/creatives/${creative.id}/client-feedback`)
       .then((r) => !cancelled && setFb(r.data))
@@ -105,8 +105,10 @@ export default function DesignOutputModal({ creative, onUpdated, onClose }) {
   if (!out) return null;
   const pins = fb?.comments || [];
   const openPins = pins.filter((p) => p.status === 'open');
-  const showPins = out.status === 'approved' && isImg(out.mimeType) && pins.length > 0;
-  const st = STATUS[out.status] || STATUS.submitted;
+  const showPins = ['approved', 'redo'].includes(out.status) && isImg(out.mimeType) && pins.length > 0;
+  const st = out.status === 'redo' && out.redoBy === 'client'
+    ? { label: 'Client redo requested', className: 'rejected' }
+    : (STATUS[out.status] || STATUS.submitted);
 
   return createPortal(
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && !busy && onClose()}>
@@ -178,13 +180,13 @@ export default function DesignOutputModal({ creative, onUpdated, onClose }) {
             </div>
 
             {out.status === 'redo' && out.note && (
-              <p className="mom-note sent_back">Your redo note: {out.note}</p>
+              <p className="mom-note sent_back">{out.redoBy === 'client' ? 'Client feedback' : 'Your redo note'}: {out.note}</p>
             )}
             {out.status === 'approved' && (
               <p className="mom-note approved"><CheckCircle2 size={15} /> Approved {fmtDateTime(out.reviewedAt)}.</p>
             )}
 
-            {out.status === 'approved' && pins.length > 0 && (
+            {['approved', 'redo'].includes(out.status) && pins.length > 0 && (
               <section className="dfb" aria-label="Client improvements">
                 <h3><MessageSquare size={15} /> Client improvements <span className="muted">· v{fb.version || out.version}</span>
                   <i className={`status-pill ${openPins.length ? 'rejected' : 'approved'}`}>{openPins.length ? `${openPins.length} open` : 'All resolved'}</i>
@@ -201,7 +203,7 @@ export default function DesignOutputModal({ creative, onUpdated, onClose }) {
                     </li>
                   ))}
                 </ul>
-                {openPins.length > 0 && (
+                {out.status === 'approved' && openPins.length > 0 && (
                   <div className="dfb-send">
                     <label className="x-field">
                       <span>Designer</span>

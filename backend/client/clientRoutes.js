@@ -15,6 +15,20 @@ import { periodKey, resolveToday } from '../sop/period.js';
 const router = express.Router();
 router.use(protect(['clients']));
 
+// What a client may see: final (approved) designs, plus designs in redo that come from the client's own feedback
+// (the revision was sent by the client, or the client had already commented on it). A redo the SME asked for
+// on a first delivery was never shown to the client, so it stays hidden.
+const clientVisible = async (companyId) => {
+  const commented = await CreativeComment.distinct('creative', { company: companyId, deletedAt: null });
+  return {
+    company: companyId,
+    $or: [
+      { 'designOutput.status': 'approved' },
+      { 'designOutput.status': 'redo', $or: [{ 'designOutput.redoBy': 'client' }, { _id: { $in: commented } }] }
+    ]
+  };
+};
+
 const personName = (u) => (u ? u.name || u.fullname || 'Team member' : 'Team member');
 
 // Everything here is read-only and limited to the company linked to this client account.
@@ -64,9 +78,38 @@ router.get('/dashboard', async (req, res) => {
     const upcoming = meetings.filter((m) => m.date >= today).slice(0, 8).map(meetingView);
     const recent = meetings.filter((m) => m.date < today).reverse().slice(0, 5).map(meetingView);
 
+    // final creatives, and the ones this client sent back with a revision (redo)
+    const finals = await Creative.find(await clientVisible(company._id))
+      .select('date contentPillar.title contentPillar.platforms designOutput.status designOutput.version designOutput.reviewedAt')
+      .sort({ date: 1 })
+      .limit(1000)
+      .lean();
+    const redoing = finals.filter((f) => f.designOutput.status === 'redo');
+    const redoPins = redoing.length
+      ? await CreativeComment.find({ creative: { $in: redoing.map((f) => f._id) }, status: 'open', deletedAt: null }).select('creative version').lean()
+      : [];
+    const pinCount = {};
+    const redoVersion = new Map(redoing.map((f) => [String(f._id), f.designOutput.version || 1]));
+    redoPins.forEach((p) => {
+      if (redoVersion.get(String(p.creative)) === p.version) pinCount[String(p.creative)] = (pinCount[String(p.creative)] || 0) + 1;
+    });
+    const creatives = {
+      approved: finals.length - redoing.length,
+      redo: redoing.length,
+      redoList: redoing.map((f) => ({
+        id: String(f._id),
+        title: f.contentPillar?.title || 'Untitled',
+        date: f.date,
+        platforms: f.contentPillar?.platforms || [],
+        pins: pinCount[String(f._id)] || 0,
+        sentAt: f.designOutput.reviewedAt || null
+      }))
+    };
+
     res.json({
       company: { id: String(company._id), name: company.name, logo: company.logo || '', email: company.email || '' },
       today,
+      creatives,
       team,
       sops: { total: sops.length, done: sops.filter((s) => s.done).length, byType, list: sops },
       meetings: { upcoming, recent }
@@ -84,15 +127,28 @@ router.get('/creatives', async (req, res) => {
     const companyId = client?.companies?.[0];
     if (!companyId) return res.status(404).json({ message: 'No company is linked to this account. Please contact your admin.' });
     const company = await Company.findById(companyId).select('name logo').lean();
-    const list = await Creative.find({ company: companyId, 'designOutput.status': 'approved' })
-      .select('date contentPillar designOutput.url designOutput.resourceType designOutput.mimeType designOutput.originalName designOutput.version')
+    // final designs, plus the ones this client sent back with a pinpoint revision (waiting for the new version)
+    const list = await Creative.find(await clientVisible(companyId))
+      .select('date contentPillar designOutput.url designOutput.resourceType designOutput.mimeType designOutput.originalName designOutput.version designOutput.status')
       .sort({ date: 1, createdAt: 1 })
       .limit(1000)
       .lean();
+    // open pins on the version the client sees: the creative shows as "changes requested" while any are open
+    const pins = list.length
+      ? await CreativeComment.find({ creative: { $in: list.map((c) => c._id) }, status: 'open', deletedAt: null }).select('creative version').lean()
+      : [];
+    const openBy = {};
+    const versionOf = new Map(list.map((c) => [String(c._id), c.designOutput.version || 1]));
+    pins.forEach((p) => {
+      const key = String(p.creative);
+      if (versionOf.get(key) === p.version) openBy[key] = (openBy[key] || 0) + 1;
+    });
     res.json({
       company: company ? { id: String(company._id), name: company.name, logo: company.logo || '' } : null,
       creatives: list.map((c) => ({
         id: String(c._id),
+        openFeedback: openBy[String(c._id)] || 0,
+        revisionSent: c.designOutput.status === 'redo',
         date: c.date,
         title: c.contentPillar?.title || 'Untitled',
         caption: c.contentPillar?.caption || '',
@@ -134,8 +190,8 @@ const loadForClient = async (req, res) => {
     res.status(404).json({ message: 'No company is linked to this account. Please contact your admin.' });
     return null;
   }
-  const creative = await Creative.findOne({ _id: req.params.id, company: companyId, 'designOutput.status': 'approved' })
-    .select('user company assignedDesigner contentPillar.title designOutput.version')
+  const creative = await Creative.findOne({ ...(await clientVisible(companyId)), _id: req.params.id })
+    .select('user company assignedDesigner contentPillar.title designOutput.version designOutput.status')
     .lean();
   if (!creative) {
     res.status(404).json({ message: 'Creative not found' });
@@ -180,6 +236,31 @@ const notifyTeam = (creative, actor, title, message) => {
   notifyUsers(to, { topic: 'creatives', tone: 'info', title, message }, actor);
 };
 
+// Send the revision: the open pins go to the SME and the designer, and the design goes back to "redo" for both.
+router.post('/creatives/:id/revision', async (req, res) => {
+  try {
+    const ctx = await loadForClient(req, res);
+    if (!ctx) return;
+    if (ctx.creative.designOutput?.status !== 'approved') return res.status(409).json({ message: 'Your revision was already sent.' });
+    const version = ctx.creative.designOutput.version || 1;
+    const pins = await CreativeComment.find({ creative: ctx.creative._id, version, status: 'open', deletedAt: null }).sort({ n: 1 }).lean();
+    if (!pins.length) return res.status(400).json({ message: 'Click on the creative and add at least one comment first' });
+    const note = `Client feedback: ${pins.map((p) => `#${p.n} ${p.text}`).join(' | ')}`.slice(0, 500);
+    const updated = await Creative.findOneAndUpdate(
+      { _id: ctx.creative._id, 'designOutput.status': 'approved' },
+      { $set: { 'designOutput.status': 'redo', 'designOutput.note': note, 'designOutput.redoBy': 'client', 'designOutput.reviewedAt': new Date() }, $inc: { 'designOutput.redoCount': 1 } },
+      { new: true }
+    ).select('_id').lean();
+    if (!updated) return res.status(409).json({ message: 'Your revision was already sent.' });
+    notifyTeam(ctx.creative, req.user, 'Client sent a revision',
+      `{actor} asked for changes on "${ctx.creative.contentPillar?.title || 'a creative'}" (${pins.length} pin${pins.length > 1 ? 's' : ''}). It is back in Redo.`);
+    res.json({ id: String(ctx.creative._id), revisionSent: true });
+  } catch (e) {
+    console.error('client revision', e);
+    res.status(500).json({ message: 'Could not send your revision' });
+  }
+});
+
 // All pins on a version (the current one unless ?version=N is given).
 router.get('/creatives/:id/comments', async (req, res) => {
   try {
@@ -209,6 +290,7 @@ router.post('/creatives/:id/comments', async (req, res) => {
     }
     if (!text) return res.status(400).json({ message: 'Please write your comment' });
     if (text.length > MAX_COMMENT) return res.status(400).json({ message: `Comments can be at most ${MAX_COMMENT} characters` });
+    if (ctx.creative.designOutput?.status !== 'approved') return res.status(409).json({ message: 'Your revision was already sent. New comments can be added on the next version.' });
 
     const version = ctx.creative.designOutput?.version || 1;
     const actor = actorOf(ctx.client);

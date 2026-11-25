@@ -502,6 +502,7 @@ const designOutputView = (d) => (d ? {
   reviewedAt: d.reviewedAt,
   version: d.version || 1,
   redoCount: d.redoCount || 0,
+  redoBy: d.redoBy || '',
   // earlier versions that were sent back for a redo, newest first
   history: [...(d.history || [])].reverse().map((h) => ({
     url: h.url,
@@ -1501,6 +1502,7 @@ router.put('/creatives/:id/design-review', async (req, res) => {
     }
     out.status = action === 'approve' ? 'approved' : 'redo';
     out.note = action === 'redo' ? note : '';
+    out.redoBy = action === 'redo' ? 'sme' : '';
     out.reviewedAt = new Date();
     if (action === 'redo') out.redoCount = (out.redoCount || 0) + 1;
     creative.markModified('designOutput');
@@ -1576,6 +1578,7 @@ router.put('/creatives/:id/send-to-designer', async (req, res) => {
     const finalNote = (note || `Client feedback: ${fromPins}`).slice(0, 500);
     out.status = 'redo';
     out.note = finalNote;
+    out.redoBy = 'client';
     out.reviewedAt = new Date();
     out.redoCount = (out.redoCount || 0) + 1;
     creative.markModified('designOutput');

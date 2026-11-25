@@ -155,3 +155,10 @@
 .pv-send { display: grid; place-items: center; flex: 0 0 auto; width: 38px; height: 38px; padding: 0; }
 .pv-actions .pv-row { justify-content: flex-start; }
 .pv-danger { color: var(--danger, #e5484d); }
+
+.pv-sent { margin: 0; padding: 10px 12px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
+.pv-send { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 10px 12px; border: 1px dashed var(--orange); border-radius: 10px; }
+.pv-send small { color: var(--ink-3); font-size: 12.5px; }
+.pv-send .btn-primary { display: inline-flex; align-items: center; gap: 6px; width: auto; }
+
+.cx-views { margin: 4px 0 12px; }
