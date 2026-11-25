@@ -18,6 +18,7 @@ import { isRealDate, periodKey, resolveToday } from '../sop/period.js';
 import TaskAttachment from './TaskAttachment.js';
 import Task from './Tasks.js';
 import Creative, { CREATIVE_PLATFORMS, CREATIVE_STATUSES } from './Creative.js';
+import CreativeComment from '../client/CreativeComment.js';
 import SocialMetrics from './SocialMetrics.js';
 import Admin from '../admin/Admin.js';
 import { Smi, Des } from '../admin/UserModels.js';
@@ -537,6 +538,33 @@ const creativeView = (c) => ({
     platforms: c.contentPillar?.platforms || [],
   },
 });
+// Client improvements: pins the client left on the CURRENT version of an approved (final) design.
+// Only open pins on the version the client is looking at count; older versions keep their own pins.
+const openFeedbackCounts = async (creatives) => {
+  const finals = creatives.filter((c) => c.designOutput?.status === 'approved');
+  const counts = {};
+  if (!finals.length) return counts;
+  const versionOf = new Map(finals.map((c) => [String(c._id), c.designOutput.version || 1]));
+  const pins = await CreativeComment.find({ creative: { $in: finals.map((c) => c._id) }, status: 'open', deletedAt: null }).select('creative version').lean();
+  pins.forEach((p) => {
+    const key = String(p.creative);
+    if (versionOf.get(key) === p.version) counts[key] = (counts[key] || 0) + 1;
+  });
+  return counts;
+};
+const withFeedback = (view, counts) => ({ ...view, clientFeedback: { open: counts[String(view.id)] || 0 } });
+const feedbackPinView = (c) => ({
+  id: String(c._id),
+  n: c.n,
+  x: c.x,
+  y: c.y,
+  version: c.version,
+  text: c.text,
+  status: c.status,
+  createdAt: c.createdAt,
+  author: { name: c.author?.name || 'Client', role: c.author?.role || '' },
+  replies: (c.replies || []).map((r) => ({ id: String(r._id), text: r.text, createdAt: r.createdAt, author: { name: r.author?.name || '', role: r.author?.role || '' } })),
+});
 // My creatives. Optional ?company=<id> and ?status=pending|approved|rejected (default: all).
 // The calendar asks for status=approved: a creative only lands there once the admin approves it.
 router.get('/creatives', async (req, res) => {
@@ -551,7 +579,8 @@ router.get('/creatives', async (req, res) => {
       filter.status = req.query.status;
     }
     const list = await Creative.find(filter).sort({ date: 1, createdAt: 1 }).limit(1000).populate('company', 'name').populate('assignedDesigner', 'name email');
-    res.json({ creatives: list.map(creativeView) });
+    const openFeedback = await openFeedbackCounts(list);
+    res.json({ creatives: list.map((c) => withFeedback(creativeView(c), openFeedback)) });
   } catch (error) {
     console.error('Fetch creatives error:', error);
     res.status(500).json({ message: 'Unable to fetch creatives' });
@@ -1488,6 +1517,75 @@ router.put('/creatives/:id/design-review', async (req, res) => {
   } catch (error) {
     console.error('Design review error:', error);
     res.status(500).json({ message: 'Unable to save your review' });
+  }
+});
+// What the client asked to improve on a final design (pins on the current version, open and resolved).
+router.get('/creatives/:id/client-feedback', async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid creative ID' });
+    const creative = await Creative.findOne({ _id: req.params.id, user: req.user.id }).select('designOutput.version designOutput.status').lean();
+    if (!creative) return res.status(404).json({ message: 'Creative not found' });
+    const version = creative.designOutput?.version || 1;
+    const pins = await CreativeComment.find({ creative: creative._id, version, deletedAt: null }).sort({ n: 1 }).lean();
+    res.json({ version, comments: pins.map(feedbackPinView) });
+  } catch (error) {
+    console.error('Client feedback error:', error);
+    res.status(500).json({ message: 'Unable to load the client feedback' });
+  }
+});
+// The client asked for improvements on a final design: send it back to the designer (the same one, or another).
+// The design goes back to 'redo', the designer uploads a new version, and the SME approves it again.
+router.put('/creatives/:id/send-to-designer', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const note = String(req.body?.note || '').trim();
+    const designerId = req.body?.designerId ? String(req.body.designerId) : '';
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid creative ID' });
+    if (designerId && !mongoose.Types.ObjectId.isValid(designerId)) return res.status(400).json({ message: 'Please select a valid designer' });
+    if (note.length > 500) return res.status(400).json({ message: 'Note can be at most 500 characters' });
+    const creative = await Creative.findOne({ _id: id, user: req.user.id })
+      .populate('company', 'name')
+      .populate('assignedDesigner', 'name email');
+    if (!creative) return res.status(404).json({ message: 'Creative not found' });
+    const out = creative.designOutput;
+    if (!out || out.status !== 'approved') {
+      return res.status(400).json({ message: 'Only a final (approved) design can be sent back for the client\u2019s improvements' });
+    }
+    const version = out.version || 1;
+    const pins = await CreativeComment.find({ creative: creative._id, version, status: 'open', deletedAt: null }).sort({ n: 1 }).lean();
+    if (!pins.length) return res.status(400).json({ message: 'The client has no open improvements on this design' });
+
+    const targetId = designerId || (creative.assignedDesigner?._id ? String(creative.assignedDesigner._id) : '');
+    if (!targetId) return res.status(400).json({ message: 'Please select a designer' });
+    const currentId = creative.assignedDesigner?._id ? String(creative.assignedDesigner._id) : '';
+    if (targetId !== currentId) {
+      if (!(await Des.exists({ _id: targetId }))) return res.status(400).json({ message: 'Selected designer was not found' });
+      const assigned = await Creative.find({ assignedDesigner: targetId }).select('company').lean();
+      const companyIds = new Set(assigned.map((item) => String(item.company)));
+      companyIds.add(String(creative.company._id || creative.company));
+      if (companyIds.size > 5) {
+        return res.status(400).json({ message: 'This designer can be assigned creatives from a maximum of 5 companies. Please select another designer.' });
+      }
+      creative.assignedDesigner = targetId;
+      creative.assignedAt = new Date();
+      creative.assignedBy = req.user.id;
+    }
+
+    // what the designer reads: the SME's own note, or the client's pins in order
+    const fromPins = pins.map((p) => `#${p.n} ${p.text}`).join(' | ');
+    const finalNote = (note || `Client feedback: ${fromPins}`).slice(0, 500);
+    out.status = 'redo';
+    out.note = finalNote;
+    out.reviewedAt = new Date();
+    out.redoCount = (out.redoCount || 0) + 1;
+    creative.markModified('designOutput');
+    await creative.save();
+    await creative.populate('assignedDesigner', 'name email');
+    notifyUsers([{ id: targetId, role: 'des' }], { topic: 'creatives', tone: 'warning', title: 'Client improvements requested', message: `{actor} sent \"${creative.contentPillar?.title || 'a creative'}\" back with the client\u2019s feedback: ${finalNote}` }, req.user);
+    res.json({ creative: withFeedback(creativeView(creative), {}) });
+  } catch (error) {
+    console.error('Send to designer error:', error);
+    res.status(500).json({ message: 'Unable to send this back to the designer' });
   }
 });
 router.put('/creatives/:id/assign', async (req, res) => {

@@ -1,0 +1,20 @@
+/* SME: client improvements (pins) on a final design, and sending it back to the designer */
+.dfb-stage { position: relative; display: inline-block; max-width: 100%; line-height: 0; }
+.dfb-stage img { display: block; max-width: 100%; }
+.dfb-pin { position: absolute; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; transform: translate(-50%, -50%); color: #fff; background: var(--orange, #f27730); border: 2px solid #fff; border-radius: 50%; box-shadow: 0 2px 8px rgba(0, 0, 0, .45); font: inherit; font-size: 11.5px; font-weight: 800; line-height: 1; cursor: pointer; }
+.dfb-pin.resolved { background: var(--ok, #2e9e6b); opacity: .85; }
+.dfb-pin.active { z-index: 2; transform: translate(-50%, -50%) scale(1.25); }
+.dfb { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--line, rgba(255, 255, 255, .12)); border-radius: 14px; background: var(--surface-2, rgba(255, 255, 255, .04)); }
+.dfb h3 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; font-size: 15px; }
+.dfb h3 .status-pill { margin-left: auto; }
+.dfb-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.dfb-list li { display: flex; gap: 10px; padding: 10px; border: 1px solid var(--line, rgba(255, 255, 255, .12)); border-radius: 12px; cursor: pointer; }
+.dfb-list li.active { border-color: var(--orange, #f27730); }
+.dfb-list li.resolved { opacity: .75; }
+.dfb-list p { margin: 4px 0 0; font-size: 13.5px; overflow-wrap: anywhere; }
+.dfb-list small { color: var(--ink-3, #9a9a9a); font-size: 11.5px; }
+.dfb-reply { padding-left: 10px; border-left: 2px solid var(--line, rgba(255, 255, 255, .2)); color: var(--ink-2, inherit); }
+.dfb-badge { flex: 0 0 auto; display: grid; place-items: center; width: 22px; height: 22px; color: #fff; background: var(--orange, #f27730); border-radius: 50%; font-size: 11.5px; font-weight: 800; }
+.dfb-list li.resolved .dfb-badge { background: var(--ok, #2e9e6b); }
+.dfb-send { display: flex; flex-direction: column; gap: 10px; }
+.client-feedback-chip { border-color: var(--orange, #f27730); }

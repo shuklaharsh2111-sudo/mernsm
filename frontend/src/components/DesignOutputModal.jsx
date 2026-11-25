@@ -1,8 +1,9 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
-import { X, CheckCircle2, RotateCcw, ExternalLink, FileText } from 'lucide-react';
+import { X, CheckCircle2, RotateCcw, ExternalLink, FileText, MessageSquare, Send } from 'lucide-react';
 import api from '../api';
 import { errMsg, fmtDay, fmtDateTime } from '../sopUtils';
+import '../styles/designfeedback.css';
 
 const STATUS = {
   submitted: { label: 'Waiting for review', className: 'pending' },
@@ -36,6 +37,24 @@ export default function DesignOutputModal({ creative, onUpdated, onClose }) {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // client improvements (pins) on a final design, and sending it back to the designer
+  const [fb, setFb] = useState(null);
+  const [fbNote, setFbNote] = useState('');
+  const [designers, setDesigners] = useState([]);
+  const [designerId, setDesignerId] = useState(creative.assignedDesigner?.id || '');
+  const [activePin, setActivePin] = useState('');
+
+  useEffect(() => {
+    if (creative.designOutput?.status !== 'approved') return undefined;
+    let cancelled = false;
+    api.get(`/sme/creatives/${creative.id}/client-feedback`)
+      .then((r) => !cancelled && setFb(r.data))
+      .catch(() => !cancelled && setFb({ comments: [] }));
+    api.get('/sme/designers')
+      .then((r) => !cancelled && setDesigners(r.data.designers || []))
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [creative.id, creative.designOutput?.status]);
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && !busy && onClose();
@@ -63,7 +82,30 @@ export default function DesignOutputModal({ creative, onUpdated, onClose }) {
     }
   };
 
+  const sendBack = async () => {
+    if (!designerId) {
+      setError('Please choose a designer.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      const { data } = await api.put(`/sme/creatives/${creative.id}/send-to-designer`, {
+        designerId,
+        note: fbNote.trim(),
+      });
+      onUpdated(data.creative);
+      onClose();
+    } catch (err) {
+      setError(errMsg(err));
+      setBusy(false);
+    }
+  };
+
   if (!out) return null;
+  const pins = fb?.comments || [];
+  const openPins = pins.filter((p) => p.status === 'open');
+  const showPins = out.status === 'approved' && isImg(out.mimeType) && pins.length > 0;
   const st = STATUS[out.status] || STATUS.submitted;
 
   return createPortal(
@@ -102,7 +144,24 @@ export default function DesignOutputModal({ creative, onUpdated, onClose }) {
               <section className="design-col">
                 <h3>Designer output <span className="muted">· v{out.version}</span></h3>
                 <div className="design-preview">
-                  <FilePreview url={out.url} name={out.name} mimeType={out.mimeType} />
+                  {showPins ? (
+                    <div className="dfb-stage">
+                      <FilePreview url={out.url} name={out.name} mimeType={out.mimeType} />
+                      {pins.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className={`dfb-pin ${p.status} ${p.id === activePin ? 'active' : ''}`}
+                          style={{ left: `${p.x}%`, top: `${p.y}%` }}
+                          title={`${p.author.name}: ${p.text}`}
+                          aria-label={`Client comment ${p.n}: ${p.text}`}
+                          onClick={() => setActivePin(p.id)}
+                        >{p.n}</button>
+                      ))}
+                    </div>
+                  ) : (
+                    <FilePreview url={out.url} name={out.name} mimeType={out.mimeType} />
+                  )}
                 </div>
               </section>
             </div>
@@ -123,6 +182,51 @@ export default function DesignOutputModal({ creative, onUpdated, onClose }) {
             )}
             {out.status === 'approved' && (
               <p className="mom-note approved"><CheckCircle2 size={15} /> Approved {fmtDateTime(out.reviewedAt)}.</p>
+            )}
+
+            {out.status === 'approved' && pins.length > 0 && (
+              <section className="dfb" aria-label="Client improvements">
+                <h3><MessageSquare size={15} /> Client improvements <span className="muted">· v{fb.version || out.version}</span>
+                  <i className={`status-pill ${openPins.length ? 'rejected' : 'approved'}`}>{openPins.length ? `${openPins.length} open` : 'All resolved'}</i>
+                </h3>
+                <ul className="dfb-list">
+                  {pins.map((p) => (
+                    <li key={p.id} className={`${p.status} ${p.id === activePin ? 'active' : ''}`} onClick={() => setActivePin(p.id)}>
+                      <span className="dfb-badge">{p.n}</span>
+                      <div>
+                        <b>{p.author.name}</b> <small>{fmtDateTime(p.createdAt)}{p.status === 'resolved' ? ' · resolved' : ''}</small>
+                        <p>{p.text}</p>
+                        {p.replies.map((r) => <p key={r.id} className="dfb-reply"><b>{r.author.name}:</b> {r.text}</p>)}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                {openPins.length > 0 && (
+                  <div className="dfb-send">
+                    <label className="x-field">
+                      <span>Designer</span>
+                      <select value={designerId} disabled={busy} onChange={(e) => setDesignerId(e.target.value)}>
+                        <option value="">Choose a designer</option>
+                        {creative.assignedDesigner && !designers.some((d) => d.id === creative.assignedDesigner.id) && (
+                          <option value={creative.assignedDesigner.id}>{creative.assignedDesigner.name}</option>
+                        )}
+                        {designers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
+                    </label>
+                    <label className="x-field">
+                      <span>Note for the designer (optional)</span>
+                      <textarea
+                        rows={3}
+                        maxLength={500}
+                        value={fbNote}
+                        disabled={busy}
+                        placeholder="Leave empty to send the client's comments as they are…"
+                        onChange={(e) => setFbNote(e.target.value)}
+                      />
+                    </label>
+                  </div>
+                )}
+              </section>
             )}
 
             {redoing && out.status === 'submitted' && (
@@ -181,6 +285,11 @@ export default function DesignOutputModal({ creative, onUpdated, onClose }) {
                   </button>
                   <button type="button" className="btn-ghost" disabled={busy} onClick={() => { setRedoing(false); setError(''); }}>Back</button>
                 </>
+              )}
+              {out.status === 'approved' && openPins.length > 0 && (
+                <button type="button" className="btn-primary" disabled={busy || !designerId} onClick={sendBack}>
+                  <Send size={15} /> {busy ? 'Sending…' : 'Send to designer again'}
+                </button>
               )}
               <a className="btn-ghost design-open" href={out.url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink size={14} /> Open file

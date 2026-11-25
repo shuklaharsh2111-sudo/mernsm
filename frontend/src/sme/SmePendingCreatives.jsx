@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useState } from 'react';
-import { Eye, Trash2, Pencil, Image as ImageIcon, UserRoundPlus, X, CheckCircle2, Palette } from 'lucide-react';
+import { Eye, Trash2, Pencil, Image as ImageIcon, UserRoundPlus, X, CheckCircle2, Palette, MessageSquare } from 'lucide-react';
 import api from '../api';
 import CreativeViewModal from '../components/CreativeViewModal';
 import ReferenceCreativeModal from '../components/ReferenceCreativeModal';
@@ -150,6 +150,16 @@ const SmePendingCreatives = () => {
                     <span>Assigned to <strong>{c.assignedDesigner.name}</strong></span>
                   </div>
                 )}
+                {c.clientFeedback?.open > 0 && (
+                  <button type="button" className="design-output-chip client-feedback-chip" onClick={() => setReviewing(c)}>
+                    <MessageSquare size={18} />
+                    <span>
+                      <strong>Client wants improvements</strong>
+                      <em>{c.clientFeedback.open} open comment{c.clientFeedback.open > 1 ? 's' : ''}. Open to send it back to the designer.</em>
+                    </span>
+                    <i className="status-pill rejected">Action</i>
+                  </button>
+                )}
                 {c.designOutput && (
                   <button type="button" className="design-output-chip" onClick={() => setReviewing(c)}>
                     {(c.designOutput.mimeType || '').startsWith('image/')
@@ -179,7 +189,7 @@ const SmePendingCreatives = () => {
                   )}
                   {tab === 'designer' && c.designOutput && (
                     <button type="button" className="btn-primary" onClick={() => setReviewing(c)}>
-                      <Palette size={14} /> {c.designOutput.status === 'submitted' ? 'Review output' : 'View output'}
+                      <Palette size={14} /> {c.designOutput.status === 'submitted' ? 'Review output' : c.clientFeedback?.open > 0 ? 'Client feedback' : 'View output'}
                     </button>
                   )}
                   {c.status === 'rejected' && (
