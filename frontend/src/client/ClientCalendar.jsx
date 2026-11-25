@@ -7,6 +7,7 @@ import DayCreativesModal from '../components/DayCreativesModal';
 import CreativeDetails from '../components/CreativeDetails';
 import { PLATFORMS } from '../components/creativePlatforms';
 import { LinePlatformIcon } from '../components/SocialIcons';
+import PinpointViewer from './PinpointViewer';
 import { errMsg, todayStr } from '../sopUtils';
 import '../style.css';
 import '../styles/smedashboard.css';
@@ -247,29 +248,31 @@ const ClientCalendar = () => {
             </div>
 
             <div className="modal-body">
-              <div className="cv-body">
-                <div className="cv-media">
-                  <Media key={current.id} file={current.file} controls />
-                  {dayList.length > 1 && (
-                    <>
-                      <button type="button" className="cv-arrow prev" onClick={() => step(-1)} aria-label="Previous creative"><ChevronLeft size={18} /></button>
-                      <button type="button" className="cv-arrow next" onClick={() => step(1)} aria-label="Next creative"><ChevronRight size={18} /></button>
-                    </>
-                  )}
-                </div>
-                <div className="cv-info">
-                  {dayList.length > 1 && <span className="cv-pos">{idx + 1} of {dayList.length} on this day</span>}
-                  {current.platforms.length > 0 && (
-                    <div className="creative-tags">
-                      {current.platforms.map((pk) => {
-                        const P = PLATFORMS.find((x) => x.key === pk);
-                        return <span key={pk} className="tag-chip static">{P ? P.label : pk}</span>;
-                      })}
-                    </div>
-                  )}
-                  <CreativeDetails creative={current} />
-                </div>
-              </div>
+              {/* key = creative id so every creative starts with its own pins and an empty text box */}
+              <PinpointViewer
+                key={current.id}
+                creative={current}
+                arrows={dayList.length > 1 && (
+                  <>
+                    <button type="button" className="cv-arrow prev" onClick={() => step(-1)} aria-label="Previous creative"><ChevronLeft size={18} /></button>
+                    <button type="button" className="cv-arrow next" onClick={() => step(1)} aria-label="Next creative"><ChevronRight size={18} /></button>
+                  </>
+                )}
+                info={(
+                  <>
+                    {dayList.length > 1 && <span className="cv-pos">{idx + 1} of {dayList.length} on this day</span>}
+                    {current.platforms.length > 0 && (
+                      <div className="creative-tags">
+                        {current.platforms.map((pk) => {
+                          const P = PLATFORMS.find((x) => x.key === pk);
+                          return <span key={pk} className="tag-chip static">{P ? P.label : pk}</span>;
+                        })}
+                      </div>
+                    )}
+                    <CreativeDetails creative={current} />
+                  </>
+                )}
+              />
             </div>
 
             <div className="modal-foot">
