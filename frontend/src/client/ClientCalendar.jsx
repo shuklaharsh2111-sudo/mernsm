@@ -258,7 +258,7 @@ const ClientCalendar = () => {
 
       {current && createPortal(
         <div className="modal-overlay cv-overlay" onMouseDown={(e) => e.target === e.currentTarget && setViewing(null)}>
-          <div className="modal-card cx-modal creative-wide" role="dialog" aria-modal="true" aria-labelledby="client-view-title">
+          <div className="modal-card cx-modal creative-wide cv-full" role="dialog" aria-modal="true" aria-labelledby="client-view-title">
             <div className="modal-head">
               <div>
                 <h2 id="client-view-title">{current.title}</h2>

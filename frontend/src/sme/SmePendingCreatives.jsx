@@ -35,7 +35,10 @@ const progressOf = (c) => {
     return { step: 4, tone: 'done', text: 'Design approved. Nothing left to do.' };
   }
   if (out?.status === 'submitted') return { step: 2, tone: 'action', text: 'Designer sent the design. Please review it.' };
-  if (out?.status === 'redo') return { step: 2, tone: 'wait', text: out.redoBy === 'client' ? 'Client asked for changes. Designer is fixing it.' : 'Sent back to the designer for changes.' };
+  if (out?.status === 'redo') {
+    const who = c.assignedDesigner ? c.assignedDesigner.name : 'the designer';
+    return { step: 2, tone: 'action', text: `${out.redoBy === 'client' ? 'Client asked for changes' : 'You asked for changes'}. ${who} will fix it, or choose a different designer.` };
+  }
   if (c.assignedDesigner) return { step: 2, tone: 'wait', text: `${c.assignedDesigner.name} is working on it.` };
   return { step: 1, tone: 'action', text: 'Approved by admin. Choose a designer to start the work.' };
 };
@@ -190,7 +193,8 @@ const SmePendingCreatives = () => {
           {shown.map((c) => {
             const prog = progressOf(c);
             const out = c.designOutput;
-            const canAssign = c.status === 'approved' && tab !== 'designer' && (!out || out.status === 'redo');
+            // shown on every tab (also Designer and All), so a client or SME redo can go back to a designer
+            const canAssign = c.status === 'approved' && (!out || out.status === 'redo');
             return (
               <article key={c.id} className={`sc-card ${prog.tone}`}>
                 <button type="button" className="sc-thumb" onClick={() => setViewing(c)} title="Preview creative" aria-label="Preview creative">
@@ -265,8 +269,8 @@ const SmePendingCreatives = () => {
                     </button>
                   )}
                   {canAssign && (
-                    <button type="button" className={c.assignedDesigner ? 'btn-ghost' : 'btn-primary'} onClick={() => openAssign(c)}>
-                      <UserRoundPlus size={14} /> {c.assignedDesigner ? 'Change designer' : 'Choose designer'}
+                    <button type="button" className={c.assignedDesigner && out?.status !== 'redo' ? 'btn-ghost' : 'btn-primary'} onClick={() => openAssign(c)}>
+                      <UserRoundPlus size={14} /> {out?.status === 'redo' ? 'Assign designer again' : c.assignedDesigner ? 'Change designer' : 'Choose designer'}
                     </button>
                   )}
                   {out && out.status !== 'submitted' && !(out.status === 'approved' && c.clientFeedback?.open > 0) && (
