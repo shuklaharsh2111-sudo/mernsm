@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight, Play, X, ExternalLink, Image as ImageIcon, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, X, ExternalLink, Image as ImageIcon, Check, RotateCcw } from 'lucide-react';
 import api from '../api';
 import { CompanyBadge } from '../components/CompanyBadge';
 import DayCreativesModal from '../components/DayCreativesModal';
@@ -32,10 +32,11 @@ const Media = ({ file, controls = false }) => (file.isVideo
   : <img src={file.url} alt={file.name || 'Final creative'} loading="lazy" />);
 
 // Every creative the client sees is a final, approved one.
-const FinalBadge = ({ compact = false }) => (
-  <span className={`cstatus approved ${compact ? 'compact' : ''}`} title="Final creative">
-    <Check size={compact ? 10 : 13} aria-hidden="true" />
-    Final
+// While the client has open improvement pins on it, it reads "Redo" instead.
+const FinalBadge = ({ compact = false, redo = false }) => (
+  <span className={`cstatus ${redo ? 'rejected' : 'approved'} ${compact ? 'compact' : ''}`} title={redo ? 'Revision sent to your team' : 'Final creative'}>
+    {redo ? <RotateCcw size={compact ? 10 : 13} aria-hidden="true" /> : <Check size={compact ? 10 : 13} aria-hidden="true" />}
+    {redo ? 'Redo' : 'Final'}
   </span>
 );
 
@@ -51,6 +52,8 @@ const ClientCalendar = () => {
   const [cursor, setCursor] = useState({ y: now.getFullYear(), m: now.getMonth() });
   const [dayOpen, setDayOpen] = useState(''); // day box clicked: lists that day's creatives
   const [viewing, setViewing] = useState(null); // { id } creative open in the full preview
+  const [view, setView] = useState(() => (new URLSearchParams(window.location.search).get('view') === 'redo' ? 'redo' : 'approved')); // 'approved' = final creatives, 'redo' = revisions sent back to the team
+  const [notice, setNotice] = useState('');
   const today = todayStr();
 
   useEffect(() => {
@@ -72,13 +75,16 @@ const ClientCalendar = () => {
     return () => { cancelled = true; };
   }, []);
 
-  const countFor = (key) => creatives.filter((c) => c.platforms.includes(key)).length;
+  const inView = (c) => (view === 'redo' ? c.revisionSent : !c.revisionSent);
+  const approvedTotal = creatives.filter((c) => !c.revisionSent).length;
+  const redoTotal = creatives.length - approvedTotal;
+  const countFor = (key) => creatives.filter((c) => inView(c) && c.platforms.includes(key)).length;
   // open on the first platform that has something, otherwise Facebook
   const activePlatform = platform || (PLATFORMS.find((p) => countFor(p.key) > 0) || PLATFORMS[0]).key;
   const meta = PLATFORMS.find((p) => p.key === activePlatform) || PLATFORMS[0];
   const MetaIcon = meta.icon;
 
-  const visible = useMemo(() => creatives.filter((c) => c.platforms.includes(activePlatform)), [creatives, activePlatform]);
+  const visible = useMemo(() => creatives.filter((c) => (view === 'redo' ? c.revisionSent : !c.revisionSent) && c.platforms.includes(activePlatform)), [creatives, activePlatform, view]);
   const dayCreatives = (key) => visible.filter((c) => c.date === key);
 
   const grid = useMemo(() => buildGrid(cursor.y, cursor.m), [cursor]);
@@ -123,6 +129,19 @@ const ClientCalendar = () => {
       </header>
 
       {error && <p className="error-message" role="alert">{error}</p>}
+      {notice && <p className="muted cc-empty" role="status">{notice}</p>}
+
+      {/* Final creatives, and a Redo section for the revisions this client sent back */}
+      {company && (
+        <div className="cl-tabs cx-views" role="tablist" aria-label="Creative status">
+          <button type="button" role="tab" aria-selected={view === 'approved'} className={view === 'approved' ? 'active' : ''} onClick={() => { setView('approved'); setNotice(''); }}>
+            Approved {approvedTotal}
+          </button>
+          <button type="button" role="tab" aria-selected={view === 'redo'} className={view === 'redo' ? 'active' : ''} onClick={() => { setView('redo'); setNotice(''); }}>
+            Redo {redoTotal}
+          </button>
+        </div>
+      )}
 
       {/* 2 · Platform calendars */}
       {company && (
@@ -157,7 +176,7 @@ const ClientCalendar = () => {
           </div>
 
           <div className="cx-stats" aria-label={`${monthLabel} summary`}>
-            <span className="cx-stat approved"><b>{monthCount}</b> Final this month</span>
+            <span className={`cx-stat ${view === 'redo' ? 'rejected' : 'approved'}`}><b>{monthCount}</b> {view === 'redo' ? 'In redo this month' : 'Final this month'}</span>
           </div>
 
           <div className="cx-controls">
@@ -201,7 +220,7 @@ const ClientCalendar = () => {
                           </span>
                           <span className="cal-creative-text">
                             <span className="cal-creative-title">{c.title}</span>
-                            <span className="cal-creative-meta"><FinalBadge compact /></span>
+                            <span className="cal-creative-meta"><FinalBadge compact redo={c.revisionSent} /></span>
                           </span>
                         </span>
                       </div>
@@ -215,6 +234,9 @@ const ClientCalendar = () => {
         </div>
       </section>
 
+      {!loading && !error && creatives.length > 0 && view === 'redo' && redoTotal === 0 && (
+        <p className="muted cc-empty">Nothing is in redo. When you send a revision on a creative, it moves here until the new version is approved.</p>
+      )}
       {!loading && !error && creatives.length === 0 && (
         <p className="muted cc-empty">No final creatives are ready yet. They will appear here once your team’s designs are approved.</p>
       )}
@@ -229,7 +251,7 @@ const ClientCalendar = () => {
           paused={!!viewing}
           onOpen={(c) => setViewing({ date: c.date, id: c.id })}
           onClose={() => setDayOpen('')}
-          renderStatus={() => <FinalBadge />}
+          renderStatus={(c) => <FinalBadge redo={c.revisionSent} />}
           itemClass={() => 'approved'}
         />
       )}
@@ -241,7 +263,7 @@ const ClientCalendar = () => {
               <div>
                 <h2 id="client-view-title">{current.title}</h2>
                 <p className="creative-sub">
-                  {company?.name} · {longDate(current.date)} <FinalBadge />
+                  {company?.name} · {longDate(current.date)} <FinalBadge redo={current.revisionSent} />
                 </p>
               </div>
               <button type="button" className="modal-close" aria-label="Close" onClick={() => setViewing(null)}><X size={16} /></button>
@@ -252,6 +274,12 @@ const ClientCalendar = () => {
               <PinpointViewer
                 key={current.id}
                 creative={current}
+                onRevisionSent={(cid) => {
+                  setCreatives((list) => list.map((x) => (x.id === cid ? { ...x, revisionSent: true } : x)));
+                  setViewing(null);
+                  setNotice('Revision sent to your team. You can follow it under Redo until the new version is approved.');
+                }}
+                onOpenCount={(cid, n) => setCreatives((list) => list.map((x) => (x.id === cid && x.openFeedback !== n ? { ...x, openFeedback: n } : x)))}
                 arrows={dayList.length > 1 && (
                   <>
                     <button type="button" className="cv-arrow prev" onClick={() => step(-1)} aria-label="Previous creative"><ChevronLeft size={18} /></button>

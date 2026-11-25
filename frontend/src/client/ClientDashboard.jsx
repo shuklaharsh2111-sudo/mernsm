@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, Users, ListChecks, CalendarDays, Video, CheckCircle2, Circle } from 'lucide-react';
+import { Building2, Users, ListChecks, CalendarDays, Video, CheckCircle2, Circle, RotateCcw, BadgeCheck } from 'lucide-react';
 import api from '../api';
 import { errMsg, todayStr } from '../sopUtils';
 import '../styles/client.css';
@@ -37,6 +37,7 @@ const ClientDashboard = () => {
   if (!data) return <div className="dashboard-content scrollable"><p className="muted">Loading…</p></div>;
 
   const { company, team, sops, meetings } = data;
+  const creatives = data.creatives || { approved: 0, redo: 0, redoList: [] };
   const list = tab === 'all' ? sops.list : sops.list.filter((s) => s.type === tab);
   const progress = pct(sops.done, sops.total);
 
@@ -71,7 +72,37 @@ const ClientDashboard = () => {
           <strong>{meetings.upcoming.length}</strong>
           <span>Upcoming meetings</span>
         </div>
+        <Link to="/client/calendar" className="cl-kpi" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <BadgeCheck size={18} />
+          <strong>{creatives.approved}</strong>
+          <span>Approved creatives</span>
+        </Link>
+        <Link to="/client/calendar?view=redo" className="cl-kpi" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <RotateCcw size={18} />
+          <strong>{creatives.redo}</strong>
+          <span>In redo (revisions you sent)</span>
+        </Link>
       </div>
+
+      <section className="glass-panel cl-card">
+        <div className="cl-head">
+          <h2>Creatives in redo</h2>
+          <Link to="/client/calendar?view=redo" className="btn-ghost">Open Redo</Link>
+        </div>
+        {creatives.redoList.length === 0 ? (
+          <p className="muted">Nothing is in redo. When you send a revision on a creative, it shows up here until the new version is approved.</p>
+        ) : (
+          <ul className="cl-meet">
+            {creatives.redoList.map((r) => (
+              <li key={r.id}>
+                <div className="cl-when"><b>{fmtDate(r.date)}</b><small>{r.platforms.join(', ')}</small></div>
+                <div className="cl-what"><b>{r.title}</b><small>{r.pins} comment{r.pins === 1 ? '' : 's'} sent to your team</small></div>
+                <span className="cl-chip">Redo</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div className="cl-grid">
         <section className="glass-panel cl-card">

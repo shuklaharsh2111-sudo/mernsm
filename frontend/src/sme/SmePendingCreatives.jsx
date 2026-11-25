@@ -150,7 +150,7 @@ const SmePendingCreatives = () => {
                     <span>Assigned to <strong>{c.assignedDesigner.name}</strong></span>
                   </div>
                 )}
-                {c.clientFeedback?.open > 0 && (
+                {c.clientFeedback?.open > 0 && c.designOutput?.status === 'approved' && (
                   <button type="button" className="design-output-chip client-feedback-chip" onClick={() => setReviewing(c)}>
                     <MessageSquare size={18} />
                     <span>
@@ -170,7 +170,7 @@ const SmePendingCreatives = () => {
                       <em>{c.designOutput.name || 'Design file'}</em>
                     </span>
                     <i className={`status-pill ${c.designOutput.status === 'submitted' ? 'pending' : c.designOutput.status === 'redo' ? 'rejected' : 'approved'}`}>
-                      {c.designOutput.status === 'submitted' ? 'Review' : c.designOutput.status === 'redo' ? 'Redo sent' : 'Approved'}
+                      {c.designOutput.status === 'submitted' ? 'Review' : c.designOutput.status === 'redo' ? (c.designOutput.redoBy === 'client' ? 'Client redo' : 'Redo sent') : 'Approved'}
                     </i>
                   </button>
                 )}
@@ -181,7 +181,7 @@ const SmePendingCreatives = () => {
                   <button type="button" className="btn-ghost" onClick={() => setViewing(c)}>
                     <Eye size={14} /> Preview
                   </button>
-                  {c.status === 'approved' && tab !== 'designer' && !c.designOutput && (
+                  {c.status === 'approved' && tab !== 'designer' && (!c.designOutput || c.designOutput.status === 'redo') && (
                     <button type="button" className="btn-primary" onClick={() => openAssign(c)}>
                       <UserRoundPlus size={14} />
                       {c.assignedDesigner ? 'Reassign' : 'Assign'}

@@ -104,9 +104,10 @@ function Thread({ c, active, onSelect, onReply, onStatus, onDelete }) {
 
 // The creative with clickable pins, and the feedback thread list beside it.
 // creative: { id, version, file: { url, isVideo, name } }.   arrows / info: extra nodes from the page around it.
-export default function PinpointViewer({ creative, arrows = null, info = null }) {
+export default function PinpointViewer({ creative, arrows = null, info = null, onOpenCount = null, onRevisionSent = null }) {
   const { id, file } = creative;
-  const canPin = !file.isVideo;
+  const revised = !!creative.revisionSent; // the revision already went to the team
+  const canPin = !file.isVideo && !revised;
 
   const [version, setVersion] = useState(creative.version || 1);
   const [comments, setComments] = useState([]);
@@ -116,6 +117,7 @@ export default function PinpointViewer({ creative, arrows = null, info = null })
   const [draft, setDraft] = useState(null); // { x, y } in % of the image, not saved yet
   const [draftText, setDraftText] = useState('');
   const [posting, setPosting] = useState(false);
+  const [sending, setSending] = useState(false);
   const [activeId, setActiveId] = useState('');
   const [filter, setFilter] = useState('open');
   const stageRef = useRef(null);
@@ -151,6 +153,10 @@ export default function PinpointViewer({ creative, arrows = null, info = null })
     : [...list, c].sort((a, b) => a.n - b.n)));
 
   const openCount = comments.filter((c) => c.status === 'open').length;
+  // tell the page, so the creative's status badge follows the pins right away
+  useEffect(() => {
+    if (!loading && onOpenCount) onOpenCount(id, openCount);
+  }, [loading, openCount]); // eslint-disable-line react-hooks/exhaustive-deps
   const resolvedCount = comments.length - openCount;
   const shown = comments.filter((c) => c.status === filter);
 
@@ -214,7 +220,24 @@ export default function PinpointViewer({ creative, arrows = null, info = null })
     } catch (e) { setError(errMsg(e)); return false; }
   };
 
-  const hint = !canPin
+  const sendRevision = async () => {
+    if (sending || openCount === 0) return;
+    setSending(true);
+    setError('');
+    try {
+      await api.post(`/client/creatives/${id}/revision`);
+      cancelDraft();
+      if (onRevisionSent) onRevisionSent(id);
+    } catch (e) {
+      setError(errMsg(e));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const hint = revised
+    ? 'Revision sent. Your team is working on a new version'
+    : !canPin
     ? 'Pinpoint comments are available on images'
     : pinMode ? 'Click anywhere on the creative to drop a pin' : 'Turn commenting on to drop a pin';
 
@@ -272,6 +295,16 @@ export default function PinpointViewer({ creative, arrows = null, info = null })
           </div>
 
           {error && <p className="error-message" role="alert">{error}</p>}
+
+          {revised && <p className="pv-sent" role="status">Your revision was sent to the team. The creative is back in Redo until the new version is approved.</p>}
+          {!revised && openCount > 0 && (
+            <div className="pv-send">
+              <small>Done adding comments? Send them to your team as a revision.</small>
+              <button type="button" className="btn-primary" disabled={sending} onClick={sendRevision}>
+                <Send size={14} /> {sending ? 'Sending…' : `Send revision (${openCount})`}
+              </button>
+            </div>
+          )}
 
           {draft && (
             <div className="pv-composer">
