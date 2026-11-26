@@ -13,7 +13,6 @@ const SmiDashboard = () => {
   const [companies, setCompanies] = useState([]);
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
-  // a company leaves the row once all its SOPs and tasks are complete, so refetch after any change
   const reload = () => setReloadKey((k) => k + 1);
 
   useEffect(() => {

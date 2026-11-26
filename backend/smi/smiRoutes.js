@@ -7,6 +7,7 @@ import Task from '../sme/Tasks.js';
 import TaskAttachment from '../sme/TaskAttachment.js';
 import SmiSopAssignment from '../sop/SmiSopAssignment.js';
 import Company from '../company/Company.js';
+import { Smi } from '../admin/UserModels.js';
 import { periodKey, resolveToday } from '../sop/period.js';
 import { notifyUsers } from '../notifications/notify.js';
 
@@ -48,32 +49,30 @@ const populateTask = (query) => query
   .populate('user', 'name email')
   .populate('assignedSmi', 'name email');
 
-// Companies I still have work for: a company shows while it has an SOP (not yet done
-// for the current period) or a task (not completed) assigned to me, in the order they
-// were first assigned. Once everything of a company is complete it drops off.
+// My companies, like the SME dashboard: every company the admin assigned to me (in the order they were
+// assigned), plus any other company an SME gave me an SOP or an unfinished task for, so nothing is hidden.
 router.get('/companies', async (req, res) => {
   try {
-    const today = resolveToday(req.query.today);
-    const [sops, tasks] = await Promise.all([
-      SmiSopAssignment.find({ smi: req.user.id }).select('company createdAt type completions sourceSop').populate('sourceSop', 'completions').lean(),
+    const [me, sops, tasks] = await Promise.all([
+      Smi.findById(req.user.id).select('companies').lean(),
+      SmiSopAssignment.find({ smi: req.user.id }).select('company createdAt').lean(),
       Task.find({ assignedSmi: req.user.id }).select('company createdAt status').lean(),
     ]);
-    const sopPending = (a) => {
-      const key = periodKey(a.type, today);
-      const mine = (a.completions || []).some((c) => c.period === key);
-      const bySme = (a.sourceSop?.completions || []).some((c) => c.period === key);
-      return !mine && !bySme;
-    };
-    const pending = [...sops.filter(sopPending), ...tasks.filter((t) => t.status !== 'completed')];
-    const first = new Map(); // companyId -> earliest assignment time
-    for (const { company, createdAt } of pending) {
+    if (!me) return res.status(401).json({ message: 'User not found' });
+    const ids = (me.companies || []).map(String);
+    const extra = new Map(); // companyId -> earliest assignment time, for companies that are not in my list
+    for (const { company, createdAt } of [...sops, ...tasks.filter((t) => t.status !== 'completed')]) {
+      if (!company) continue;
       const id = String(company);
-      if (!first.has(id) || createdAt < first.get(id)) first.set(id, createdAt);
+      if (ids.includes(id)) continue;
+      if (!extra.has(id) || createdAt < extra.get(id)) extra.set(id, createdAt);
     }
-    const ids = [...first.keys()].sort((a, b) => first.get(a) - first.get(b));
-    const found = await Company.find({ _id: { $in: ids } }).lean();
+    const all = [...new Set([...ids, ...[...extra.keys()].sort((x, y) => extra.get(x) - extra.get(y))])];
+    const found = await Company.find({ _id: { $in: all } }).lean();
     const byId = Object.fromEntries(found.map((c) => [String(c._id), c]));
-    res.json({ companies: ids.filter((id) => byId[id]).map((id) => ({ id, name: byId[id].name })) });
+    res.json({
+      companies: all.filter((id) => byId[id]).map((id) => ({ id, name: byId[id].name, logo: byId[id].logo || '' })),
+    });
   } catch (error) {
     console.error('SMI fetch companies error:', error);
     res.status(500).json({ message: 'Unable to fetch companies' });
