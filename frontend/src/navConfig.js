@@ -185,7 +185,8 @@ export const HR_NAV = [
     heading: 'People',
     items: [
       { title: 'Employees', path: '/hr/employees', icon: Users },
-      { title: 'Online / Offline', path: '/hr/online', icon: Wifi }
+      { title: 'Online / Offline', path: '/hr/online', icon: Wifi },
+      { title: 'Attendance', path: '/hr/attendance', icon: CalendarCheck }
     ]
   },
   {

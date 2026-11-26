@@ -299,3 +299,17 @@ div.x-field .hr-chipbox { min-height: 44px; }
 .x-field .hr-chipbox { gap: 6px; }
 .x-field .hr-switch-row input.hr-switch, .hr-newrole input.hr-switch { padding: 0; border: 0; background-color: rgba(255, 255, 255, .16); }
 .x-field .hr-switch-row input.hr-switch:checked, .hr-newrole input.hr-switch:checked { background-color: #2ea064; }
+
+/* attendance: Current day / History tabs */
+.hr-tabs { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); width: fit-content; max-width: 100%; }
+.hr-tabs button { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border: 0; border-radius: 9px; background: transparent; color: var(--ink-2); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.hr-tabs button:hover { color: var(--ink); }
+.hr-tabs button.active { background: rgba(var(--accent-rgb), .16); color: var(--orange-light); }
+.hr-subhead { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.hr-subhead strong { font-size: 15px; color: var(--ink); }
+.hr-subhead span { flex: 1; min-width: 200px; font-size: 12.5px; color: var(--ink-3); }
+
+.hr-daypick { display: inline-flex; align-items: center; gap: 6px; }
+.hr-daypick button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--ink-2); cursor: pointer; }
+.hr-daypick button:hover:not(:disabled) { color: var(--ink); border-color: rgba(var(--accent-rgb), .6); }
+.hr-daypick button:disabled { opacity: .4; cursor: not-allowed; }

@@ -34,6 +34,7 @@ import DesMonthlyReports from './des/desMonthlyReports';
 import DesCalendar from './des/DesCalendar';
 import HrEmployees from './hr/HrEmployees';
 import HrOnline from './hr/HrOnline';
+import HrAttendance from './hr/HrAttendance';
 import HrRecruitment from './hr/HrRecruitment';
 import HrBaseSkills from './hr/HrBaseSkills';
 import InfluencerPage from './components/InfluencerPage';
@@ -224,6 +225,7 @@ const AppRoutes = () => {
           <Route path="/hr/base-skills" element={<HrBaseSkills />} />
           <Route path="/hr/employees" element={<HrEmployees />} />
           <Route path="/hr/online" element={<HrOnline />} />
+          <Route path="/hr/attendance" element={<HrAttendance />} />
           <Route path="/hr/playlist" element={<PlaylistPage workspace="HR WORKSPACE" />} />
           <Route path="/hr/suggestions" element={<SuggestionsPage />} />
           <Route path="/hr/settings" element={<ProfileSettings workspace="HR WORKSPACE" />} />
