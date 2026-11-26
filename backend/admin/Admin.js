@@ -9,7 +9,8 @@ const adminSchema = new mongoose.Schema({
   profileImage: { type: String, default: '' },
   avatarPublicId: { type: String, default: '' },
   role: { type: String, default: 'admin' },
-  isDefault: { type: Boolean, default: false }
+  isDefault: { type: Boolean, default: false },
+  isSuperAdmin: { type: Boolean, default: false }
 }, {
   timestamps: true,
   strict: false,

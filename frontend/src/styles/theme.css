@@ -393,3 +393,6 @@ html[data-mode='light']:has(.app-shell) :is(.glass-panel, .an-card, .stat-card, 
 html[data-mode='light']:has(.app-shell) .app-sidebar { box-shadow: 4px 0 24px rgba(255, 255, 255, .12); }
 html[data-mode='light']:has(.app-shell) .app-topbar { border-bottom-color: rgba(255, 255, 255, .14); }
 html[data-mode='light']:has(.app-shell) .app-content { scrollbar-color: #c9c9d0 transparent; }
+
+/* super admin */
+.side-role.super_admin { background: linear-gradient(135deg, rgba(251, 191, 36, .22), rgba(var(--accent2-rgb), .22)); color: #fde68a; border-color: rgba(251, 191, 36, .55); }

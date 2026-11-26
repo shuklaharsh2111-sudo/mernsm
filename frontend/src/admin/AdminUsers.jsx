@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { UserPlus, Building2, ClipboardList, Trash2, Mail, Phone, UserCheck, CalendarDays, ImagePlus, Eye, EyeOff, X, Users, Ban, ShieldCheck, KeyRound } from 'lucide-react';
+import { UserPlus, Building2, ClipboardList, Trash2, Mail, Phone, UserCheck, CalendarDays, ImagePlus, Eye, EyeOff, X, Users, Ban, ShieldCheck, KeyRound, Crown } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../AuthContext';
 import { errMsg } from '../sopUtils';
@@ -112,6 +112,19 @@ const AdminUsers = () => {
       reload();
     } catch (err) {
       setError(errMsg(err));
+    }
+  };
+  const toggleSuper = async (u) => {
+    const make = !u.isSuperAdmin;
+    if (!window.confirm(make ? `Make ${u.name} a super admin? They will be able to manage all admin accounts.` : `Remove super admin from ${u.name}? They will stay a normal admin.`)) return;
+    setError('');
+    setCreated('');
+    try {
+      await api.put(`/admin/users/${u.id}/super-admin`, { value: make });
+      setCreated(make ? `${u.name} is now a super admin.` : `${u.name} is no longer a super admin.`);
+      reload();
+    } catch (err) {
+      setError(err.response?.data?.message || errMsg(err));
     }
   };
   const openBan = (u) => { setBanTarget(u); setBanMsg(''); setError(''); setCreated(''); };
@@ -233,7 +246,7 @@ const AdminUsers = () => {
           <div className="au-roles">
             <span>Assign Primary Role *</span>
             <div className="au-role-pills">
-              {ROLES.map((role) => (
+              {ROLES.filter((role) => role !== 'ADMIN' || me?.isSuperAdmin).map((role) => (
                 <label key={role} className={form.role === role ? 'active' : ''}>
                   <input type="radio" name="role" value={role} checked={form.role === role} onChange={handleChange} required />
                   {roleLabel(role)}
@@ -285,11 +298,18 @@ const AdminUsers = () => {
                   </div>
                   <div className="au-id">
                     <h3>{u.name}{isMe && <span className="au-you">You</span>}{u.isBanned && <span className="au-banned-tag">Banned</span>}</h3>
-                    <span className={`au-role ${String(u.role).toLowerCase()}`}>{roleLabel(u.role)}</span>
+                    <span className={`au-role ${String(u.role).toLowerCase()}`}>{u.isSuperAdmin ? 'Super Admin' : roleLabel(u.role)}</span>
                   </div>
-                  <button type="button" className="btn-ghost au-ban-btn" aria-label={`Change password for ${u.name}`} title="Change password" onClick={() => openPw(u)}>
-                    <KeyRound size={15} />
-                  </button>
+                  {me?.isSuperAdmin && u.collection === 'admins' && !isMe && (
+                    <button type="button" className={`btn-ghost au-ban-btn${u.isSuperAdmin ? ' au-super-on' : ''}`} aria-label={u.isSuperAdmin ? `Remove super admin from ${u.name}` : `Make ${u.name} a super admin`} title={u.isSuperAdmin ? 'Remove super admin' : 'Make super admin'} onClick={() => toggleSuper(u)}>
+                      <Crown size={15} />
+                    </button>
+                  )}
+                  {(u.collection !== 'admins' || isMe || (me?.isSuperAdmin && !u.isSuperAdmin)) && (
+                    <button type="button" className="btn-ghost au-ban-btn" aria-label={`Change password for ${u.name}`} title="Change password" onClick={() => openPw(u)}>
+                      <KeyRound size={15} />
+                    </button>
+                  )}
                   {!isMe && u.collection !== 'admins' && (
                     u.isBanned ? (
                       <button type="button" className="btn-ghost au-ban-btn" aria-label={`Unban ${u.name}`} title="Unban user" onClick={() => unbanUser(u)}>
@@ -301,7 +321,7 @@ const AdminUsers = () => {
                       </button>
                     )
                   )}
-                  {!isMe && (
+                  {!isMe && (u.collection !== 'admins' || me?.isSuperAdmin) && (
                     <button type="button" className="btn-ghost danger au-delete" aria-label={`Delete ${u.name}`} title="Delete user" onClick={() => removeUser(u)}>
                       <Trash2 size={15} />
                     </button>

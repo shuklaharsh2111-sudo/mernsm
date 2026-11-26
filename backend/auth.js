@@ -30,7 +30,8 @@ const getUserDetails = (user, role) => ({
   name: user.name || user.fullname || user.email,
   email: user.email,
   avatar: user.avatar || user.profileImage || '',
-  role: role.toLowerCase()
+  role: role.toLowerCase(),
+  isSuperAdmin: role === 'admin' && !!user.isSuperAdmin
 });
 // LOGIN
 router.post('/login', async (req, res) => {
@@ -139,8 +140,9 @@ export const protect = (allowedRoles = []) => {
       // a ban takes effect on the very next request, even for people who are already signed in
       const Model = roleModels[decoded.role];
       if (Model) {
-        const account = await Model.findById(decoded.id).select('isBanned banReason').lean();
+        const account = await Model.findById(decoded.id).select('isBanned banReason isSuperAdmin').lean();
         if (account?.isBanned) return res.status(403).json(bannedPayload(account));
+        decoded.isSuperAdmin = decoded.role === 'admin' && !!account?.isSuperAdmin;
       }
       req.user = decoded;
       next();
