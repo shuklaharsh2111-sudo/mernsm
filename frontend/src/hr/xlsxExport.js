@@ -1,12 +1,5 @@
-// Tiny dependency-free .xlsx writer (styles, column widths, frozen header, filters, links).
-// A cell is a plain value or { v, type, fill, color, bold, align, wrap, fmt, url }
-//   type: 'text' (default) | 'num' | 'date' | 'datetime' | 'link'
-
 export const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
 const enc = new TextEncoder();
-
-// ---------------------------------------------------------------- zip (stored, no compression)
 const CRC_TABLE = (() => {
   const t = new Uint32Array(256);
   for (let n = 0; n < 256; n += 1) {
@@ -52,8 +45,6 @@ const zip = (files) => {
   end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
   return new Blob([...chunks, ...central, new Uint8Array(end.buffer)], { type: XLSX_MIME });
 };
-
-// ---------------------------------------------------------------- helpers
 const esc = (v) => String(v ?? '')
   .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -70,7 +61,6 @@ const serial = (v) => {
   return (d.getTime() - d.getTimezoneOffset() * 60000) / 86400000 + 25569;
 };
 const FMT = { date: 'dd mmm yyyy', datetime: 'dd mmm yyyy, hh:mm AM/PM' };
-
 // ---------------------------------------------------------------- styles registry
 const makeStyles = () => {
   const fonts = ['<font><sz val="11"/><color rgb="FF222222"/><name val="Calibri"/><family val="2"/></font>'];
@@ -114,7 +104,6 @@ const makeStyles = () => {
     + '</styleSheet>';
   return { style, xml };
 };
-
 // ---------------------------------------------------------------- build
 // options: { sheetName, title, subtitle, headerColor, columns: [{ header, width }], rows: Cell[][] }
 export const buildXlsx = ({ sheetName = 'Sheet1', title = '', subtitle = '', headerColor = '1F5C3F', columns, rows }) => {
@@ -122,19 +111,15 @@ export const buildXlsx = ({ sheetName = 'Sheet1', title = '', subtitle = '', hea
   const lastCol = colName(columns.length - 1);
   const HEAD_ROW = 4;
   const sheetRows = [];
-
   const textCell = (ref, s, v) => `<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${esc(v)}</t></is></c>`;
-
   // title + subtitle
   const titleStyle = style({ bold: true, size: 16, color: headerColor, border: false });
   const subStyle = style({ size: 10, color: '6B7280', border: false });
   sheetRows.push(`<row r="1" ht="26" customHeight="1">${textCell('A1', titleStyle, title)}</row>`);
   sheetRows.push(`<row r="2" ht="16" customHeight="1">${textCell('A2', subStyle, subtitle)}</row>`);
-
   // header
   const headStyle = style({ bold: true, color: 'FFFFFF', fill: headerColor, align: 'center', wrap: true });
   sheetRows.push(`<row r="${HEAD_ROW}" ht="30" customHeight="1">${columns.map((c, i) => textCell(`${colName(i)}${HEAD_ROW}`, headStyle, c.header)).join('')}</row>`);
-
   // data
   rows.forEach((row, ri) => {
     const r = HEAD_ROW + 1 + ri;
@@ -160,7 +145,6 @@ export const buildXlsx = ({ sheetName = 'Sheet1', title = '', subtitle = '', hea
     });
     sheetRows.push(`<row r="${r}">${cells.join('')}</row>`);
   });
-
   const lastRow = HEAD_ROW + Math.max(rows.length, 1);
   const sheet =
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -176,7 +160,6 @@ export const buildXlsx = ({ sheetName = 'Sheet1', title = '', subtitle = '', hea
     + '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>'
     + '<pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/>'
     + '</worksheet>';
-
   const safeSheet = String(sheetName).replace(/[\\/?*[\]:]/g, ' ').slice(0, 31) || 'Sheet1';
   const files = [
     { name: '[Content_Types].xml', text: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>' },
@@ -188,7 +171,6 @@ export const buildXlsx = ({ sheetName = 'Sheet1', title = '', subtitle = '', hea
   ].map((f) => ({ name: f.name, data: enc.encode(f.text) }));
   return zip(files);
 };
-
 export const downloadBlob = (blob, filename) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');

@@ -6,23 +6,19 @@ import Attendance from '../attendance/Attendance.js';
 import { getOfficeConfig } from '../attendance/geo.js';
 import recruitmentRoutes from './recruitmentRoutes.js';
 import roleSkillRoutes from './roleSkillRoutes.js';
-
 const router = express.Router();
 router.use(protect(['hr']));
 router.use('/recruitment', recruitmentRoutes);
 router.use('/role-skills', roleSkillRoutes);
-
 // Roles HR manages. Admins and clients are not employees, so they never show up here.
 const EMPLOYEE_ROLES = ['reporting_manager', 'sme', 'smi', 'des', 'hr'];
 const validId = (id) => mongoose.Types.ObjectId.isValid(id);
-
 // "Late" = first login of the day after this time (server local time). Set HR_LATE_AFTER=HH:MM in .env.
 const lateAfterMinutes = () => {
   const m = /^(\d{1,2}):(\d{2})$/.exec(String(process.env.HR_LATE_AFTER || '10:30').trim());
   return m ? Number(m[1]) * 60 + Number(m[2]) : 10 * 60 + 30;
 };
 const minutesOfDay = (d) => d.getHours() * 60 + d.getMinutes();
-
 // Some old SME documents store dates as { $date: ... }, so parse defensively.
 const toDate = (v) => {
   const raw = v && typeof v === 'object' && !(v instanceof Date) ? v.$date : v;
@@ -32,7 +28,6 @@ const toDate = (v) => {
 const startOfDay = (d = new Date()) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
 const loadEmployees = async () => {
   const lists = await Promise.all(
     EMPLOYEE_ROLES.map(async (role) => {
@@ -51,7 +46,6 @@ const loadEmployees = async () => {
   );
   return lists.flat();
 };
-
 // Group sessions into { userId -> { dayKey -> sessions[] } }
 const groupByUserDay = (records) => {
   const map = new Map();
@@ -65,11 +59,9 @@ const groupByUserDay = (records) => {
   });
   return map;
 };
-
 // Hours worked in one day = sum of finished sessions (open sessions are not counted).
 const hoursOf = (sessions) =>
   sessions.reduce((sum, s) => (s.logoutAt ? sum + (new Date(s.logoutAt) - new Date(s.loginAt)) / 36e5 : sum), 0);
-
 // ---------------- Dashboard ----------------
 router.get('/dashboard', async (req, res) => {
   const employees = await loadEmployees();
@@ -77,13 +69,11 @@ router.get('/dashboard', async (req, res) => {
   const today = startOfDay();
   const weekStart = addDays(today, -6);
   const monthAgo = addDays(today, -30);
-
   const records = await Attendance.find({ role: { $in: EMPLOYEE_ROLES }, loginAt: { $gte: weekStart } })
     .sort({ loginAt: 1 })
     .lean();
   const grouped = groupByUserDay(records);
   const todayKey = dayKey(today);
-
   // Who is in today, who is online right now, who was late
   const lateLimit = lateAfterMinutes();
   const presentToday = [];
@@ -114,7 +104,6 @@ router.get('/dashboard', async (req, res) => {
   const absentToday = employees
     .filter((e) => !presentIds.has(e.id))
     .map(({ id, name, role, profileImage }) => ({ id, name, role, profileImage }));
-
   // 7-day trend
   const trend = [];
   for (let i = 0; i < 7; i += 1) {
@@ -135,7 +124,6 @@ router.get('/dashboard', async (req, res) => {
       avgHours: withHours ? Math.round((hours / withHours) * 10) / 10 : 0
     });
   }
-
   // Headcount by role + recent joiners
   const roleCounts = {};
   employees.forEach((e) => { roleCounts[e.role] = (roleCounts[e.role] || 0) + 1; });
@@ -144,7 +132,6 @@ router.get('/dashboard', async (req, res) => {
     .sort((a, b) => b.joinedAt - a.joinedAt)
     .slice(0, 6)
     .map((e) => ({ id: e.id, name: e.name, role: e.role, profileImage: e.profileImage, joinedAt: e.joinedAt }));
-
   const total = employees.length;
   res.json({
     lateAfter: String(process.env.HR_LATE_AFTER || '10:30'),
@@ -164,7 +151,6 @@ router.get('/dashboard', async (req, res) => {
     newJoiners
   });
 });
-
 // ---------------- Online / Offline (who is signed in right now) ----------------
 // Online = today's latest session has no sign-out yet. Offline = signed out, or has not logged in today.
 router.get('/presence', async (req, res) => {
@@ -175,7 +161,6 @@ router.get('/presence', async (req, res) => {
     .lean();
   const grouped = groupByUserDay(records);
   const todayKey = dayKey(today);
-
   const people = employees
     .map((e) => {
       const sessions = grouped.get(e.id)?.get(todayKey);
@@ -193,11 +178,9 @@ router.get('/presence', async (req, res) => {
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
-
   const online = people.filter((p) => p.online).length;
   res.json({ summary: { total: people.length, online, offline: people.length - online }, people });
 });
-
 // ---------------- Employees ----------------
 router.get('/employees', async (req, res) => {
   const employees = await loadEmployees();
@@ -205,17 +188,14 @@ router.get('/employees', async (req, res) => {
     (await roleModels.reporting_manager.find().select('name fullname email').lean())
       .map((m) => [String(m._id), m.name || m.fullname || m.email])
   );
-
   const today = startOfDay();
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const records = await Attendance.find({ role: { $in: EMPLOYEE_ROLES }, loginAt: { $gte: monthStart } }).lean();
   const grouped = groupByUserDay(records);
   const todayKey = dayKey(today);
-
   // working days (Mon-Sat) so far this month, for "days present / working days"
   let workingDays = 0;
   for (let d = new Date(monthStart); d <= today; d = addDays(d, 1)) if (d.getDay() !== 0) workingDays += 1;
-
   res.json({
     workingDays,
     employees: employees
@@ -238,7 +218,99 @@ router.get('/employees', async (req, res) => {
       .sort((a, b) => a.name.localeCompare(b.name))
   });
 });
-
+/* ---------------- Monthly Attendance Summary ---------------- */
+// GET /api/hr/attendance/monthly?month=YYYY-MM&role=sme
+router.get('/attendance/monthly', async (req, res) => {
+  try {
+    const month = String(req.query.month || '');
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+      return res.status(400).json({ message: 'Please select a valid month' });
+    }
+    const [year, monthNumber] = month.split('-').map(Number);
+    const monthStart = new Date(year, monthNumber - 1, 1);
+    const monthEnd = new Date(year, monthNumber, 0, 23, 59, 59, 999);
+    const today = startOfDay();
+    const periodEnd = monthEnd < today ? monthEnd : today;
+    const employees = await loadEmployees();
+    const selectedRole = EMPLOYEE_ROLES.includes(req.query.role) ? req.query.role : '';
+    const filteredEmployees = selectedRole
+      ? employees.filter((e) => e.role === selectedRole)
+      : employees;
+    const records = periodEnd < monthStart
+      ? []
+      : await Attendance.find({
+        role: { $in: EMPLOYEE_ROLES },
+        ...(selectedRole ? { role: selectedRole } : {}),
+        loginAt: { $gte: monthStart, $lte: periodEnd }
+      }).sort({ loginAt: 1 }).lean();
+    const grouped = groupByUserDay(records);
+    const rows = filteredEmployees.map((employee) => {
+      const joined = employee.joinedAt ? startOfDay(employee.joinedAt) : monthStart;
+      const firstEligibleDay = joined > monthStart ? joined : monthStart;
+      const employeeDays = grouped.get(employee.id);
+      const daily = [];
+      for (let date = new Date(firstEligibleDay); date <= periodEnd; date = addDays(date, 1)) {
+        if (date.getDay() === 0) continue;
+        const key = dayKey(date);
+        const sessions = (employeeDays?.get(key) || [])
+          .slice()
+          .sort((a, b) => new Date(a.loginAt) - new Date(b.loginAt));
+        const firstLogin = sessions[0]?.loginAt || null;
+        const logoutTimes = sessions
+          .filter((s) => s.logoutAt)
+          .map((s) => new Date(s.logoutAt))
+          .sort((a, b) => a - b);
+        const lastLogout = logoutTimes.length
+          ? logoutTimes[logoutTimes.length - 1]
+          : null;
+        daily.push({
+          date: key,
+          status: sessions.length ? 'present' : 'absent',
+          firstLogin,
+          lastLogout
+        });
+      }
+      const presentDays = daily.filter((d) => d.status === 'present');
+      const loginMinutes = presentDays
+        .filter((d) => d.firstLogin)
+        .map((d) => {
+          const time = new Date(d.firstLogin);
+          return time.getHours() * 60 + time.getMinutes();
+        });
+      const logoutMinutes = presentDays
+        .filter((d) => d.lastLogout)
+        .map((d) => {
+          const time = new Date(d.lastLogout);
+          return time.getHours() * 60 + time.getMinutes();
+        });
+      const average = (values) => values.length
+        ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
+        : null;
+      return {
+        id: employee.id,
+        name: employee.name,
+        email: employee.email,
+        role: employee.role,
+        profileImage: employee.profileImage,
+        joinedAt: employee.joinedAt,
+        login: average(loginMinutes),
+        logout: average(logoutMinutes),
+        workingDays: presentDays.length,
+        absentDays: daily.length - presentDays.length,
+        scheduledDays: daily.length,
+        daily
+      };
+    });
+    res.json({
+      month,
+      workingRule: 'Monday to Saturday; Sundays excluded',
+      rows
+    });
+  } catch (error) {
+    console.error('Monthly Attendance Error:', error);
+    res.status(500).json({ message: 'Unable to load monthly attendance' });
+  }
+});
 // ---------------- Attendance ----------------
 // GET /api/hr/attendance?from=YYYY-MM-DD&to=YYYY-MM-DD&userId=<id>&role=sme
 router.get('/attendance', async (req, res) => {
@@ -276,5 +348,4 @@ router.get('/attendance', async (req, res) => {
     }))
   });
 });
-
 export default router;
