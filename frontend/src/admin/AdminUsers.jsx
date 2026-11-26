@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { UserPlus, Building2, ClipboardList, Trash2, Mail, Phone, UserCheck, CalendarDays, ImagePlus, Eye, EyeOff, X, Users, Ban, ShieldCheck } from 'lucide-react';
+import { UserPlus, Building2, ClipboardList, Trash2, Mail, Phone, UserCheck, CalendarDays, ImagePlus, Eye, EyeOff, X, Users, Ban, ShieldCheck, KeyRound } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../AuthContext';
 import { errMsg } from '../sopUtils';
@@ -39,6 +39,11 @@ const AdminUsers = () => {
   const [banTarget, setBanTarget] = useState(null); // the user being banned (opens the message box)
   const [banMsg, setBanMsg] = useState('');
   const [banBusy, setBanBusy] = useState(false);
+  const [pwTarget, setPwTarget] = useState(null); // the user whose password is being changed
+  const [pw, setPw] = useState({ next: '', confirm: '' });
+  const [pwShow, setPwShow] = useState(false);
+  const [pwBusy, setPwBusy] = useState(false);
+  const [pwError, setPwError] = useState('');
   useEffect(() => {
     let cancelled = false;
     Promise.all([
@@ -137,6 +142,24 @@ const AdminUsers = () => {
       reload();
     } catch (err) {
       setError(err.response?.data?.message || errMsg(err));
+    }
+  };
+  const openPw = (u) => { setPwTarget(u); setPw({ next: '', confirm: '' }); setPwShow(false); setPwError(''); setError(''); setCreated(''); };
+  const closePw = () => { setPwTarget(null); setPw({ next: '', confirm: '' }); setPwShow(false); setPwError(''); };
+  const confirmPw = async (e) => {
+    e.preventDefault();
+    if (pw.next.length < 8) return setPwError('Password must be at least 8 characters.');
+    if (pw.next !== pw.confirm) return setPwError('The two passwords do not match.');
+    setPwBusy(true);
+    setPwError('');
+    try {
+      await api.put(`/admin/users/${pwTarget.id}/password`, { collection: pwTarget.collection, password: pw.next });
+      setCreated(`Password changed for ${pwTarget.name}. They can log in with the new password.`);
+      closePw();
+    } catch (err) {
+      setPwError(err.response?.data?.message || errMsg(err));
+    } finally {
+      setPwBusy(false);
     }
   };
   const counts = users.reduce((acc, u) => ({ ...acc, [u.role]: (acc[u.role] || 0) + 1 }), {});
@@ -264,6 +287,9 @@ const AdminUsers = () => {
                     <h3>{u.name}{isMe && <span className="au-you">You</span>}{u.isBanned && <span className="au-banned-tag">Banned</span>}</h3>
                     <span className={`au-role ${String(u.role).toLowerCase()}`}>{roleLabel(u.role)}</span>
                   </div>
+                  <button type="button" className="btn-ghost au-ban-btn" aria-label={`Change password for ${u.name}`} title="Change password" onClick={() => openPw(u)}>
+                    <KeyRound size={15} />
+                  </button>
                   {!isMe && u.collection !== 'admins' && (
                     u.isBanned ? (
                       <button type="button" className="btn-ghost au-ban-btn" aria-label={`Unban ${u.name}`} title="Unban user" onClick={() => unbanUser(u)}>
@@ -363,6 +389,39 @@ const AdminUsers = () => {
               <button type="button" className="btn-ghost" onClick={closeBan} disabled={banBusy}>Cancel</button>
               <button type="submit" className="btn-primary au-ban-confirm" disabled={banBusy || !banMsg.trim()}>
                 {banBusy ? 'Banning…' : 'Ban user'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      {pwTarget && (
+        <div className="modal-overlay" onClick={closePw}>
+          <form className="modal-card au-ban-modal" onClick={(e) => e.stopPropagation()} onSubmit={confirmPw}>
+            <div className="au-ban-head">
+              <span><KeyRound size={20} /></span>
+              <div>
+                <h3>Change password</h3>
+                <p>Set a new password for {pwTarget.name} ({pwTarget.email}).</p>
+              </div>
+            </div>
+            {pwError && <p className="error-message" role="alert">{pwError}</p>}
+            <label className="x-field">
+              <span>New password *</span>
+              <div className="au-password">
+                <input type={pwShow ? 'text' : 'password'} value={pw.next} onChange={(e) => setPw((p) => ({ ...p, next: e.target.value }))} minLength={8} maxLength={72} required autoFocus autoComplete="new-password" placeholder="At least 8 characters" />
+                <button type="button" onClick={() => setPwShow((v) => !v)} aria-label={pwShow ? 'Hide password' : 'Show password'}>
+                  {pwShow ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </label>
+            <label className="x-field">
+              <span>Confirm new password *</span>
+              <input type={pwShow ? 'text' : 'password'} value={pw.confirm} onChange={(e) => setPw((p) => ({ ...p, confirm: e.target.value }))} minLength={8} maxLength={72} required autoComplete="new-password" placeholder="Type it again" />
+            </label>
+            <div className="au-form-actions">
+              <button type="button" className="btn-ghost" onClick={closePw} disabled={pwBusy}>Cancel</button>
+              <button type="submit" className="btn-primary" disabled={pwBusy || !pw.next || !pw.confirm}>
+                {pwBusy ? 'Saving…' : 'Change password'}
               </button>
             </div>
           </form>

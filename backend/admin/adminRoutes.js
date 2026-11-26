@@ -298,6 +298,31 @@ router.put('/users/:id/unban', async (req, res) => {
   if (!user) return res.status(404).json({ message: 'User not found in selected collection' });
   res.json({ message: 'User unbanned', user: userView(user, target.collection) });
 });
+// PUT /api/admin/users/:id/password   body: { collection, password }  -> the admin sets a new password for that user
+router.put('/users/:id/password', async (req, res) => {
+  try {
+    if (!validId(req.params.id)) return res.status(404).json({ message: 'User not found' });
+    const target = findByCollection(req.body.collection);
+    if (!target) return res.status(400).json({ message: 'Valid user collection is required' });
+    const password = String(req.body.password || '');
+    if (password.length < 8 || password.length > 72) {
+      return res.status(400).json({ message: 'Password must be 8 to 72 characters' });
+    }
+    const user = await target.Model.findById(req.params.id).select('+password').lean();
+    if (!user) return res.status(404).json({ message: 'User not found in selected collection' });
+    if (user.password && (await bcrypt.compare(password, user.password))) {
+      return res.status(400).json({ message: 'New password must be different from the current one' });
+    }
+    const hashed = await bcrypt.hash(password, 10);
+    await target.Model.collection.updateOne({ _id: user._id }, { $set: { password: hashed } });
+    // close any session that is still open so attendance shows the right logout time
+    await Attendance.updateMany({ userId: user._id, logoutAt: null }, { $set: { logoutAt: new Date() } });
+    res.json({ message: 'Password changed' });
+  } catch (error) {
+    console.error('Admin change password error:', error);
+    res.status(500).json({ message: 'Unable to change password' });
+  }
+});
 router.delete('/users/:id', async (req, res) => {
   if (!validId(req.params.id)) return res.status(404).json({ message: 'User not found' });
   const collection = String(req.query.collection || '').toLowerCase();
