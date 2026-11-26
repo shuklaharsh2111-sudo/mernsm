@@ -373,3 +373,7 @@
 .au-ban-count { display: block; margin-top: 4px; font-size: 11px; opacity: .7; }
 .au-ban-confirm { background: #d92d0a !important; }
 .au-ban-confirm:disabled { opacity: .5; cursor: not-allowed; }
+
+/* super admin */
+.au-role.admin.super, .au-card .au-super-on { color: #f59e0b; }
+.au-super-on { border-color: rgba(245, 158, 11, .6) !important; background: rgba(245, 158, 11, .12) !important; }

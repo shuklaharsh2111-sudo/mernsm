@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';
+import { ensureSuperAdmin } from './admin/superAdmin.js';
 import authRoutes, { protect } from './auth.js';
 import adminRoutes from './admin/adminRoutes.js';
 import smeRoutes from './sme/smeRoutes.js';
@@ -35,6 +36,7 @@ app.use(cookieParser());
 app.use('/api/des', desRoutes);
 app.use('/api/ai', aiRoutes);
 await connectDB();
+await ensureSuperAdmin();
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'success',

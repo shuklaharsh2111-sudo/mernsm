@@ -83,7 +83,8 @@ const userView = (u, collection) => ({
   createdAt: u.createdAt,
   isBanned: !!u.isBanned,
   banReason: u.banReason || '',
-  bannedAt: u.bannedAt || null
+  bannedAt: u.bannedAt || null,
+  isSuperAdmin: collection === 'admins' && !!u.isSuperAdmin
 });
 const getRoleCollection = (role) => roleModels[role]?.collection?.collectionName || '';
 router.get('/users', async (req, res) => {
@@ -125,6 +126,9 @@ router.post('/users', imageUpload.single('image'), async (req, res) => {
   if (password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters' });
   const UserModel = roleModels[role];
   if (!UserModel) return res.status(400).json({ message: 'Invalid user role' });
+  if (role === 'admin' && !req.user.isSuperAdmin) {
+    return res.status(403).json({ message: 'Only a super admin can create admin accounts.' });
+  }
   const duplicateChecks = await Promise.all(
     Object.values(roleModels).map((Model) => Model.exists({ email }))
   );
@@ -310,6 +314,10 @@ router.put('/users/:id/password', async (req, res) => {
     }
     const user = await target.Model.findById(req.params.id).select('+password').lean();
     if (!user) return res.status(404).json({ message: 'User not found in selected collection' });
+    if (target.collection === 'admins' && String(user._id) !== String(req.user.id)) {
+      if (!req.user.isSuperAdmin) return res.status(403).json({ message: 'Only a super admin can change another admin\'s password.' });
+      if (user.isSuperAdmin) return res.status(403).json({ message: 'A super admin\'s password can only be changed by that super admin.' });
+    }
     if (user.password && (await bcrypt.compare(password, user.password))) {
       return res.status(400).json({ message: 'New password must be different from the current one' });
     }
@@ -323,6 +331,25 @@ router.put('/users/:id/password', async (req, res) => {
     res.status(500).json({ message: 'Unable to change password' });
   }
 });
+// PUT /api/admin/users/:id/super-admin   body: { value: true|false }  -> a super admin makes another admin a super admin (or removes it)
+router.put('/users/:id/super-admin', async (req, res) => {
+  try {
+    if (!req.user.isSuperAdmin) return res.status(403).json({ message: 'Only a super admin can do this.' });
+    if (!validId(req.params.id)) return res.status(404).json({ message: 'User not found' });
+    const value = req.body.value === true || req.body.value === 'true';
+    const admin = await Admin.findById(req.params.id);
+    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+    if (!value && admin.isSuperAdmin && (await Admin.countDocuments({ isSuperAdmin: true })) <= 1) {
+      return res.status(403).json({ message: 'There must always be at least one super admin.' });
+    }
+    await Admin.collection.updateOne({ _id: admin._id }, { $set: { isSuperAdmin: value } });
+    const fresh = await Admin.findById(admin._id).lean();
+    res.json({ message: value ? 'Made super admin' : 'Super admin removed', user: userView(fresh, 'admins') });
+  } catch (error) {
+    console.error('Admin super-admin toggle error:', error);
+    res.status(500).json({ message: 'Unable to update this admin' });
+  }
+});
 router.delete('/users/:id', async (req, res) => {
   if (!validId(req.params.id)) return res.status(404).json({ message: 'User not found' });
   const collection = String(req.query.collection || '').toLowerCase();
@@ -333,8 +360,15 @@ router.delete('/users/:id', async (req, res) => {
   if (String(req.user.id) === String(req.params.id)) {
     return res.status(403).json({ message: 'You cannot delete your own account.' });
   }
-  if (collection === 'admins' && (await Admin.countDocuments()) <= 1) {
-    return res.status(403).json({ message: 'The last admin account cannot be deleted.' });
+  if (collection === 'admins') {
+    if (!req.user.isSuperAdmin) return res.status(403).json({ message: 'Only a super admin can delete admin accounts.' });
+    if ((await Admin.countDocuments()) <= 1) {
+      return res.status(403).json({ message: 'The last admin account cannot be deleted.' });
+    }
+    const victim = await Admin.findById(req.params.id).select('isSuperAdmin').lean();
+    if (victim?.isSuperAdmin && (await Admin.countDocuments({ isSuperAdmin: true })) <= 1) {
+      return res.status(403).json({ message: 'The last super admin cannot be deleted.' });
+    }
   }
   const user = await UserModel.findByIdAndDelete(req.params.id);
   if (!user) return res.status(404).json({ message: 'User not found in selected collection' });

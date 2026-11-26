@@ -82,7 +82,7 @@ const Sidebar = ({ collapsed = false, onToggle, mobileOpen = false, onClose }) =
           <div className="side-user-info">
             <strong>{user?.name}</strong>
             <span>{user?.email}</span>
-            <em className={`side-role ${user?.role}`}>{user?.role?.replace(/_/g, ' ').toUpperCase()}</em>
+            <em className={`side-role ${user?.isSuperAdmin ? 'super_admin' : user?.role}`}>{user?.isSuperAdmin ? 'SUPER ADMIN' : user?.role?.replace(/_/g, ' ').toUpperCase()}</em>
           </div>
         </div>
         {isSME && (

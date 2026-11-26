@@ -31,7 +31,7 @@ const Topbar = ({ onMenu }) => {
     <header className="app-topbar">
       <button type="button" className="top-menu" onClick={onMenu} aria-label="Open menu"><Menu size={20} /></button>
       <div className="top-title">
-        <span>{{ admin: 'Administration', operation_manager: 'Operations Workspace', reporting_manager: 'Manager Workspace', sme: 'SME Workspace', des: 'Designer Workspace', smi: 'SMI Workspace', clients: 'Client Workspace' }[user?.role] || 'Workspace'} · {section}</span>
+        <span>{user?.isSuperAdmin ? 'Super Admin' : { admin: 'Administration', operation_manager: 'Operations Workspace', reporting_manager: 'Manager Workspace', sme: 'SME Workspace', des: 'Designer Workspace', smi: 'SMI Workspace', clients: 'Client Workspace' }[user?.role] || 'Workspace'} · {section}</span>
         <h1>{title}</h1>
       </div>
       <div className="top-meta">
