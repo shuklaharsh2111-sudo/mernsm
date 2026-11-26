@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { MessageSquarePlus, Check, CheckCircle2, Trash2, Send, X, Minus, Plus, ChevronDown } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { MessageSquare, SlidersHorizontal, ZoomIn, MessageSquarePlus, Check, CheckCircle2, Trash2, Send, X, Minus, Plus, ChevronDown } from 'lucide-react';
 import api from '../api';
 import { errMsg, fmtDateTime } from '../sopUtils';
 import '../styles/pinfeedback.css';
@@ -14,6 +14,8 @@ const ROLE_LABEL = {
   operation_manager: 'Operation manager',
   reporting_manager: 'Reporting manager'
 };
+const MIN_ZOOM = 50;
+const MAX_ZOOM = 400;
 const clamp = (n) => Math.min(100, Math.max(0, n));
 const roleOf = (p) => ROLE_LABEL[p?.role] || '';
 
@@ -140,7 +142,16 @@ export default function PinpointViewer({ creative, arrows = null, info = null, o
   const [filter, setFilter] = useState('open');
   const [showMarkers, setShowMarkers] = useState(true);
   const [zoom, setZoom] = useState(100);
+  const [sideTab, setSideTab] = useState('tools'); // 'tools' | 'comments'
+  const [box, setBox] = useState(null); // size of the picture area
+  const [nat, setNat] = useState(null); // natural size of the image
   const stageRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [zoomTool, setZoomTool] = useState(false); // drag a box over the picture to zoom into that area
+  const [sel, setSel] = useState(null); // the box being drawn, in % of the image
+  const zoomRef = useRef(100);
+  const anchorRef = useRef(null); // { fx, fy, px, py }: keep image point (fx, fy) under viewport point (px, py) after a zoom
+  const draggedRef = useRef(false); // the last mouse press moved: it was a pan or a box, not a click
   const draftBoxRef = useRef(null);
 
   useEffect(() => {
@@ -180,8 +191,119 @@ export default function PinpointViewer({ creative, arrows = null, info = null, o
   const resolvedCount = comments.length - openCount;
   const shown = comments.filter((c) => c.status === filter);
 
+  // keep the picture area's size, so 100% always means "whole image visible"
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(() => setBox({ w: el.clientWidth, h: el.clientHeight }));
+    ro.observe(el);
+    setBox({ w: el.clientWidth, h: el.clientHeight });
+    return () => ro.disconnect();
+  }, [file.isVideo]);
+
+  zoomRef.current = zoom;
+
+  // after the image changes size, put the remembered point back where it was
+  useLayoutEffect(() => {
+    const a = anchorRef.current;
+    const el = canvasRef.current;
+    const st = stageRef.current;
+    if (!a || !el || !st) return;
+    anchorRef.current = null;
+    el.scrollLeft = st.offsetLeft + a.fx * st.offsetWidth - a.px;
+    el.scrollTop = st.offsetTop + a.fy * st.offsetHeight - a.py;
+  }, [zoom, box, nat]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // zoom to `next`, keeping image point (fx, fy) under viewport point (px, py)
+  const zoomTo = (next, fx, fy, px, py) => {
+    const v = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(next)));
+    if (v === zoomRef.current) return;
+    anchorRef.current = { fx, fy, px, py };
+    setZoom(v);
+  };
+  // zoom from the buttons: around the middle of what is on screen
+  const zoomBy = (delta) => {
+    const el = canvasRef.current;
+    const st = stageRef.current;
+    if (!el || !st) { setZoom((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z + delta))); return; }
+    const px = el.clientWidth / 2;
+    const py = el.clientHeight / 2;
+    const fx = clamp(((el.scrollLeft + px - st.offsetLeft) / st.offsetWidth) * 100) / 100;
+    const fy = clamp(((el.scrollTop + py - st.offsetTop) / st.offsetHeight) * 100) / 100;
+    zoomTo(zoomRef.current + delta, fx, fy, px, py);
+  };
+
+  // mouse wheel zooms toward the pointer (needs a non-passive listener to stop the page scrolling)
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el || file.isVideo) return undefined;
+    const onWheel = (e) => {
+      const st = stageRef.current;
+      if (!st) return;
+      e.preventDefault();
+      const r = st.getBoundingClientRect();
+      const c = el.getBoundingClientRect();
+      const fx = clamp(((e.clientX - r.left) / r.width) * 100) / 100;
+      const fy = clamp(((e.clientY - r.top) / r.height) * 100) / 100;
+      zoomTo(zoomRef.current + (e.deltaY < 0 ? 10 : -10), fx, fy, e.clientX - c.left, e.clientY - c.top);
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [file.isVideo]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // press on the picture: drag = pan (when zoomed in) or, with the Zoom area tool, draw a box to zoom into
+  const onCanvasDown = (e) => {
+    if (file.isVideo || e.button !== 0 || e.target.closest('.pf-pin')) return;
+    const el = canvasRef.current;
+    const st = stageRef.current;
+    if (!el || !st) return;
+    draggedRef.current = false;
+    const x0 = e.clientX;
+    const y0 = e.clientY;
+    const sl = el.scrollLeft;
+    const stp = el.scrollTop;
+    const r = st.getBoundingClientRect();
+    const fx = (x) => clamp(((x - r.left) / r.width) * 100);
+    const fy = (y) => clamp(((y - r.top) / r.height) * 100);
+    const boxMode = zoomTool;
+    if (!boxMode && el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight) return; // nothing to pan
+    if (boxMode) e.preventDefault();
+
+    const move = (ev) => {
+      const dx = ev.clientX - x0;
+      const dy = ev.clientY - y0;
+      if (Math.abs(dx) + Math.abs(dy) > 4) draggedRef.current = true;
+      if (!draggedRef.current) return;
+      if (boxMode) {
+        setSel({ x0: fx(x0), y0: fy(y0), x1: fx(ev.clientX), y1: fy(ev.clientY) });
+      } else {
+        el.scrollLeft = sl - dx;
+        el.scrollTop = stp - dy;
+      }
+    };
+    const up = (ev) => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      setSel(null);
+      if (!boxMode || !draggedRef.current) return;
+      const ax = fx(x0); const bx = fx(ev.clientX);
+      const ay = fy(y0); const by = fy(ev.clientY);
+      const fw = Math.abs(bx - ax) / 100;
+      const fh = Math.abs(by - ay) / 100;
+      if (fw < 0.02 || fh < 0.02) return;
+      const k = Math.min((el.clientWidth - 44) / (fw * r.width), (el.clientHeight - 44) / (fh * r.height));
+      // the middle of the box ends up in the middle of the picture area
+      zoomTo(zoomRef.current * k, (ax + bx) / 200, (ay + by) / 200, el.clientWidth / 2, el.clientHeight / 2);
+      setZoomTool(false);
+      if (canPin) setPinMode(true); // zoomed in: ready to comment on the spot
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
   const placePin = (e) => {
-    if (!canPin || !pinMode || !stageRef.current) return;
+    if (draggedRef.current) { draggedRef.current = false; return; } // that press was a pan or a zoom box
+    if (!canPin || !pinMode || zoomTool || !stageRef.current) return;
     const r = stageRef.current.getBoundingClientRect();
     if (!r.width || !r.height) return;
     setDraft({
@@ -189,6 +311,7 @@ export default function PinpointViewer({ creative, arrows = null, info = null, o
       y: clamp(((e.clientY - r.top) / r.height) * 100)
     });
     setActiveId('');
+    setSideTab('comments');
     setError('');
   };
 
@@ -255,7 +378,13 @@ export default function PinpointViewer({ creative, arrows = null, info = null, o
     }
   };
 
-  const hint = revised
+  // width at 100% = the largest size where the whole image still fits the picture area
+  const fitW = box && nat && nat.w && nat.h ? Math.max(120, Math.min(box.w - 44, (box.h - 44) * (nat.w / nat.h))) : 0;
+  const stageW = fitW ? Math.round((fitW * zoom) / 100) : 0;
+
+  const hint = zoomTool
+    ? 'Drag a box over the part you want to zoom into'
+    : revised
     ? 'Revision sent. Your team is working on a new version'
     : !canPin
     ? 'Pinpoint comments are available on images'
@@ -265,17 +394,71 @@ export default function PinpointViewer({ creative, arrows = null, info = null, o
     <div className="pf">
       {/* LEFT: comments */}
       <aside className="pf-side" aria-label="Feedback" onKeyDown={keepKeysInside}>
-        <div className="pf-side-head">
-          <h3>Comments <span>{comments.length}</span></h3>
-          <div className="pf-seg" role="tablist">
-            <button type="button" role="tab" aria-selected={filter === 'open'} className={filter === 'open' ? 'active' : ''} onClick={() => setFilter('open')}>Open {openCount}</button>
-            <button type="button" role="tab" aria-selected={filter === 'resolved'} className={filter === 'resolved' ? 'active' : ''} onClick={() => setFilter('resolved')}>Resolved {resolvedCount}</button>
-          </div>
+        <div className="pf-tabs" role="tablist" aria-label="Review panel">
+          <button type="button" role="tab" aria-selected={sideTab === 'tools'} className={sideTab === 'tools' ? 'active' : ''} onClick={() => setSideTab('tools')}>
+            <SlidersHorizontal size={14} /> Options
+          </button>
+          <button type="button" role="tab" aria-selected={sideTab === 'comments'} className={sideTab === 'comments' ? 'active' : ''} onClick={() => setSideTab('comments')}>
+            <MessageSquare size={14} /> Comments <span>{comments.length}</span>
+          </button>
         </div>
+
+        {sideTab === 'comments' && (
+          <div className="pf-side-head">
+            <div className="pf-seg" role="tablist">
+              <button type="button" role="tab" aria-selected={filter === 'open'} className={filter === 'open' ? 'active' : ''} onClick={() => setFilter('open')}>Open {openCount}</button>
+              <button type="button" role="tab" aria-selected={filter === 'resolved'} className={filter === 'resolved' ? 'active' : ''} onClick={() => setFilter('resolved')}>Resolved {resolvedCount}</button>
+            </div>
+          </div>
+        )}
+
+        {sideTab === 'tools' && (
+        <div className="pf-tools">
+          <div className="pf-toolbar">
+            <button
+              type="button"
+              className={`pf-mode ${pinMode && canPin && !zoomTool ? 'on' : ''}`}
+              aria-pressed={pinMode && canPin && !zoomTool}
+              disabled={!canPin}
+              onClick={() => { setZoomTool(false); setPinMode((v) => (zoomTool ? true : !v)); }}
+            >
+              <MessageSquarePlus size={15} /> {pinMode && canPin && !zoomTool ? 'Commenting on' : 'Add comment'}
+            </button>
+            {!file.isVideo && (
+              <button
+                type="button"
+                className={`pf-mode ${zoomTool ? 'on' : ''}`}
+                aria-pressed={zoomTool}
+                onClick={() => setZoomTool((v) => !v)}
+              >
+                <ZoomIn size={15} /> {zoomTool ? 'Drag over an area' : 'Zoom area'}
+              </button>
+            )}
+            <span className="pf-hint">{hint}</span>
+            <span className="pf-version" title="Version of the design these comments belong to">v{version}</span>
+          </div>
+          {!file.isVideo && (
+            <div className="pf-bottom">
+              <label className="pf-switch">
+                <input type="checkbox" checked={!showMarkers} onChange={(e) => setShowMarkers(!e.target.checked)} />
+                <i aria-hidden="true" />
+                Hide markers
+              </label>
+              <div className="pf-zoom" aria-label="Zoom">
+                <button type="button" onClick={() => zoomBy(-10)} disabled={zoom <= MIN_ZOOM} aria-label="Zoom out"><Minus size={14} /></button>
+                <button type="button" className="pf-zoom-val" onClick={() => { anchorRef.current = { fx: 0.5, fy: 0.5, px: (canvasRef.current?.clientWidth || 0) / 2, py: (canvasRef.current?.clientHeight || 0) / 2 }; setZoom(100); }} title="Reset zoom (fit whole image)">{zoom}%</button>
+                <button type="button" onClick={() => zoomBy(10)} disabled={zoom >= MAX_ZOOM} aria-label="Zoom in"><Plus size={14} /></button>
+              </div>
+            </div>
+          )}
+        </div>
+        )}
 
         <div className="pf-side-scroll">
           {error && <p className="error-message" role="alert">{error}</p>}
 
+          {sideTab === 'tools' && (
+            <>
           {revised && <p className="pf-note" role="status">Revision sent. The creative stays in Redo until your team sends the new version.</p>}
           {!revised && openCount > 0 && (
             <div className="pf-revise">
@@ -285,7 +468,11 @@ export default function PinpointViewer({ creative, arrows = null, info = null, o
               </button>
             </div>
           )}
+            </>
+          )}
 
+          {sideTab === 'comments' && (
+            <>
           {draft && (
             <div className="pf-composer">
               <div className="pf-c-head">
@@ -341,8 +528,10 @@ export default function PinpointViewer({ creative, arrows = null, info = null, o
               ))}
             </ul>
           )}
+            </>
+          )}
 
-          {info && (
+          {sideTab === 'tools' && info && (
             <details className="pf-details">
               <summary>Creative details <ChevronDown size={14} /></summary>
               <div className="pf-details-body">{info}</div>
@@ -353,27 +542,13 @@ export default function PinpointViewer({ creative, arrows = null, info = null, o
 
       {/* RIGHT: the creative */}
       <section className="pf-stage-col">
-        <div className="pf-toolbar">
-          <button
-            type="button"
-            className={`pf-mode ${pinMode && canPin ? 'on' : ''}`}
-            aria-pressed={pinMode && canPin}
-            disabled={!canPin}
-            onClick={() => setPinMode((v) => !v)}
-          >
-            <MessageSquarePlus size={15} /> {pinMode && canPin ? 'Commenting on' : 'Add comment'}
-          </button>
-          <span className="pf-hint">{hint}</span>
-          <span className="pf-version" title="Version of the design these comments belong to">v{version}</span>
-        </div>
-
         <div className="pf-canvas-wrap">
-          <div className="pf-canvas">
+          <div className={`pf-canvas ${zoom > 100 && !zoomTool ? 'pan' : ''}`} ref={canvasRef} onPointerDown={onCanvasDown}>
             {file.isVideo ? (
               <video src={file.url} controls playsInline preload="metadata" />
             ) : (
-              <div className={`pf-stage ${pinMode && canPin ? 'pinning' : ''}`} ref={stageRef} style={{ width: `${zoom}%` }} onClick={placePin}>
-                <img src={file.url} alt={file.name || 'Final creative'} draggable={false} />
+              <div className={`pf-stage ${stageW ? '' : 'fit'} ${pinMode && canPin && !zoomTool ? 'pinning' : ''} ${zoomTool ? 'zooming' : ''}`} ref={stageRef} style={stageW ? { width: `${stageW}px` } : undefined} onClick={placePin}>
+                <img src={file.url} alt={file.name || 'Final creative'} draggable={false} onLoad={(e) => setNat({ w: e.target.naturalWidth, h: e.target.naturalHeight })} />
                 {showMarkers && shown.map((c) => (
                   <button
                     key={c.id}
@@ -382,11 +557,12 @@ export default function PinpointViewer({ creative, arrows = null, info = null, o
                     style={{ left: `${c.x}%`, top: `${c.y}%` }}
                     title={`${c.author?.name || 'Comment'}: ${c.text}`}
                     aria-label={`Comment ${c.n}: ${c.text}`}
-                    onClick={(e) => { e.stopPropagation(); setActiveId(c.id); }}
+                    onClick={(e) => { e.stopPropagation(); setFilter(c.status); setActiveId(c.id); setSideTab('comments'); }}
                   >
                     {c.n}
                   </button>
                 ))}
+                {sel && <span className="pf-sel" style={{ left: `${Math.min(sel.x0, sel.x1)}%`, top: `${Math.min(sel.y0, sel.y1)}%`, width: `${Math.abs(sel.x1 - sel.x0)}%`, height: `${Math.abs(sel.y1 - sel.y0)}%` }} aria-hidden="true" />}
                 {draft && <span className="pf-pin draft" style={{ left: `${draft.x}%`, top: `${draft.y}%` }} aria-hidden="true">+</span>}
               </div>
             )}
@@ -394,20 +570,6 @@ export default function PinpointViewer({ creative, arrows = null, info = null, o
           {arrows}
         </div>
 
-        {!file.isVideo && (
-          <div className="pf-bottom">
-            <label className="pf-switch">
-              <input type="checkbox" checked={!showMarkers} onChange={(e) => setShowMarkers(!e.target.checked)} />
-              <i aria-hidden="true" />
-              Hide markers
-            </label>
-            <div className="pf-zoom" aria-label="Zoom">
-              <button type="button" onClick={() => setZoom((z) => Math.max(50, z - 25))} disabled={zoom <= 50} aria-label="Zoom out"><Minus size={14} /></button>
-              <button type="button" className="pf-zoom-val" onClick={() => setZoom(100)} title="Reset zoom">{zoom}%</button>
-              <button type="button" onClick={() => setZoom((z) => Math.min(250, z + 25))} disabled={zoom >= 250} aria-label="Zoom in"><Plus size={14} /></button>
-            </div>
-          </div>
-        )}
       </section>
     </div>
   );

@@ -84,13 +84,23 @@
 .pf-version { padding: 2px 9px; font-size: 12px; font-weight: 700; color: var(--ink-2); background: var(--surface-3); border-radius: 999px; }
 
 .pf-canvas-wrap { position: relative; flex: 1; min-height: 0; background: #e4e4e8; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-.pf-canvas { display: flex; width: 100%; height: 100%; padding: 22px; overflow: auto; box-sizing: border-box; }
+.pf-canvas { display: flex; width: 100%; height: 100%; padding: 22px; overflow: auto; box-sizing: border-box; scrollbar-width: thin; }
 .pf-canvas > * { margin: auto; } /* centres when small, scrolls from the corner when zoomed */
 .pf-canvas video { max-width: 100%; max-height: 100%; }
 .pf-stage { position: relative; flex: 0 0 auto; max-width: none; line-height: 0; }
 .pf-stage.pinning { cursor: crosshair; }
 .pf-stage img { display: block; width: 100%; height: auto; border-radius: 4px; box-shadow: 0 6px 24px rgba(0, 0, 0, .2); user-select: none; -webkit-user-drag: none; }
 .pf-canvas-wrap .cv-arrow { z-index: 3; }
+
+/* Fit mode (100% and below): the whole creative is always visible inside the box, no scrolling.
+   Only zooming in above 100% makes the box scroll. */
+.pf-canvas { container-type: size; }
+.pf-stage.fit { width: auto; }
+.pf-stage.fit img {
+  width: auto; height: auto;
+  max-width: calc((100cqw - 44px) * var(--z, 1));
+  max-height: calc((100cqh - 44px) * var(--z, 1));
+}
 
 /* markers sit centred on the exact spot that was clicked */
 .pf-pin { position: absolute; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; transform: translate(-50%, -50%); font: inherit; font-size: 12px; font-weight: 800; line-height: 1; color: #fff; background: var(--orange); border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 8px rgba(0, 0, 0, .4); cursor: pointer; transition: transform .12s ease; }
@@ -121,7 +131,7 @@
   .pf { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 0; }
   .pf-stage-col { order: 1; }
   .pf-side { order: 2; max-height: 460px; }
-  .pf-canvas-wrap { height: min(55vh, 420px); flex: none; }
+  .pf-canvas-wrap { height: min(65vh, 520px); flex: none; }
 }
 
 /* ---------- full-screen review: the creative and every comment on one page ---------- */
@@ -138,3 +148,30 @@ body .modal-card.cx-modal.cv-full > .modal-foot { padding: 10px 20px; }
   body .modal-card.cx-modal.cv-full > .modal-body { display: block; overflow-y: auto; padding: 12px; }
   .cv-full .pf { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------- options live on the left; the right side is only the creative ---------- */
+.pf-tools { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line-soft); }
+.pf-tools .pf-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pf-tools .pf-hint { flex: 1 1 100%; order: 3; }
+.pf-tools .pf-version { margin-left: auto; }
+.pf-tools .pf-bottom { flex-wrap: wrap; }
+.pf-stage-col { gap: 0; }
+.pf-stage-col .pf-canvas-wrap { flex: 1; }
+
+/* ---------- left panel tabs: Options / Comments ---------- */
+.pf-tabs { display: flex; gap: 4px; padding: 8px 10px 0; border-bottom: 1px solid var(--line-soft); }
+.pf-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: 1; padding: 9px 10px; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink-3); background: transparent; border: 0; border-bottom: 2px solid transparent; cursor: pointer; }
+.pf-tabs button:hover { color: var(--ink); }
+.pf-tabs button.active { color: var(--ink); border-bottom-color: var(--orange); }
+.pf-tabs button span { padding: 0 7px; font-size: 11.5px; font-weight: 700; color: var(--ink-2); background: var(--surface-3); border-radius: 999px; }
+.pf-side-head { padding: 10px 12px; }
+.pf-canvas { position: relative; }
+.pf-stage.pinning { cursor: crosshair; }
+
+/* zoom into an area: drag a box; pan: drag when zoomed in */
+.pf-canvas.pan { cursor: grab; }
+.pf-canvas.pan:active { cursor: grabbing; }
+.pf-canvas.pan, .pf-canvas:has(.pf-stage.zooming) { touch-action: none; }
+.pf-stage.zooming { cursor: zoom-in; }
+.pf-stage.zooming img { pointer-events: none; }
+.pf-sel { position: absolute; z-index: 4; pointer-events: none; border: 2px dashed var(--orange); background: rgba(var(--accent-rgb), .18); box-shadow: 0 0 0 9999px rgba(0, 0, 0, .25); }
