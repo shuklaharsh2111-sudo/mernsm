@@ -8,7 +8,6 @@ import connectDB from './config/db.js';
 import { ensureSuperAdmin } from './superadmin/superAdmin.js';
 import authRoutes, { protect } from './auth.js';
 import adminRoutes from './admin/adminRoutes.js';
-import superEnvRoutes from './superadmin/envRoutes.js';
 import superRoutes from './superadmin/superRoutes.js';
 import smeRoutes from './sme/smeRoutes.js';
 import smiRoutes from './smi/smiRoutes.js';
@@ -47,7 +46,6 @@ app.get('/api/health', (req, res) => {
 });
 app.use('/api/auth', authRoutes);
 app.get('/api/integrations/google/callback', googleCallback);
-app.use('/api/superadmin/env', superEnvRoutes);
 app.use('/api/superadmin', superRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/sme/influencers', buildInfluencerRouter('sme'));
