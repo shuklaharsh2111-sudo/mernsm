@@ -4,6 +4,7 @@ import { protect } from '../auth.js';
 import { roleModels } from '../admin/UserModels.js';
 import Attendance from '../attendance/Attendance.js';
 import { getOfficeConfig } from '../attendance/geo.js';
+import { getLateAfter } from '../attendance/settings.js';
 import recruitmentRoutes from './recruitmentRoutes.js';
 import roleSkillRoutes from './roleSkillRoutes.js';
 const router = express.Router();
@@ -13,10 +14,10 @@ router.use('/role-skills', roleSkillRoutes);
 // Roles HR manages. Admins and clients are not employees, so they never show up here.
 const EMPLOYEE_ROLES = ['reporting_manager', 'sme', 'smi', 'des', 'hr'];
 const validId = (id) => mongoose.Types.ObjectId.isValid(id);
-// "Late" = first login of the day after this time (server local time). Set HR_LATE_AFTER=HH:MM in .env.
+// "Late" = first login of the day after this time (server local time). Set by the super admin in Attendance Settings.
 const lateAfterMinutes = () => {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(String(process.env.HR_LATE_AFTER || '10:30').trim());
-  return m ? Number(m[1]) * 60 + Number(m[2]) : 10 * 60 + 30;
+  const [h, m] = getLateAfter().split(':').map(Number);
+  return h * 60 + m;
 };
 const minutesOfDay = (d) => d.getHours() * 60 + d.getMinutes();
 // Some old SME documents store dates as { $date: ... }, so parse defensively.
@@ -134,7 +135,7 @@ router.get('/dashboard', async (req, res) => {
     .map((e) => ({ id: e.id, name: e.name, role: e.role, profileImage: e.profileImage, joinedAt: e.joinedAt }));
   const total = employees.length;
   res.json({
-    lateAfter: String(process.env.HR_LATE_AFTER || '10:30'),
+    lateAfter: getLateAfter(),
     summary: {
       totalEmployees: total,
       presentToday: presentToday.length,
@@ -335,7 +336,7 @@ router.get('/attendance', async (req, res) => {
   const office = getOfficeConfig();
   res.json({
     office: { configured: office.configured, radius: office.radius },
-    lateAfter: String(process.env.HR_LATE_AFTER || '10:30'),
+    lateAfter: getLateAfter(),
     records: records.map((r) => ({
       id: r._id,
       userId: r.userId,

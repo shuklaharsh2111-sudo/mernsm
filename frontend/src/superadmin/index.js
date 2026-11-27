@@ -7,3 +7,5 @@ export { default as ManageDepartment } from './ManageDepartment';
 export { default as PendingCreatives } from './PendingCreatives';
 export { default as BannedAccounts } from './BannedAccounts';
 export { default as CompanyOverview } from './CompanyOverview';
+export { default as OnlineActivity } from './OnlineActivity';
+export { default as AttendanceSettings } from './AttendanceSettings';

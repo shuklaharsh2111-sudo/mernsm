@@ -7,7 +7,7 @@ import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import AdminDashboard from './admin/AdminDashboard';
 import AdminUsers from './admin/AdminUsers';
-import { SuperRoute, SuperOverview, CreateAdmin, ManageAdmins, ManageDepartment, PendingCreatives, BannedAccounts, CompanyOverview } from './superadmin';
+import { SuperRoute, SuperOverview, CreateAdmin, ManageAdmins, ManageDepartment, PendingCreatives, BannedAccounts, CompanyOverview, OnlineActivity, AttendanceSettings } from './superadmin';
 import AdminCompanies from './admin/AdminCompanies';
 import AdminMeetings from './admin/AdminMeetings';
 import AdminCreatives from './admin/AdminCreatives';
@@ -149,6 +149,8 @@ const AppRoutes = () => {
             <Route path="/superadmin/manage-admins" element={<ManageAdmins />} />
             <Route path="/superadmin/departments" element={<ManageDepartment />} />
             <Route path="/superadmin/companies" element={<CompanyOverview />} />
+            <Route path="/superadmin/activity" element={<OnlineActivity />} />
+            <Route path="/superadmin/attendance-settings" element={<AttendanceSettings />} />
             <Route path="/superadmin/pending-creatives" element={<PendingCreatives />} />
             <Route path="/superadmin/banned" element={<BannedAccounts />} />
           </Route>

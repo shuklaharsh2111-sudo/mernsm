@@ -1,4 +1,6 @@
 
+import { getStoredSettings } from './settings.js';
+
 const EARTH_RADIUS_M = 6371000;
 const toRad = (deg) => (deg * Math.PI) / 180;
 
@@ -12,16 +14,19 @@ export const distanceMeters = (lat1, lng1, lat2, lng2) => {
 };
 
 export const getOfficeConfig = () => {
-  const lat = parseFloat(process.env.OFFICE_LAT);
-  const lng = parseFloat(process.env.OFFICE_LNG);
-  const radius = parseFloat(process.env.OFFICE_RADIUS_METERS) || 200;
+  // Values saved in the app (super admin > Attendance Settings) win; .env is the fallback.
+  const saved = getStoredSettings() || {};
+  const pick = (dbValue, envValue) => (Number.isFinite(dbValue) ? dbValue : parseFloat(envValue));
+  const lat = pick(saved.officeLat, process.env.OFFICE_LAT);
+  const lng = pick(saved.officeLng, process.env.OFFICE_LNG);
+  const radius = pick(saved.officeRadius, process.env.OFFICE_RADIUS_METERS) || 200;
   return {
     configured: Number.isFinite(lat) && Number.isFinite(lng),
     lat,
     lng,
     radius,
-    enforceSme: process.env.ATTENDANCE_ENFORCE !== 'false',
-    enforceAdmin: process.env.ATTENDANCE_ENFORCE_ADMIN === 'true'
+    enforceSme: typeof saved.enforceStaff === 'boolean' ? saved.enforceStaff : process.env.ATTENDANCE_ENFORCE !== 'false',
+    enforceAdmin: typeof saved.enforceAdmin === 'boolean' ? saved.enforceAdmin : process.env.ATTENDANCE_ENFORCE_ADMIN === 'true'
   };
 };
 

@@ -78,6 +78,8 @@ export const SUPER_NAV = [
       { title: 'Manage Admins', path: '/superadmin/manage-admins', icon: Crown },
       { title: 'Manage Department', path: '/superadmin/departments', icon: Layers },
       { title: 'Company Overview', path: '/superadmin/companies', icon: Building2 },
+      { title: 'Online & Login History', path: '/superadmin/activity', icon: Wifi },
+      { title: 'Attendance Settings', path: '/superadmin/attendance-settings', icon: MapPin },
       { title: 'Pending Creatives', path: '/superadmin/pending-creatives', icon: Clock },
       { title: 'Banned Accounts', path: '/superadmin/banned', icon: Ban }
     ]
