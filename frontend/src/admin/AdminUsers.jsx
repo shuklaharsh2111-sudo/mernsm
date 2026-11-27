@@ -28,7 +28,7 @@ const COPY = {
 };
 const AdminUsers = ({ mode = 'all' }) => {
   const { user: me } = useAuth();
-  const copy = COPY[mode] || COPY.all;
+  const copy = mode === 'all' && me?.isSuperAdmin ? { ...COPY.all, label: 'SUPER ADMIN', title: 'Manage Employee' } : (COPY[mode] || COPY.all);
   const [users, setUsers] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [reportingManagers, setReportingManagers] = useState([]);

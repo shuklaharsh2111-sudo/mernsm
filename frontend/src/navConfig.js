@@ -78,7 +78,14 @@ export const SUPER_NAV = [
       { title: 'Manage Admins', path: '/superadmin/manage-admins', icon: Crown }
     ]
   },
-  ...ADMIN_NAV
+  // same pages as a normal admin, but the super admin sees them under their management names
+  ...ADMIN_NAV.map((g) => ({
+    ...g,
+    items: g.items.map((i) => (
+      i.path === '/admin/users' ? { ...i, title: 'Manage Employee' }
+        : i.path === '/admin/companies' ? { ...i, title: 'Manage Company' } : i
+    ))
+  }))
 ];
 // Operation Manager: the admin menu under /om, minus the user/company setup pages.
 const withBase = (groups, from, to) => groups.map((g) => ({
