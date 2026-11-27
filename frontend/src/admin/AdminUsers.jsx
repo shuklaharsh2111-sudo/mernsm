@@ -306,11 +306,11 @@ const AdminUsers = ({ mode = 'all' }) => {
         <div>
           <span className="page-label">{copy.label}</span>
           <h1>{copy.title}</h1>
-          <p>{copy.text || `Add Users, assign companies (max ${max} each) and manage their SOPs.`}</p>
+          <p>{copy.text || (me?.isSuperAdmin ? `Add Users, assign companies (max ${max} each) and manage their SOPs.` : `Assign companies (max ${max} each) and manage SOPs for your users.`)}</p>
         </div>
         {mode === 'admins' ? (
           <Link to="/superadmin/create-admin" className="btn-primary"><UserPlus size={16} /> Create Admin</Link>
-        ) : mode !== 'create-admin' && (
+        ) : mode !== 'create-admin' && (mode !== 'all' || me?.isSuperAdmin) && (
           <button type="button" className="btn-primary" onClick={() => { adding ? closeForm() : setAdding(true); setCreated(''); setError(''); }}>
             {adding ? <><X size={16} /> Close</> : <><UserPlus size={16} /> {copy.button}</>}
           </button>
@@ -322,7 +322,7 @@ const AdminUsers = ({ mode = 'all' }) => {
           {created}{mode === 'create-admin' && <> <Link to="/superadmin/manage-admins">Manage admins →</Link></>}
         </p>
       )}
-      {adding && mode !== 'admins' && (
+      {adding && mode !== 'admins' && (mode !== 'all' || me?.isSuperAdmin) && (
         <form className="au-form" onSubmit={addUser}>
           <div className="au-form-head">
             <h3><UserPlus size={17} /> {copy.formTitle}</h3>
@@ -411,7 +411,7 @@ const AdminUsers = ({ mode = 'all' }) => {
       ) : list.length === 0 ? (
         <div className="au-empty">
           <Users size={30} />
-          <p>{mode === 'admins' ? 'No admin accounts found.' : 'No Users yet. Press “Add User” to create the first one.'}</p>
+          <p>{mode === 'admins' ? 'No admin accounts found.' : (me?.isSuperAdmin ? 'No Users yet. Press “Add User” to create the first one.' : 'No Users yet. A super admin can add them.')}</p>
         </div>
       ) : (
         grouped ? (
