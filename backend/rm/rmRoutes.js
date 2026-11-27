@@ -179,11 +179,26 @@ router.get('/team/:collection/:id/work', async (req, res) => {
   const uid = member._id;
   const sections = [];
   const recent = [];
+  let taskList = null;
+  const taskRow = (t, who) => ({
+    id: String(t._id),
+    title: t.title,
+    company: t.company?.name || '',
+    status: t.status,
+    priority: t.priority || '',
+    taskType: t.taskType || '',
+    category: t.category || '',
+    dueDate: t.dueDate || null,
+    createdAt: t.createdAt,
+    startedAt: t.startedAt || null,
+    endedAt: t.endedAt || null,
+    person: who || '',
+  });
 
   if (entry.role === 'sme') {
     const [creatives, tasks, moms, sops] = await Promise.all([
       Creative.find({ user: uid, ...since('createdAt') }).sort({ createdAt: -1 }).limit(1000).populate('company', 'name').lean(),
-      Task.find({ user: uid, ...since('createdAt') }).sort({ createdAt: -1 }).limit(1000).populate('company', 'name').lean(),
+      Task.find({ user: uid, ...since('createdAt') }).sort({ createdAt: -1 }).limit(1000).populate('company', 'name').populate('assignedSmi', 'name email').lean(),
       Meeting.find({ user: uid, 'mom.submittedAt': start ? { $gte: start } : { $exists: true } }).sort({ 'mom.submittedAt': -1 }).limit(500).populate('company', 'name').lean(),
       SopAssignment.find({ user: uid }).lean(),
     ]);
@@ -197,12 +212,13 @@ router.get('/team/:collection/:id/work', async (req, res) => {
       { title: 'Meeting MOMs', stats: [tile('Submitted', moms.length), tile('Approved', ms.approved || 0, 'good'), tile('Pending review', ms.pending || 0, 'warn')] },
       { title: 'SOPs', stats: [tile('Assigned SOPs', sops.length), tile('Ticks done', ticks, 'good')] },
     );
+    taskList = tasks.slice(0, 200).map((t) => taskRow(t, t.assignedSmi ? `Assigned to ${t.assignedSmi.name || t.assignedSmi.email}` : ''));
     creatives.slice(0, 8).forEach((c) => recent.push({ kind: 'Creative', title: c.contentPillar?.title || 'Creative', sub: c.company?.name || '', status: c.status, at: c.createdAt }));
     tasks.slice(0, 8).forEach((t) => recent.push({ kind: 'Task', title: t.title, sub: t.company?.name || '', status: t.status, at: t.createdAt }));
     moms.slice(0, 5).forEach((m) => recent.push({ kind: 'MOM', title: m.title || 'Meeting MOM', sub: m.company?.name || '', status: m.mom?.status || 'pending', at: m.mom?.submittedAt }));
   } else if (entry.role === 'smi') {
     const [tasks, sops] = await Promise.all([
-      Task.find({ assignedSmi: uid, ...since('createdAt') }).sort({ createdAt: -1 }).limit(1000).populate('company', 'name').lean(),
+      Task.find({ assignedSmi: uid, ...since('createdAt') }).sort({ createdAt: -1 }).limit(1000).populate('company', 'name').populate('user', 'name email').lean(),
       SmiSopAssignment.find({ smi: uid }).lean(),
     ]);
     const ts = countBy(tasks, (t) => t.status);
@@ -211,6 +227,7 @@ router.get('/team/:collection/:id/work', async (req, res) => {
       { title: 'Tasks', stats: [tile('Assigned', tasks.length), tile('Completed', ts.completed || 0, 'good'), tile('In progress', ts['in-progress'] || 0, 'warn'), tile('New', ts.new || 0)] },
       { title: 'SOPs', stats: [tile('Assigned SOPs', sops.length), tile('Ticks done', ticks, 'good')] },
     );
+    taskList = tasks.slice(0, 200).map((t) => taskRow(t, t.user ? `From ${t.user.name || t.user.email}` : ''));
     tasks.slice(0, 10).forEach((t) => recent.push({ kind: 'Task', title: t.title, sub: t.company?.name || '', status: t.status, at: t.createdAt }));
   } else if (entry.role === 'des') {
     const filter = { assignedDesigner: uid };
@@ -269,6 +286,7 @@ router.get('/team/:collection/:id/work', async (req, res) => {
     member: memberView({ ...member, _role: entry.role, _collection: entry.collection }),
     range,
     sections,
+    tasks: taskList,
     recent: recent.slice(0, 12),
   });
 });

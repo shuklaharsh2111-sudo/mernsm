@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { Mail, Phone, CalendarDays, Palette, CalendarCheck, ListChecks, Search, X, Users, UserPlus, Check, BarChart3 } from 'lucide-react';
+import { Mail, Phone, CalendarDays, Palette, CalendarCheck, Search, X, Users, UserPlus, Check, BarChart3 } from 'lucide-react';
 import api from '../api';
 import { errMsg } from '../sopUtils';
 import { roleName } from '../roleNames';
@@ -64,7 +64,14 @@ const RmTeam = () => {
     return () => { cancelled = true; };
   }, [workFor, workRange]);
 
-  const openWork = (m) => { setWork(null); setWorkRange('month'); setWorkFor(m); };
+  const [taskFilter, setTaskFilter] = useState('all');
+
+  const openWork = (m) => {
+    setWork(null);
+    setWorkRange('month');
+    setTaskFilter('all');
+    setWorkFor(m);
+  };
   const closeWork = () => { setWorkFor(null); setWork(null); };
 
   const openAdd = () => {
@@ -221,9 +228,6 @@ const RmTeam = () => {
                   <Link to="/rm/meetings" className="btn-ghost" title="MOMs waiting for review">
                     <CalendarCheck size={15} /> {m.pendingMoms} MOM{m.pendingMoms === 1 ? '' : 's'}
                   </Link>
-                  <span className="btn-ghost" style={{ cursor: 'default' }} title="Tasks not completed yet">
-                    <ListChecks size={15} /> {m.openTasks} open task{m.openTasks === 1 ? '' : 's'}
-                  </span>
                 </div>
               )}
 
@@ -354,6 +358,34 @@ const RmTeam = () => {
                       </div>
                     </section>
                   ))}
+                  {work.tasks && (
+                    <section className="rm-add-group">
+                      <h4>
+                        Task list <em>{work.tasks.length}</em>
+                        <span className="rm-task-filter">
+                          <button type="button" className={taskFilter === 'open' ? 'active' : ''} onClick={() => setTaskFilter('open')}>Open</button>
+                          <button type="button" className={taskFilter === 'all' ? 'active' : ''} onClick={() => setTaskFilter('all')}>All</button>
+                        </span>
+                      </h4>
+                      {(() => {
+                        const list = work.tasks.filter((t) => taskFilter === 'all' || t.status !== 'completed');
+                        if (!list.length) {
+                          return <p className="muted">{taskFilter === 'open' ? 'No open tasks in this period.' : 'No tasks in this period.'}</p>;
+                        }
+                        return list.map((t) => (
+                          <div key={t.id} className="rm-work-row rm-task-row">
+                            <span className="rm-add-text">
+                              <strong>{t.title}</strong>
+                              <small>
+                                {[t.company, t.taskType, t.priority && `${t.priority} priority`, t.dueDate && `Due ${fmtJoined(t.dueDate)}`, t.person].filter(Boolean).join(' · ')}
+                              </small>
+                            </span>
+                            <span className={`rm-work-status ${String(t.status).toLowerCase().replace(/[^a-z]+/g, '-')}`}>{String(t.status).replace('-', ' ')}</span>
+                          </div>
+                        ));
+                      })()}
+                    </section>
+                  )}
                   <section className="rm-add-group">
                     <h4>Recent work <em>{work.recent.length}</em></h4>
                     {work.recent.length === 0 ? (
