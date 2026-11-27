@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Settings, CalendarDays, FolderOpen, Bookmark,
   ChartNoAxesCombined, FileBarChart, Clock, Building2, Receipt,
   CalendarCheck, Palette, UserCheck, Briefcase, Wifi, MapPin, Music, Megaphone, ListChecks, Lightbulb, FileText,
-  ShieldCheck, UserPlus, Crown, KeyRound
+  ShieldCheck, UserPlus, Crown
 } from 'lucide-react';
 export const RM_NAV = [
   {
@@ -76,8 +76,7 @@ export const SUPER_NAV = [
       { title: 'Overall Dashboard', path: '/superadmin', icon: ShieldCheck },
       { title: 'Create Admin', path: '/superadmin/create-admin', icon: UserPlus },
       { title: 'Manage Admins', path: '/superadmin/manage-admins', icon: Crown },
-      { title: 'Create Employees', path: '/superadmin/create-employee', icon: Users },
-      { title: 'Env Credentials', path: '/superadmin/env-credentials', icon: KeyRound }
+      { title: 'Create Employees', path: '/superadmin/create-employee', icon: Users }
     ]
   },
   ...ADMIN_NAV
