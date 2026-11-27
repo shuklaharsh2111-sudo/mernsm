@@ -121,6 +121,8 @@ router.get('/reporting-managers', async (req, res) => {
   });
 });
 router.post('/users', imageUpload.single('image'), async (req, res) => {
+  // Creating admins / employees is a super admin job (see /superadmin).
+  if (!req.user.isSuperAdmin) return res.status(403).json({ message: 'Only a super admin can create users.' });
   const name = String(req.body.name || '').trim();
   const contact = String(req.body.contact || '').trim();
   const email = String(req.body.email || '').trim().toLowerCase();
