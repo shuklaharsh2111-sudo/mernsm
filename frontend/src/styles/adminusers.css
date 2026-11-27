@@ -377,3 +377,25 @@
 /* super admin */
 .au-role.admin.super, .au-card .au-super-on { color: #f59e0b; }
 .au-super-on { border-color: rgba(245, 158, 11, .6) !important; background: rgba(245, 158, 11, .12) !important; }
+
+/* super admin: department-wise sections */
+.au-depts { display: flex; flex-direction: column; gap: 22px; }
+.au-dept-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+}
+.au-dept-head h2 { margin: 0; font-size: 16px; color: var(--ink); }
+.au-dept-head em {
+    font-style: normal;
+    padding: 1px 10px;
+    border-radius: 999px;
+    background: var(--surface-3, var(--surface-2));
+    color: var(--ink-2);
+    font-size: 11px;
+    font-weight: 700;
+}
+.au-dept .au-list { padding-bottom: 0; }

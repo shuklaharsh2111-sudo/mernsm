@@ -7,7 +7,9 @@ import Meeting from '../meeting/Meeting.js';
 import Company from '../company/Company.js';
 import Attendance from '../attendance/Attendance.js';
 import { getOfficeConfig } from '../attendance/geo.js';
-import { Smi, Des, Hr } from '../admin/UserModels.js';
+import { Smi, Des, Hr, ReportingManager } from '../admin/UserModels.js';
+import mongoose from 'mongoose';
+import { notifyUsers } from '../notifications/notify.js';
 import { momItemView, creativeItemView, reviewMom, reviewCreative } from '../review/reviewCore.js';
 
 // Reporting manager panel. A reporting manager only ever sees the people who report to them
@@ -80,6 +82,78 @@ router.get('/team', async (req, res) => {
       pendingMoms: pm[String(u._id)] || 0,
       openTasks: ot[String(u._id)] || 0,
     })),
+  });
+});
+
+// ---------------- Add team members (from any department) ----------------
+// Every department (SME, SMI, DES, HR) can be added to this manager's team. A person can only report
+// to one manager, so people who already report to somebody else are listed but cannot be taken over
+// here (the admin changes that).
+router.get('/available-users', async (req, res) => {
+  const managers = await ReportingManager.find().select('name fullname email').lean();
+  const managerName = Object.fromEntries(managers.map((m) => [String(m._id), m.name || m.fullname || m.email]));
+  const groups = await Promise.all(
+    TEAM_ROLES.map(async ({ role, collection, Model }) => {
+      const docs = await Model.find({ isBanned: { $ne: true } }).sort({ name: 1 }).lean();
+      return docs.map((u) => {
+        const mgr = u.reportingManagerId ? String(u.reportingManagerId) : '';
+        return {
+          id: String(u._id),
+          name: u.name || u.fullname || u.email,
+          email: u.email,
+          role: role.toUpperCase(),
+          collection,
+          contact: u.contact || '',
+          profileImage: u.profileImage || u.avatar || '',
+          onMyTeam: mgr === String(req.user.id),
+          reportsTo: mgr && mgr !== String(req.user.id) ? { id: mgr, name: managerName[mgr] || 'another manager' } : null,
+        };
+      });
+    })
+  );
+  res.json({ users: groups.flat().filter((u) => !u.onMyTeam) });
+});
+
+// body: { members: [{ id, collection }] }
+router.post('/team/add', async (req, res) => {
+  const members = Array.isArray(req.body.members) ? req.body.members : [];
+  if (!members.length) return res.status(400).json({ message: 'Select at least one person to add' });
+  if (members.length > 200) return res.status(400).json({ message: 'Too many people selected at once' });
+
+  const added = [];
+  const skipped = [];
+  for (const m of members) {
+    const entry = TEAM_ROLES.find((r) => r.collection === m?.collection);
+    if (!entry || !mongoose.isValidObjectId(m?.id)) {
+      skipped.push({ id: String(m?.id || ''), reason: 'Invalid person' });
+      continue;
+    }
+    // Only take people nobody manages yet (or who are already ours); never steal from another manager.
+    const result = await entry.Model.updateOne(
+      {
+        _id: m.id,
+        isBanned: { $ne: true },
+        $or: [{ reportingManagerId: null }, { reportingManagerId: { $exists: false } }],
+      },
+      { $set: { reportingManagerId: req.user.id } }
+    );
+    if (result.modifiedCount) added.push({ id: String(m.id), role: entry.role });
+    else skipped.push({ id: String(m.id), reason: 'Already reports to someone else or no longer available' });
+  }
+
+  if (added.length) {
+    notifyUsers(
+      added.map((a) => ({ id: a.id, role: a.role })),
+      { topic: 'team', tone: 'info', title: 'Added to a team', message: '{actor} added you to their team as your reporting manager.' },
+      req.user
+    );
+  }
+  res.status(added.length ? 200 : 409).json({
+    added: added.length,
+    skipped,
+    message: added.length
+      ? `${added.length} ${added.length === 1 ? 'person' : 'people'} added to your team`
+      : 'Nobody could be added — they may already report to another manager',
   });
 });
 

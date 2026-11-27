@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Phone, CalendarDays, Palette, CalendarCheck, ListChecks, Search, X, Users } from 'lucide-react';
+import { Mail, Phone, CalendarDays, Palette, CalendarCheck, ListChecks, Search, X, Users, UserPlus, Check } from 'lucide-react';
 import api from '../api';
 import { errMsg } from '../sopUtils';
 import { roleName } from '../roleNames';
 import '../style.css';
 import '../styles/adminusers.css';
+import '../styles/rmteam.css';
 
 const initialsOf = (name = '') => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || 'U';
 const fmtJoined = (d) => {
@@ -23,14 +24,85 @@ const RmTeam = () => {
   const [filter, setFilter] = useState('ALL');
   const [q, setQ] = useState('');
 
-  useEffect(() => {
-    let cancelled = false;
-    api.get('/rm/team')
-      .then((r) => !cancelled && setMembers(r.data.members))
-      .catch((err) => !cancelled && setError(errMsg(err)))
-      .finally(() => !cancelled && setLoading(false));
-    return () => { cancelled = true; };
-  }, []);
+  // "Add team" popup
+  const [addOpen, setAddOpen] = useState(false);
+  const [pool, setPool] = useState([]);
+  const [poolLoading, setPoolLoading] = useState(false);
+  const [poolError, setPoolError] = useState('');
+  const [poolRole, setPoolRole] = useState('ALL');
+  const [poolQ, setPoolQ] = useState('');
+  const [picked, setPicked] = useState({}); // key -> { id, collection }
+  const [adding, setAdding] = useState(false);
+  const [notice, setNotice] = useState('');
+
+  const loadTeam = () => api.get('/rm/team')
+    .then((r) => setMembers(r.data.members))
+    .catch((err) => setError(errMsg(err)))
+    .finally(() => setLoading(false));
+
+  useEffect(() => { loadTeam(); }, []);
+
+  const keyOf = (u) => `${u.collection}-${u.id}`;
+
+  const openAdd = () => {
+    setAddOpen(true);
+    setPicked({});
+    setPoolQ('');
+    setPoolRole('ALL');
+    setPoolError('');
+    setPoolLoading(true);
+    api.get('/rm/available-users')
+      .then((r) => setPool(r.data.users))
+      .catch((err) => setPoolError(errMsg(err)))
+      .finally(() => setPoolLoading(false));
+  };
+  const closeAdd = () => { if (!adding) setAddOpen(false); };
+
+  const togglePick = (u) => {
+    if (u.reportsTo) return;
+    setPicked((p) => {
+      const next = { ...p };
+      const k = keyOf(u);
+      if (next[k]) delete next[k]; else next[k] = { id: u.id, collection: u.collection };
+      return next;
+    });
+  };
+
+  const pickedCount = Object.keys(picked).length;
+
+  const confirmAdd = async () => {
+    if (!pickedCount) return;
+    setAdding(true);
+    setPoolError('');
+    try {
+      const r = await api.post('/rm/team/add', { members: Object.values(picked) });
+      setNotice(r.data.message);
+      setAddOpen(false);
+      await loadTeam();
+      setTimeout(() => setNotice(''), 4000);
+    } catch (err) {
+      setPoolError(errMsg(err));
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const poolRoles = useMemo(() => [...new Set(pool.map((u) => u.role))], [pool]);
+  const poolShown = useMemo(() => {
+    const words = poolQ.toLowerCase().split(/\s+/).filter(Boolean);
+    return pool.filter((u) => {
+      if (poolRole !== 'ALL' && u.role !== poolRole) return false;
+      if (!words.length) return true;
+      const hay = [u.name, u.email, u.contact].join(' ').toLowerCase();
+      return words.every((w) => hay.includes(w));
+    });
+  }, [pool, poolRole, poolQ]);
+  // grouped department-wise
+  const poolGroups = useMemo(() => {
+    const g = {};
+    poolShown.forEach((u) => { (g[u.role] = g[u.role] || []).push(u); });
+    return Object.entries(g);
+  }, [poolShown]);
 
   const roles = useMemo(() => [...new Set(members.map((m) => m.role))], [members]);
   const counts = useMemo(() => {
@@ -57,7 +129,12 @@ const RmTeam = () => {
           <h1>My Team</h1>
           <p>The people who report to you, the companies they handle and what is waiting for your review.</p>
         </div>
+        <button type="button" className="btn-primary" onClick={openAdd}>
+          <UserPlus size={16} /> Add team
+        </button>
       </div>
+
+      {notice && <p className="rm-add-notice" role="status"><Check size={14} /> {notice}</p>}
 
       {error && <p className="error-message" role="alert">{error}</p>}
 
@@ -86,7 +163,7 @@ const RmTeam = () => {
       ) : members.length === 0 ? (
         <div className="au-empty">
           <Users size={30} />
-          <p>Nobody reports to you yet. The admin can set you as the Reporting Manager when adding a user.</p>
+          <p>Nobody reports to you yet. Use “Add team” to bring people from any department into your team.</p>
         </div>
       ) : shown.length === 0 ? (
         <div className="au-empty"><Search size={26} /><p>No team member matches this search.</p></div>
@@ -137,6 +214,79 @@ const RmTeam = () => {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {addOpen && (
+        <div className="modal-overlay" onClick={closeAdd}>
+          <div className="modal-card rm-add-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Add team members">
+            <div className="rm-add-head">
+              <div>
+                <h3>Add team members</h3>
+                <p>Pick people from any department. They will report to you.</p>
+              </div>
+              <button type="button" className="btn-ghost" onClick={closeAdd} aria-label="Close" disabled={adding}><X size={16} /></button>
+            </div>
+
+            {poolError && <p className="error-message" role="alert">{poolError}</p>}
+
+            <div className="au-filters">
+              <button type="button" className={poolRole === 'ALL' ? 'active' : ''} onClick={() => setPoolRole('ALL')}>
+                All <em>{pool.length}</em>
+              </button>
+              {poolRoles.map((r) => (
+                <button key={r} type="button" className={poolRole === r ? 'active' : ''} onClick={() => setPoolRole(r)}>
+                  {roleName(r)} <em>{pool.filter((u) => u.role === r).length}</em>
+                </button>
+              ))}
+            </div>
+            <div className="acq-search">
+              <Search size={15} />
+              <input type="search" value={poolQ} onChange={(e) => setPoolQ(e.target.value)} placeholder="Search name or email…" aria-label="Search people" />
+              {poolQ && <button type="button" onClick={() => setPoolQ('')} aria-label="Clear search"><X size={14} /></button>}
+            </div>
+
+            <div className="rm-add-body">
+              {poolLoading ? (
+                <p className="muted">Loading…</p>
+              ) : poolGroups.length === 0 ? (
+                <div className="au-empty"><Users size={26} /><p>No one available to add.</p></div>
+              ) : (
+                poolGroups.map(([role, list]) => (
+                  <section key={role} className="rm-add-group">
+                    <h4>{roleName(role)} <em>{list.length}</em></h4>
+                    {list.map((u) => {
+                      const locked = !!u.reportsTo;
+                      const on = !!picked[keyOf(u)];
+                      return (
+                        <label key={keyOf(u)} className={`rm-add-row${on ? ' on' : ''}${locked ? ' locked' : ''}`}>
+                          <input type="checkbox" checked={on} disabled={locked} onChange={() => togglePick(u)} />
+                          <span className="rm-add-avatar">
+                            {u.profileImage ? <img src={u.profileImage} alt="" /> : <span>{initialsOf(u.name)}</span>}
+                          </span>
+                          <span className="rm-add-text">
+                            <strong>{u.name}</strong>
+                            <small>{u.email}</small>
+                          </span>
+                          {locked && <span className="rm-add-tag" title="Already has a reporting manager">Reports to {u.reportsTo.name}</span>}
+                        </label>
+                      );
+                    })}
+                  </section>
+                ))
+              )}
+            </div>
+
+            <div className="rm-add-foot">
+              <span>{pickedCount} selected</span>
+              <div>
+                <button type="button" className="btn-ghost" onClick={closeAdd} disabled={adding}>Cancel</button>
+                <button type="button" className="btn-primary" onClick={confirmAdd} disabled={adding || !pickedCount}>
+                  {adding ? 'Adding…' : `Add ${pickedCount || ''} to team`.replace('  ', ' ')}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
