@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Mail, Phone, CalendarDays, Palette, CalendarCheck, ListChecks, Search, X, Users, UserPlus, Check } from 'lucide-react';
 import api from '../api';
@@ -217,7 +218,7 @@ const RmTeam = () => {
         </div>
       )}
 
-      {addOpen && (
+      {addOpen && createPortal(
         <div className="modal-overlay" onClick={closeAdd}>
           <div className="modal-card rm-add-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Add team members">
             <div className="rm-add-head">
@@ -225,7 +226,7 @@ const RmTeam = () => {
                 <h3>Add team members</h3>
                 <p>Pick people from any department. They will report to you.</p>
               </div>
-              <button type="button" className="btn-ghost" onClick={closeAdd} aria-label="Close" disabled={adding}><X size={16} /></button>
+              <button type="button" className="rm-add-close" onClick={closeAdd} aria-label="Close" disabled={adding}><X size={16} /></button>
             </div>
 
             {poolError && <p className="error-message" role="alert">{poolError}</p>}
@@ -240,7 +241,7 @@ const RmTeam = () => {
                 </button>
               ))}
             </div>
-            <div className="acq-search">
+            <div className="rm-add-search">
               <Search size={15} />
               <input type="search" value={poolQ} onChange={(e) => setPoolQ(e.target.value)} placeholder="Search name or email…" aria-label="Search people" />
               {poolQ && <button type="button" onClick={() => setPoolQ('')} aria-label="Clear search"><X size={14} /></button>}
@@ -287,7 +288,8 @@ const RmTeam = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
