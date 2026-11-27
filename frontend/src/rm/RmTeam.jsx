@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { Mail, Phone, CalendarDays, Palette, CalendarCheck, ListChecks, Search, X, Users, UserPlus, Check } from 'lucide-react';
+import { Mail, Phone, CalendarDays, Palette, CalendarCheck, ListChecks, Search, X, Users, UserPlus, Check, BarChart3 } from 'lucide-react';
 import api from '../api';
 import { errMsg } from '../sopUtils';
 import { roleName } from '../roleNames';
@@ -44,6 +44,28 @@ const RmTeam = () => {
   useEffect(() => { loadTeam(); }, []);
 
   const keyOf = (u) => `${u.collection}-${u.id}`;
+
+  // "Work details" popup
+  const [workFor, setWorkFor] = useState(null);
+  const [workRange, setWorkRange] = useState('month');
+  const [work, setWork] = useState(null);
+  const [workLoading, setWorkLoading] = useState(false);
+  const [workError, setWorkError] = useState('');
+
+  useEffect(() => {
+    if (!workFor) return undefined;
+    let cancelled = false;
+    setWorkLoading(true);
+    setWorkError('');
+    api.get(`/rm/team/${workFor.collection}/${workFor.id}/work`, { params: { range: workRange } })
+      .then((r) => !cancelled && setWork(r.data))
+      .catch((err) => !cancelled && setWorkError(errMsg(err)))
+      .finally(() => !cancelled && setWorkLoading(false));
+    return () => { cancelled = true; };
+  }, [workFor, workRange]);
+
+  const openWork = (m) => { setWork(null); setWorkRange('month'); setWorkFor(m); };
+  const closeWork = () => { setWorkFor(null); setWork(null); };
 
   const openAdd = () => {
     setAddOpen(true);
@@ -187,6 +209,10 @@ const RmTeam = () => {
                 <div><dt><CalendarDays size={14} /> Joined</dt><dd>{fmtJoined(m.createdAt)}</dd></div>
               </dl>
 
+              <button type="button" className="btn-ghost rm-work-btn" onClick={() => openWork(m)}>
+                <BarChart3 size={15} /> View work details
+              </button>
+
               {m.role === 'SME' && (
                 <div className="au-card-actions">
                   <Link to="/rm/creatives" className="btn-ghost" title="Creatives waiting for review">
@@ -286,6 +312,65 @@ const RmTeam = () => {
                   {adding ? 'Adding…' : `Add ${pickedCount || ''} to team`.replace('  ', ' ')}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {workFor && createPortal(
+        <div className="modal-overlay" onClick={closeWork}>
+          <div className="modal-card rm-add-modal rm-work-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Work details">
+            <div className="rm-add-head">
+              <div>
+                <h3>{workFor.name}</h3>
+                <p>{roleName(workFor.role)} · work done</p>
+              </div>
+              <button type="button" className="rm-add-close" onClick={closeWork} aria-label="Close"><X size={16} /></button>
+            </div>
+
+            <div className="au-filters">
+              {[['week', 'Last 7 days'], ['month', 'Last 30 days'], ['all', 'All time']].map(([k, label]) => (
+                <button key={k} type="button" className={workRange === k ? 'active' : ''} onClick={() => setWorkRange(k)}>{label}</button>
+              ))}
+            </div>
+
+            <div className="rm-add-body">
+              {workError && <p className="error-message" role="alert">{workError}</p>}
+              {workLoading && !work ? (
+                <p className="muted">Loading…</p>
+              ) : work && (
+                <>
+                  {work.sections.map((sec) => (
+                    <section key={sec.title} className="rm-add-group">
+                      <h4>{sec.title}</h4>
+                      <div className="rm-work-tiles">
+                        {sec.stats.map((st) => (
+                          <div key={st.label} className={`rm-work-tile ${st.tone}`}>
+                            <strong>{st.value}</strong>
+                            <span>{st.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                  <section className="rm-add-group">
+                    <h4>Recent work <em>{work.recent.length}</em></h4>
+                    {work.recent.length === 0 ? (
+                      <p className="muted">No work recorded in this period.</p>
+                    ) : work.recent.map((r, i) => (
+                      <div key={`${r.kind}-${i}`} className="rm-work-row">
+                        <span className="rm-work-kind">{r.kind}</span>
+                        <span className="rm-add-text">
+                          <strong>{r.title}</strong>
+                          <small>{[r.sub, r.at ? fmtJoined(r.at) : ''].filter(Boolean).join(' · ')}</small>
+                        </span>
+                        <span className={`rm-work-status ${String(r.status).toLowerCase().replace(/[^a-z]+/g, '-')}`}>{r.status}</span>
+                      </div>
+                    ))}
+                  </section>
+                </>
+              )}
             </div>
           </div>
         </div>,
