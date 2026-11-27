@@ -9,6 +9,10 @@ import Attendance from '../attendance/Attendance.js';
 import { roleModels, ReportingManager } from '../admin/UserModels.js';
 import { userView, getRoleCollection, validId } from '../admin/userHelpers.js';
 import { creativeItemView } from '../review/reviewCore.js';
+import { healthOf } from '../sme/health.js';
+import { resolveToday } from '../sop/period.js';
+import Sme from '../sme/Sme.js';
+import { Smi } from '../admin/UserModels.js';
 
 // SUPER ADMIN ONLY routes, mounted at /api/superadmin. Every route here is blocked for normal admins.
 const router = express.Router();
@@ -57,6 +61,51 @@ router.get('/overall', async (req, res) => {
   } catch (error) {
     console.error('Overall dashboard error:', error);
     res.status(500).json({ message: 'Unable to load the overall dashboard' });
+  }
+});
+// GET /api/superadmin/company-overview  -> one row per company: assigned SME(s) and SMI(s), creative counts, health
+router.get('/company-overview', async (req, res) => {
+  try {
+    const today = resolveToday(req.query.today);
+    const [companies, smes, smis, creatives] = await Promise.all([
+      Company.find().sort({ name: 1 }).lean(),
+      Sme.find({ 'companies.0': { $exists: true } }).select('name fullname email companies isBanned profileImage avatar').lean(),
+      Smi.find({ 'companies.0': { $exists: true } }).select('name fullname email companies isBanned profileImage avatar').lean(),
+      Creative.find().select('company date status createdAt rejectionCount').lean(),
+    ]);
+    const stats = {};
+    for (const c of creatives) {
+      const key = String(c.company);
+      const m = stats[key] || (stats[key] = { total: 0, approved: 0, pending: 0, redo: 0, rejected: 0, delays: 0, overdue: 0 });
+      m.total += 1;
+      if (c.status === 'approved') m.approved += 1;
+      else if (c.status === 'pending') m.pending += 1;
+      else if (c.status === 'rejected') m.redo += 1;
+      m.rejected += Math.max(c.rejectionCount || 0, c.status === 'rejected' ? 1 : 0);
+      if (c.createdAt && c.createdAt.toISOString().slice(0, 10) > c.date) m.delays += 1;
+      if (c.status !== 'approved' && c.date < today) m.overdue += 1;
+    }
+    const peopleFor = (rows, companyId) => rows
+      .filter((u) => (u.companies || []).some((id) => String(id) === companyId))
+      .map((u) => ({ id: String(u._id), name: u.name || u.fullname || u.email, email: u.email, isBanned: !!u.isBanned, profileImage: u.profileImage || u.avatar || '' }));
+    const list = companies.map((c) => {
+      const id = String(c._id);
+      const m = stats[id] || { total: 0, approved: 0, pending: 0, redo: 0, rejected: 0, delays: 0, overdue: 0 };
+      return {
+        id,
+        name: c.name,
+        logo: c.logo || '',
+        smes: peopleFor(smes, id),
+        smis: peopleFor(smis, id),
+        ...m,
+        approvalRate: m.total ? Math.round((m.approved / m.total) * 100) : 0,
+        health: m.total ? healthOf(m) : 'nodata',
+      };
+    });
+    res.json({ companies: list, today });
+  } catch (error) {
+    console.error('Company overview error:', error);
+    res.status(500).json({ message: 'Unable to load the company overview' });
   }
 });
 // PUT /api/superadmin/users/:id/super-admin   body: { value: true|false }  -> a super admin makes another admin a super admin (or removes it)

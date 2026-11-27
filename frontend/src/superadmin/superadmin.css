@@ -62,3 +62,32 @@
 .ba-reason { white-space: normal !important; }
 @media (max-width: 640px) { .pc-item { flex-direction: column; } .pc-actions { width: 100%; } }
 
+
+/* Company overview */
+.co-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.co-search { display: flex; align-items: center; gap: 8px; flex: 1 1 260px; max-width: 380px; padding: 9px 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: rgba(255,255,255,.04); }
+.co-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; font-size: 13.5px; }
+.co-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.co-chip { padding: 6px 12px; border: 1px solid rgba(255,255,255,.1); border-radius: 999px; background: rgba(255,255,255,.04); color: inherit; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.co-chip small { margin-left: 4px; opacity: .65; }
+.co-chip.on { background: linear-gradient(135deg, var(--orange), #e15b0e); border-color: transparent; color: #fff; }
+.co-table-wrap { overflow-x: auto; }
+.co-table { width: 100%; border-collapse: collapse; min-width: 820px; }
+.co-table th { padding: 10px 12px; text-align: left; font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; opacity: .65; border-bottom: 1px solid rgba(255,255,255,.1); }
+.co-table td { padding: 12px; vertical-align: top; border-bottom: 1px solid rgba(255,255,255,.06); font-size: 13.5px; }
+.co-table .num { text-align: right; font-weight: 700; font-size: 16px; white-space: nowrap; }
+.co-table th.num { font-size: 11.5px; font-weight: 600; }
+.co-table .num small { font-size: 12px; font-weight: 500; opacity: .6; }
+.co-table .num.good { color: #4ade80; }
+.co-table .num.warn { color: #fbbf24; }
+.co-empty { text-align: center; opacity: .7; padding: 28px 12px !important; }
+.co-name { display: flex; align-items: center; gap: 10px; }
+.co-people { display: flex; flex-direction: column; gap: 6px; }
+.co-person { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.co-person small { font-weight: 500; opacity: .65; }
+.co-avatar { width: 26px; height: 26px; font-size: 10px; }
+.co-health { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: rgba(255,255,255,.08); }
+.co-health.healthy { color: #4ade80; background: rgba(74,222,128,.14); }
+.co-health.risk { color: #fbbf24; background: rgba(251,191,36,.14); }
+.co-health.critical { color: #f87171; background: rgba(248,113,113,.16); }
+.co-health-note { display: block; margin-top: 6px; font-size: 12px; opacity: .7; }
