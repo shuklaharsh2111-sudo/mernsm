@@ -10,7 +10,6 @@ import AdminUsers from './admin/AdminUsers';
 import SuperOverview from './superadmin/SuperOverview';
 import CreateAdmin from './superadmin/CreateAdmin';
 import ManageAdmins from './superadmin/ManageAdmins';
-import CreateEmployees from './superadmin/CreateEmployees';
 import AdminCompanies from './admin/AdminCompanies';
 import AdminMeetings from './admin/AdminMeetings';
 import AdminCreatives from './admin/AdminCreatives';
@@ -156,7 +155,6 @@ const AppRoutes = () => {
             <Route path="/superadmin" element={<SuperOverview />} />
             <Route path="/superadmin/create-admin" element={<CreateAdmin />} />
             <Route path="/superadmin/manage-admins" element={<ManageAdmins />} />
-            <Route path="/superadmin/create-employee" element={<CreateEmployees />} />
           </Route>
           <Route path="/admin/companies" element={<AdminCompanies />} />
           <Route path="/admin/meetings" element={<AdminMeetings />} />

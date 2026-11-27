@@ -19,13 +19,12 @@ const fmtJoined = (d) => {
     ? date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     : '—';
 };
-// mode: 'all' (Users page) | 'create-admin' | 'admins' (Manage Admins) | 'employees' (Create Employees)
+// mode: 'all' (Users page) | 'create-admin' | 'admins' (Manage Admins)
 const initialForm = (mode) => ({ ...emptyForm, role: mode === 'create-admin' ? 'ADMIN' : 'SME' });
 const COPY = {
   all: { label: 'ADMINISTRATION', title: 'Users', text: null, button: 'Add User', formTitle: 'New User', submit: 'Add User' },
   'create-admin': { label: 'SUPER ADMIN', title: 'Create Admin', text: 'Create a new admin account. Normal admins cannot see or create other admins.', button: '', formTitle: 'New Admin', submit: 'Create Admin' },
   admins: { label: 'SUPER ADMIN', title: 'Manage Admins', text: 'Make or remove super admins, change passwords or delete admin accounts.', button: '', formTitle: '', submit: '' },
-  employees: { label: 'SUPER ADMIN', title: 'Create Employees', text: 'Add people to any department, set their reporting manager and assign companies.', button: 'Add Employee', formTitle: 'New Employee', submit: 'Add Employee' },
 };
 const AdminUsers = ({ mode = 'all' }) => {
   const { user: me } = useAuth();
@@ -38,7 +37,7 @@ const AdminUsers = ({ mode = 'all' }) => {
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const reload = () => setReloadKey((k) => k + 1);
-  const [adding, setAdding] = useState(mode === 'create-admin' || mode === 'employees');
+  const [adding, setAdding] = useState(mode === 'create-admin');
   const [form, setForm] = useState(() => initialForm(mode));
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -187,7 +186,6 @@ const AdminUsers = ({ mode = 'all' }) => {
   };
   // which people this page lists
   const list = mode === 'admins' ? users.filter((u) => u.collection === 'admins')
-    : mode === 'employees' ? users.filter((u) => u.collection !== 'admins')
       : users;
   const showList = mode !== 'create-admin';
   const formRoles = mode === 'create-admin' ? ['ADMIN'] : ROLES.filter((r) => r !== 'ADMIN' || (me?.isSuperAdmin && mode === 'all'));
