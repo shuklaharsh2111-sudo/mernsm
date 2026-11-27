@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Plus, Trash2, Building2, ImagePlus, X, Key } from 'lucide-react';
 import api from '../api';
+import { useAuth } from '../AuthContext';
 import { errMsg } from '../sopUtils';
 import '../styles/admincompanies.css';
 const AdminCompanies = () => {
+  const { user: me } = useAuth();
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -121,8 +123,8 @@ const AdminCompanies = () => {
     <div className="dashboard-content scrollable">
       <div className="page-header">
         <div>
-          <span className="page-label">ADMINISTRATION</span>
-          <h1>Companies</h1>
+          <span className="page-label">{me?.isSuperAdmin ? 'SUPER ADMIN' : 'ADMINISTRATION'}</span>
+          <h1>{me?.isSuperAdmin ? 'Manage Company' : 'Companies'}</h1>
           <p>Add companies with their logos and assign them to SMEs from the Users page.</p>
         </div>
       </div>
