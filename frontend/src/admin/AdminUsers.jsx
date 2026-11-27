@@ -177,6 +177,113 @@ const AdminUsers = () => {
   };
   const counts = users.reduce((acc, u) => ({ ...acc, [u.role]: (acc[u.role] || 0) + 1 }), {});
   const shown = roleFilter === 'ALL' ? users : users.filter((u) => u.role === roleFilter);
+  // Super admin sees every department first (admins included), each as its own section.
+  const grouped = !!me?.isSuperAdmin && roleFilter === 'ALL';
+  const bySuperFirst = (a, b) => (b.isSuperAdmin ? 1 : 0) - (a.isSuperAdmin ? 1 : 0);
+  const departments = [
+    ...ROLES.map((r) => ({ role: r, members: users.filter((u) => u.role === r).sort(bySuperFirst) })),
+    { role: 'OTHER', members: users.filter((u) => !ROLES.includes(u.role)) },
+  ].filter((d) => d.members.length);
+  const renderCard = (u) => {
+            const assigned = (u.companies || []).map((id) => byId[id?._id || id]).filter(Boolean);
+            const manager = managerById[u.reportingManagerId];
+            // For a reporting manager: the people who report to them, with their roles.
+            const reports = String(u.role).toUpperCase() === 'REPORTING_MANAGER'
+              ? users.filter((x) => String(x.reportingManagerId || '') === String(u.id))
+              : [];
+            // Admin can assign companies and SOPs to Social Media Executives (SME) and Social Media Interns (SMI).
+            const canAssign = u.collection === 'smes' || u.collection === 'smis';
+            const isMe = String(u.id) === String(me?.id); // your own account can't be deleted
+            return (
+              <div key={`${u.collection}-${u.id}`} className={`au-card${u.isBanned ? ' banned' : ''}`}>
+                <div className="au-card-top">
+                  <div className="au-avatar">
+                    {u.profileImage ? <img src={u.profileImage} alt={u.name} /> : <span>{initialsOf(u.name)}</span>}
+                  </div>
+                  <div className="au-id">
+                    <h3>{u.name}{isMe && <span className="au-you">You</span>}{u.isBanned && <span className="au-banned-tag">Banned</span>}</h3>
+                    <span className={`au-role ${String(u.role).toLowerCase()}`}>{u.isSuperAdmin ? 'Super Admin' : roleLabel(u.role)}</span>
+                  </div>
+                  {me?.isSuperAdmin && u.collection === 'admins' && !isMe && (
+                    <button type="button" className={`btn-ghost au-ban-btn${u.isSuperAdmin ? ' au-super-on' : ''}`} aria-label={u.isSuperAdmin ? `Remove super admin from ${u.name}` : `Make ${u.name} a super admin`} title={u.isSuperAdmin ? 'Remove super admin' : 'Make super admin'} onClick={() => toggleSuper(u)}>
+                      <Crown size={15} />
+                    </button>
+                  )}
+                  {(u.collection !== 'admins' || isMe || (me?.isSuperAdmin && !u.isSuperAdmin)) && (
+                    <button type="button" className="btn-ghost au-ban-btn" aria-label={`Change password for ${u.name}`} title="Change password" onClick={() => openPw(u)}>
+                      <KeyRound size={15} />
+                    </button>
+                  )}
+                  {!isMe && u.collection !== 'admins' && (
+                    u.isBanned ? (
+                      <button type="button" className="btn-ghost au-ban-btn" aria-label={`Unban ${u.name}`} title="Unban user" onClick={() => unbanUser(u)}>
+                        <ShieldCheck size={15} />
+                      </button>
+                    ) : (
+                      <button type="button" className="btn-ghost danger au-ban-btn" aria-label={`Ban ${u.name}`} title="Ban user" onClick={() => openBan(u)}>
+                        <Ban size={15} />
+                      </button>
+                    )
+                  )}
+                  {!isMe && (u.collection !== 'admins' || me?.isSuperAdmin) && (
+                    <button type="button" className="btn-ghost danger au-delete" aria-label={`Delete ${u.name}`} title="Delete user" onClick={() => removeUser(u)}>
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+                <dl className="au-meta">
+                  <div><dt><Mail size={14} /> Email</dt><dd>{u.email}</dd></div>
+                  <div><dt><Phone size={14} /> Contact</dt><dd>{u.contact || '—'}</dd></div>
+                  <div><dt><UserCheck size={14} /> Reporting Manager</dt><dd>{manager ? manager.name : '—'}</dd></div>
+                  <div><dt><CalendarDays size={14} /> Joined</dt><dd>{fmtJoined(u.createdAt)}</dd></div>
+                </dl>
+                {u.isBanned && (
+                  <div className="au-ban-note">
+                    <small>Ban message{u.bannedAt ? ` · ${fmtJoined(u.bannedAt)}` : ''}</small>
+                    <p>{u.banReason || 'No message'}</p>
+                  </div>
+                )}
+                {String(u.role).toUpperCase() === 'REPORTING_MANAGER' && (
+                  <div className="au-companies">
+                    <span>Team ({reports.length})</span>
+                    <div>
+                      {reports.length === 0 ? (
+                        <em>No one reports to this manager</em>
+                      ) : (
+                        reports.map((r) => (
+                          <span key={`${r.collection}-${r.id}`} className="au-chip" title={`${r.name} (${r.email})`}>
+                            {r.name} · {roleLabel(r.role)}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+                {canAssign && (
+                  <div className="au-card-actions">
+                    <button type="button" className="btn-ghost" onClick={() => setAssignUser(u)}>
+                      <Building2 size={15} /> Assign Companies
+                    </button>
+                    <button type="button" className="btn-ghost" onClick={() => setSopUser(u)}>
+                      <ClipboardList size={15} /> Manage SOPs
+                    </button>
+                  </div>
+                )}
+                {canAssign && (
+                  <div className="au-companies">
+                    <span>Companies ({assigned.length}/{max})</span>
+                    <div>
+                      {assigned.length === 0 ? (
+                        <em>No companies assigned</em>
+                      ) : (
+                        assigned.map((c) => <span key={c.id || c._id} className="au-chip" title={c.name}>{c.name}</span>)
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+  };
   return (
     <div className="dashboard-content scrollable au-page">
       <div className="page-header">
@@ -279,108 +386,21 @@ const AdminUsers = () => {
           <p>No Users yet. Press “Add User” to create the first one.</p>
         </div>
       ) : (
-        <div className="au-list">
-          {shown.map((u) => {
-            const assigned = (u.companies || []).map((id) => byId[id?._id || id]).filter(Boolean);
-            const manager = managerById[u.reportingManagerId];
-            // For a reporting manager: the people who report to them, with their roles.
-            const reports = String(u.role).toUpperCase() === 'REPORTING_MANAGER'
-              ? users.filter((x) => String(x.reportingManagerId || '') === String(u.id))
-              : [];
-            // Admin can assign companies and SOPs to Social Media Executives (SME) and Social Media Interns (SMI).
-            const canAssign = u.collection === 'smes' || u.collection === 'smis';
-            const isMe = String(u.id) === String(me?.id); // your own account can't be deleted
-            return (
-              <div key={`${u.collection}-${u.id}`} className={`au-card${u.isBanned ? ' banned' : ''}`}>
-                <div className="au-card-top">
-                  <div className="au-avatar">
-                    {u.profileImage ? <img src={u.profileImage} alt={u.name} /> : <span>{initialsOf(u.name)}</span>}
-                  </div>
-                  <div className="au-id">
-                    <h3>{u.name}{isMe && <span className="au-you">You</span>}{u.isBanned && <span className="au-banned-tag">Banned</span>}</h3>
-                    <span className={`au-role ${String(u.role).toLowerCase()}`}>{u.isSuperAdmin ? 'Super Admin' : roleLabel(u.role)}</span>
-                  </div>
-                  {me?.isSuperAdmin && u.collection === 'admins' && !isMe && (
-                    <button type="button" className={`btn-ghost au-ban-btn${u.isSuperAdmin ? ' au-super-on' : ''}`} aria-label={u.isSuperAdmin ? `Remove super admin from ${u.name}` : `Make ${u.name} a super admin`} title={u.isSuperAdmin ? 'Remove super admin' : 'Make super admin'} onClick={() => toggleSuper(u)}>
-                      <Crown size={15} />
-                    </button>
-                  )}
-                  {(u.collection !== 'admins' || isMe || (me?.isSuperAdmin && !u.isSuperAdmin)) && (
-                    <button type="button" className="btn-ghost au-ban-btn" aria-label={`Change password for ${u.name}`} title="Change password" onClick={() => openPw(u)}>
-                      <KeyRound size={15} />
-                    </button>
-                  )}
-                  {!isMe && u.collection !== 'admins' && (
-                    u.isBanned ? (
-                      <button type="button" className="btn-ghost au-ban-btn" aria-label={`Unban ${u.name}`} title="Unban user" onClick={() => unbanUser(u)}>
-                        <ShieldCheck size={15} />
-                      </button>
-                    ) : (
-                      <button type="button" className="btn-ghost danger au-ban-btn" aria-label={`Ban ${u.name}`} title="Ban user" onClick={() => openBan(u)}>
-                        <Ban size={15} />
-                      </button>
-                    )
-                  )}
-                  {!isMe && (u.collection !== 'admins' || me?.isSuperAdmin) && (
-                    <button type="button" className="btn-ghost danger au-delete" aria-label={`Delete ${u.name}`} title="Delete user" onClick={() => removeUser(u)}>
-                      <Trash2 size={15} />
-                    </button>
-                  )}
+        grouped ? (
+          <div className="au-depts">
+            {departments.map((d) => (
+              <section key={d.role} className="au-dept">
+                <div className="au-dept-head">
+                  <h2>{roleLabel(d.role)}</h2>
+                  <em>{d.members.length} {d.members.length === 1 ? 'user' : 'users'}</em>
                 </div>
-                <dl className="au-meta">
-                  <div><dt><Mail size={14} /> Email</dt><dd>{u.email}</dd></div>
-                  <div><dt><Phone size={14} /> Contact</dt><dd>{u.contact || '—'}</dd></div>
-                  <div><dt><UserCheck size={14} /> Reporting Manager</dt><dd>{manager ? manager.name : '—'}</dd></div>
-                  <div><dt><CalendarDays size={14} /> Joined</dt><dd>{fmtJoined(u.createdAt)}</dd></div>
-                </dl>
-                {u.isBanned && (
-                  <div className="au-ban-note">
-                    <small>Ban message{u.bannedAt ? ` · ${fmtJoined(u.bannedAt)}` : ''}</small>
-                    <p>{u.banReason || 'No message'}</p>
-                  </div>
-                )}
-                {String(u.role).toUpperCase() === 'REPORTING_MANAGER' && (
-                  <div className="au-companies">
-                    <span>Team ({reports.length})</span>
-                    <div>
-                      {reports.length === 0 ? (
-                        <em>No one reports to this manager</em>
-                      ) : (
-                        reports.map((r) => (
-                          <span key={`${r.collection}-${r.id}`} className="au-chip" title={`${r.name} (${r.email})`}>
-                            {r.name} · {roleLabel(r.role)}
-                          </span>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-                {canAssign && (
-                  <div className="au-card-actions">
-                    <button type="button" className="btn-ghost" onClick={() => setAssignUser(u)}>
-                      <Building2 size={15} /> Assign Companies
-                    </button>
-                    <button type="button" className="btn-ghost" onClick={() => setSopUser(u)}>
-                      <ClipboardList size={15} /> Manage SOPs
-                    </button>
-                  </div>
-                )}
-                {canAssign && (
-                  <div className="au-companies">
-                    <span>Companies ({assigned.length}/{max})</span>
-                    <div>
-                      {assigned.length === 0 ? (
-                        <em>No companies assigned</em>
-                      ) : (
-                        assigned.map((c) => <span key={c.id || c._id} className="au-chip" title={c.name}>{c.name}</span>)
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                <div className="au-list">{d.members.map(renderCard)}</div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <div className="au-list">{shown.map(renderCard)}</div>
+        )
       )}
       {banTarget && (
         <div className="modal-overlay" onClick={closeBan}>
