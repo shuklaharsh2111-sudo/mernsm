@@ -6,7 +6,7 @@ import Meeting from '../meeting/Meeting.js';
 import Creative from '../sme/Creative.js';
 import Task from '../sme/Tasks.js';
 import Attendance from '../attendance/Attendance.js';
-import { roleModels } from '../admin/UserModels.js';
+import { roleModels, ReportingManager } from '../admin/UserModels.js';
 import { userView, getRoleCollection, validId } from '../admin/adminRoutes.js';
 
 // SUPER ADMIN ONLY routes, mounted at /api/superadmin. Every route here is blocked for normal admins.
@@ -74,6 +74,49 @@ router.put('/users/:id/super-admin', async (req, res) => {
   } catch (error) {
     console.error('Admin super-admin toggle error:', error);
     res.status(500).json({ message: 'Unable to update this admin' });
+  }
+});
+const MANAGED_ROLES = ['sme', 'smi', 'des', 'hr'];
+// GET /api/superadmin/departments  -> every department (role) with its people
+router.get('/departments', async (req, res) => {
+  try {
+    const departments = await Promise.all(Object.entries(roleModels).filter(([role]) => role !== 'admin').map(async ([role, Model]) => {
+      const users = await Model.find().sort({ name: 1 }).lean();
+      return {
+        role,
+        collection: getRoleCollection(role),
+        hasManager: MANAGED_ROLES.includes(role),
+        total: users.length,
+        banned: users.filter((u) => u.isBanned).length,
+        members: users.map((u) => ({ ...userView(u, getRoleCollection(role)), companyCount: (u.companies || []).length })),
+      };
+    }));
+    const managers = await ReportingManager.find().select('name fullname email').sort({ name: 1 }).lean();
+    res.json({
+      departments,
+      reportingManagers: managers.map((m) => ({ id: String(m._id), name: m.name || m.fullname || m.email })),
+    });
+  } catch (error) {
+    console.error('Departments error:', error);
+    res.status(500).json({ message: 'Unable to load departments' });
+  }
+});
+// PUT /api/superadmin/departments/:role/:id/manager   body: { managerId: '<id>' | '' }  -> move a person under another reporting manager
+router.put('/departments/:role/:id/manager', async (req, res) => {
+  try {
+    const { role, id } = req.params;
+    if (!MANAGED_ROLES.includes(role)) return res.status(400).json({ message: 'This department has no reporting manager.' });
+    if (!validId(id)) return res.status(404).json({ message: 'User not found' });
+    const managerId = String(req.body.managerId || '');
+    if (managerId && (!validId(managerId) || !(await ReportingManager.exists({ _id: managerId })))) {
+      return res.status(400).json({ message: 'Selected reporting manager does not exist' });
+    }
+    const user = await roleModels[role].findByIdAndUpdate(id, { $set: { reportingManagerId: managerId || null } }, { new: true }).lean();
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ message: 'Reporting manager updated', user: userView(user, getRoleCollection(role)) });
+  } catch (error) {
+    console.error('Department manager update error:', error);
+    res.status(500).json({ message: 'Unable to update this person' });
   }
 });
 export default router;

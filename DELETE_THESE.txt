@@ -1,0 +1,5 @@
+Delete these old files from your project (they were moved into the superadmin folders):
+
+  backend/admin/superAdmin.js
+  frontend/src/admin/SuperOverview.jsx
+  frontend/src/styles/superadmin.css

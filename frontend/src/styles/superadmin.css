@@ -28,3 +28,18 @@
 .so-tag.super { color: #f59e0b; background: rgba(245,158,11,.16); }
 
 @media (max-width: 640px) { .so-bar-row { grid-template-columns: 1fr 70px; } .so-bar-track { grid-column: 1 / -1; order: 3; } }
+
+/* ---------- Super admin: manage department ---------- */
+.md-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.md-card { display: flex; flex-direction: column; gap: 4px; text-align: left; cursor: pointer; color: inherit; border: 1px solid rgba(255,255,255,.08); }
+.md-card.active { border-color: var(--orange); box-shadow: 0 0 0 1px var(--orange) inset; }
+.md-card-name { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; opacity: .85; }
+.md-card strong { font-size: 26px; line-height: 1.1; }
+.md-card small { font-size: 12px; opacity: .7; }
+.md-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.md-head h2 { display: flex; align-items: center; gap: 8px; margin: 0; }
+.md-search, .md-select { padding: 7px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.06); color: inherit; font-size: 13px; }
+.md-select { max-width: 220px; }
+.md-banned { display: inline-flex; align-items: center; gap: 4px; color: #f87171; background: rgba(248,113,113,.16); }
+@media (max-width: 640px) { .md-row { flex-wrap: wrap; } .md-select { max-width: 100%; width: 100%; } }
+

@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Settings, CalendarDays, FolderOpen, Bookmark,
   ChartNoAxesCombined, FileBarChart, Clock, Building2, Receipt,
   CalendarCheck, Palette, UserCheck, Briefcase, Wifi, MapPin, Music, Megaphone, ListChecks, Lightbulb, FileText,
-  ShieldCheck, UserPlus, Crown
+  ShieldCheck, UserPlus, Crown, Layers
 } from 'lucide-react';
 export const RM_NAV = [
   {
@@ -75,7 +75,8 @@ export const SUPER_NAV = [
     heading: 'Super Admin', items: [
       { title: 'Overall Dashboard', path: '/superadmin', icon: ShieldCheck },
       { title: 'Create Admin', path: '/superadmin/create-admin', icon: UserPlus },
-      { title: 'Manage Admins', path: '/superadmin/manage-admins', icon: Crown }
+      { title: 'Manage Admins', path: '/superadmin/manage-admins', icon: Crown },
+      { title: 'Manage Department', path: '/superadmin/departments', icon: Layers }
     ]
   },
   // same pages as a normal admin, but the super admin sees them under their management names

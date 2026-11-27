@@ -9,7 +9,7 @@ import { errMsg } from '../sopUtils';
 import { roleName } from '../roleNames';
 import '../style.css';
 import '../styles/dashboard-glass.css';
-import '../styles/superadmin.css';
+import './superadmin.css';
 
 const initialsOf = (name = '') => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('') || 'U';
 const fmtJoined = (d) => {

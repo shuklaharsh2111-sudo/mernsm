@@ -18,6 +18,7 @@ import Task from '../sme/Tasks.js';
 import Attendance from '../attendance/Attendance.js';
 import { getOfficeConfig } from '../attendance/geo.js';
 import { ReportingManager, Smi, Client, roleModels } from './UserModels.js';
+import { validId, userView, getRoleCollection } from './userHelpers.js';
 import { notifyUsers } from '../notifications/notify.js';
 const router = express.Router();
 const imageUpload = multer({
@@ -52,7 +53,6 @@ router.use((req, res, next) => {
   next();
 });
 mountIntegrationRoutes(router);
-export const validId = (id) => mongoose.Types.ObjectId.isValid(id);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const companyView = (c) => ({
   id: String(c._id),
@@ -71,23 +71,6 @@ const sopView = (a) => ({
   doneCount: (a.completions || []).length,
 });
 // ---------------- Users ----------------
-export const userView = (u, collection) => ({
-  id: String(u._id),
-  name: u.name || u.fullname || u.email,
-  email: u.email,
-  role: String(u.role || collection).toUpperCase(),
-  collection,
-  contact: u.contact || '',
-  reportingManagerId: u.reportingManagerId ? String(u.reportingManagerId) : '',
-  profileImage: u.profileImage || u.avatar || '',
-  companies: ['smes', 'smis'].includes(collection) ? (u.companies || []).map(String) : [],
-  createdAt: u.createdAt,
-  isBanned: !!u.isBanned,
-  banReason: u.banReason || '',
-  bannedAt: u.bannedAt || null,
-  isSuperAdmin: collection === 'admins' && !!u.isSuperAdmin
-});
-export const getRoleCollection = (role) => roleModels[role]?.collection?.collectionName || '';
 router.get('/users', async (req, res) => {
   const collections = Object.entries(roleModels);
   const results = await Promise.all(
