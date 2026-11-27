@@ -10,6 +10,9 @@ import { getOfficeConfig } from '../attendance/geo.js';
 import { Smi, Des, Hr, ReportingManager } from '../admin/UserModels.js';
 import mongoose from 'mongoose';
 import { notifyUsers } from '../notifications/notify.js';
+import SopAssignment from '../sop/SopAssignment.js';
+import SmiSopAssignment from '../sop/SmiSopAssignment.js';
+import Candidate from '../hr/Candidate.js';
 import { momItemView, creativeItemView, reviewMom, reviewCreative } from '../review/reviewCore.js';
 
 // Reporting manager panel. A reporting manager only ever sees the people who report to them
@@ -154,6 +157,119 @@ router.post('/team/add', async (req, res) => {
     message: added.length
       ? `${added.length} ${added.length === 1 ? 'person' : 'people'} added to your team`
       : 'Nobody could be added — they may already report to another manager',
+  });
+});
+
+// ---------------- Work done by one team member ----------------
+const RANGES = { week: 7, month: 30, all: null };
+const dayKey = (d) => new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+const countBy = (list, fn) => list.reduce((acc, x) => { const k = fn(x); acc[k] = (acc[k] || 0) + 1; return acc; }, {});
+const tile = (label, value, tone = '') => ({ label, value, tone });
+
+router.get('/team/:collection/:id/work', async (req, res) => {
+  const entry = TEAM_ROLES.find((r) => r.collection === req.params.collection);
+  if (!entry || !mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: 'Invalid team member' });
+  const member = await entry.Model.findOne({ _id: req.params.id, reportingManagerId: req.user.id }).lean();
+  if (!member) return res.status(404).json({ message: 'That person does not report to you' });
+
+  const range = Object.hasOwn(RANGES, req.query.range) ? req.query.range : 'month';
+  const days = RANGES[range];
+  const start = days ? new Date(Date.now() - days * 86400000) : null;
+  const since = (field) => (start ? { [field]: { $gte: start } } : {});
+  const uid = member._id;
+  const sections = [];
+  const recent = [];
+
+  if (entry.role === 'sme') {
+    const [creatives, tasks, moms, sops] = await Promise.all([
+      Creative.find({ user: uid, ...since('createdAt') }).sort({ createdAt: -1 }).limit(1000).populate('company', 'name').lean(),
+      Task.find({ user: uid, ...since('createdAt') }).sort({ createdAt: -1 }).limit(1000).populate('company', 'name').lean(),
+      Meeting.find({ user: uid, 'mom.submittedAt': start ? { $gte: start } : { $exists: true } }).sort({ 'mom.submittedAt': -1 }).limit(500).populate('company', 'name').lean(),
+      SopAssignment.find({ user: uid }).lean(),
+    ]);
+    const cs = countBy(creatives, (c) => c.status);
+    const ts = countBy(tasks, (t) => t.status);
+    const ms = countBy(moms, (m) => m.mom?.status || 'pending');
+    const ticks = sops.reduce((n, a) => n + (a.completions || []).filter((c) => !start || new Date(c.at) >= start).length, 0);
+    sections.push(
+      { title: 'Creatives', stats: [tile('Created', creatives.length), tile('Approved', cs.approved || 0, 'good'), tile('Pending review', cs.pending || 0, 'warn'), tile('Rejected', cs.rejected || 0, 'bad')] },
+      { title: 'Tasks', stats: [tile('Total', tasks.length), tile('Completed', ts.completed || 0, 'good'), tile('In progress', ts['in-progress'] || 0, 'warn'), tile('New', ts.new || 0)] },
+      { title: 'Meeting MOMs', stats: [tile('Submitted', moms.length), tile('Approved', ms.approved || 0, 'good'), tile('Pending review', ms.pending || 0, 'warn')] },
+      { title: 'SOPs', stats: [tile('Assigned SOPs', sops.length), tile('Ticks done', ticks, 'good')] },
+    );
+    creatives.slice(0, 8).forEach((c) => recent.push({ kind: 'Creative', title: c.contentPillar?.title || 'Creative', sub: c.company?.name || '', status: c.status, at: c.createdAt }));
+    tasks.slice(0, 8).forEach((t) => recent.push({ kind: 'Task', title: t.title, sub: t.company?.name || '', status: t.status, at: t.createdAt }));
+    moms.slice(0, 5).forEach((m) => recent.push({ kind: 'MOM', title: m.title || 'Meeting MOM', sub: m.company?.name || '', status: m.mom?.status || 'pending', at: m.mom?.submittedAt }));
+  } else if (entry.role === 'smi') {
+    const [tasks, sops] = await Promise.all([
+      Task.find({ assignedSmi: uid, ...since('createdAt') }).sort({ createdAt: -1 }).limit(1000).populate('company', 'name').lean(),
+      SmiSopAssignment.find({ smi: uid }).lean(),
+    ]);
+    const ts = countBy(tasks, (t) => t.status);
+    const ticks = sops.reduce((n, a) => n + (a.completions || []).filter((c) => !start || new Date(c.at) >= start).length, 0);
+    sections.push(
+      { title: 'Tasks', stats: [tile('Assigned', tasks.length), tile('Completed', ts.completed || 0, 'good'), tile('In progress', ts['in-progress'] || 0, 'warn'), tile('New', ts.new || 0)] },
+      { title: 'SOPs', stats: [tile('Assigned SOPs', sops.length), tile('Ticks done', ticks, 'good')] },
+    );
+    tasks.slice(0, 10).forEach((t) => recent.push({ kind: 'Task', title: t.title, sub: t.company?.name || '', status: t.status, at: t.createdAt }));
+  } else if (entry.role === 'des') {
+    const filter = { assignedDesigner: uid };
+    if (start) filter.$or = [{ assignedAt: { $gte: start } }, { 'designOutput.uploadedAt': { $gte: start } }];
+    const list = await Creative.find(filter).sort({ assignedAt: -1 }).limit(1000).populate('company', 'name').lean();
+    const delivered = list.filter((c) => c.designOutput);
+    const os = countBy(delivered, (c) => c.designOutput.status);
+    sections.push({
+      title: 'Design work',
+      stats: [
+        tile('Assigned', list.length),
+        tile('Delivered', delivered.length),
+        tile('Approved', os.approved || 0, 'good'),
+        tile('Awaiting review', os.submitted || 0, 'warn'),
+        tile('Redo requested', os.redo || 0, 'bad'),
+        tile('Not delivered yet', list.length - delivered.length),
+      ],
+    });
+    list.slice(0, 10).forEach((c) => recent.push({
+      kind: 'Design', title: c.contentPillar?.title || 'Creative', sub: c.company?.name || '',
+      status: c.designOutput ? c.designOutput.status : 'assigned', at: c.designOutput?.uploadedAt || c.assignedAt,
+    }));
+  } else if (entry.role === 'hr') {
+    const list = await Candidate.find({ createdBy: uid, ...since('createdAt') }).sort({ createdAt: -1 }).limit(2000).lean();
+    sections.push({
+      title: 'Recruitment',
+      stats: [
+        tile('Candidates added', list.length),
+        tile('Shortlisted', list.filter((c) => c.shortlisted).length, 'good'),
+        tile('Calls done', list.filter((c) => c.callDone).length),
+        tile('Interviews scheduled', list.filter((c) => c.interviewAt).length, 'warn'),
+        tile('Selected', list.filter((c) => c.interviewStatus === 'Selected').length, 'good'),
+      ],
+    });
+    list.slice(0, 10).forEach((c) => recent.push({
+      kind: 'Candidate', title: c.name, sub: c.position || '',
+      status: c.interviewStatus || c.remarkStatus || (c.shortlisted ? 'Shortlisted' : 'Added'), at: c.createdAt,
+    }));
+  }
+
+  // attendance for everyone
+  const sessions = await Attendance.find({ userId: uid, ...since('loginAt') }).sort({ loginAt: -1 }).limit(2000).lean();
+  const hours = sessions.reduce((ms, a) => (a.logoutAt ? ms + (new Date(a.logoutAt) - new Date(a.loginAt)) : ms), 0) / 3600000;
+  sections.push({
+    title: 'Attendance',
+    stats: [
+      tile('Days present', new Set(sessions.map((a) => dayKey(a.loginAt))).size, 'good'),
+      tile('Logins', sessions.length),
+      tile('Hours logged', Math.round(hours * 10) / 10),
+      tile('Last login', sessions[0] ? new Date(sessions[0].loginAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', timeZone: 'Asia/Kolkata' }) : '—'),
+    ],
+  });
+
+  recent.sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
+  res.json({
+    member: memberView({ ...member, _role: entry.role, _collection: entry.collection }),
+    range,
+    sections,
+    recent: recent.slice(0, 12),
   });
 });
 
