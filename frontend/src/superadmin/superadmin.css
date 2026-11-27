@@ -43,3 +43,22 @@
 .md-banned { display: inline-flex; align-items: center; gap: 4px; color: #f87171; background: rgba(248,113,113,.16); }
 @media (max-width: 640px) { .md-row { flex-wrap: wrap; } .md-select { max-width: 100%; width: 100%; } }
 
+/* ---------- Super admin: pending creatives + banned accounts ---------- */
+.sa-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+.pc-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.pc-item:last-child { border-bottom: 0; }
+.pc-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 auto; }
+.pc-main strong { font-size: 15px; }
+.pc-main small { font-size: 12px; opacity: .7; }
+.pc-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.pc-tags i { font-style: normal; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: rgba(255,255,255,.08); }
+.pc-caption { margin: 2px 0 0; font-size: 13px; opacity: .85; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pc-links { display: flex; flex-wrap: wrap; gap: 10px; }
+.pc-links a { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--orange); text-decoration: none; }
+.pc-actions { display: flex; flex: none; gap: 8px; }
+.pc-reject { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.pc-reject textarea { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.06); color: inherit; font: inherit; resize: vertical; }
+.pc-reject div { display: flex; gap: 8px; }
+.ba-reason { white-space: normal !important; }
+@media (max-width: 640px) { .pc-item { flex-direction: column; } .pc-actions { width: 100%; } }
+
