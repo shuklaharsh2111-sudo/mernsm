@@ -11,6 +11,8 @@ import { userView, getRoleCollection, validId } from '../admin/userHelpers.js';
 import { creativeItemView } from '../review/reviewCore.js';
 import { healthOf } from '../sme/health.js';
 import { resolveToday } from '../sop/period.js';
+import { getOfficeConfig } from '../attendance/geo.js';
+import { getStoredSettings, getLateAfter, saveAttendanceSettings } from '../attendance/settings.js';
 import Sme from '../sme/Sme.js';
 import { Smi } from '../admin/UserModels.js';
 
@@ -106,6 +108,136 @@ router.get('/company-overview', async (req, res) => {
   } catch (error) {
     console.error('Company overview error:', error);
     res.status(500).json({ message: 'Unable to load the company overview' });
+  }
+});
+// ---------- Online now + login history (same data as the HR pages, but for every role) ----------
+const ALL_ROLES = Object.keys(roleModels);
+const dayKeyOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+// GET /api/superadmin/presence  -> everyone, online or offline right now (online = today's latest session has no sign-out)
+router.get('/presence', async (req, res) => {
+  try {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const [lists, records] = await Promise.all([
+      Promise.all(ALL_ROLES.map(async (role) => (await roleModels[role].find().lean()).map((u) => ({
+        id: String(u._id),
+        name: u.name || u.fullname || u.email,
+        role,
+        profileImage: u.profileImage || u.avatar || '',
+      })))),
+      Attendance.find({ loginAt: { $gte: startOfToday } }).sort({ loginAt: 1 }).lean(),
+    ]);
+    const byUser = new Map();
+    records.forEach((r) => {
+      const k = String(r.userId);
+      if (!byUser.has(k)) byUser.set(k, []);
+      byUser.get(k).push(r);
+    });
+    const people = lists.flat().map((p) => {
+      const sessions = byUser.get(p.id) || [];
+      const first = sessions[0];
+      const last = sessions[sessions.length - 1];
+      const online = !!last && !last.logoutAt;
+      return { ...p, online, firstLogin: first?.loginAt || null, lastLogout: online ? null : last?.logoutAt || null };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+    const online = people.filter((p) => p.online).length;
+    res.json({ summary: { total: people.length, online, offline: people.length - online }, people, date: dayKeyOf(startOfToday) });
+  } catch (error) {
+    console.error('Presence error:', error);
+    res.status(500).json({ message: 'Unable to load who is online' });
+  }
+});
+// GET /api/superadmin/login-history?from=YYYY-MM-DD&to=YYYY-MM-DD&role=sme&userId=<id>  -> every login / logout, newest first
+router.get('/login-history', async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.userId) {
+      if (!validId(req.query.userId)) return res.status(400).json({ message: 'Invalid user' });
+      filter.userId = req.query.userId;
+    }
+    if (ALL_ROLES.includes(req.query.role)) filter.role = req.query.role;
+    const range = {};
+    if (req.query.from) {
+      const d = new Date(`${req.query.from}T00:00:00`);
+      if (!Number.isNaN(d.getTime())) range.$gte = d;
+    }
+    if (req.query.to) {
+      const d = new Date(`${req.query.to}T23:59:59.999`);
+      if (!Number.isNaN(d.getTime())) range.$lte = d;
+    }
+    if (Object.keys(range).length) filter.loginAt = range;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 500, 2000);
+    const records = await Attendance.find(filter).sort({ loginAt: -1 }).limit(limit).lean();
+    res.json({
+      records: records.map((r) => ({
+        id: String(r._id),
+        userId: String(r.userId),
+        name: r.name,
+        email: r.email,
+        role: r.role,
+        loginAt: r.loginAt,
+        logoutAt: r.logoutAt,
+        ipAddress: r.ipAddress || '',
+      })),
+    });
+  } catch (error) {
+    console.error('Login history error:', error);
+    res.status(500).json({ message: 'Unable to load login history' });
+  }
+});
+// ---------- Office + attendance settings (replaces OFFICE_LAT / OFFICE_LNG / OFFICE_RADIUS_METERS / HR_LATE_AFTER in .env) ----------
+const settingsView = () => {
+  const o = getOfficeConfig();
+  const saved = getStoredSettings() || {};
+  return {
+    lat: o.configured ? o.lat : null,
+    lng: o.configured ? o.lng : null,
+    radius: o.radius,
+    lateAfter: getLateAfter(),
+    enforceStaff: o.enforceSme,
+    enforceAdmin: o.enforceAdmin,
+    configured: o.configured,
+    // true when the value comes from the app, false when it is still read from .env
+    savedInApp: {
+      location: Number.isFinite(saved.officeLat) && Number.isFinite(saved.officeLng),
+      radius: Number.isFinite(saved.officeRadius),
+      lateAfter: !!saved.lateAfter,
+    },
+    updatedAt: saved.updatedAt || null,
+    updatedBy: saved.updatedBy || '',
+  };
+};
+// GET /api/superadmin/attendance-settings
+router.get('/attendance-settings', (req, res) => res.json({ settings: settingsView() }));
+// PUT /api/superadmin/attendance-settings   body: { lat, lng, radius, lateAfter, enforceStaff, enforceAdmin }
+router.put('/attendance-settings', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const lat = Number(b.lat);
+    const lng = Number(b.lng);
+    const radius = Number(b.radius);
+    if (b.lat === '' || b.lng === '' || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      return res.status(400).json({ message: 'Enter a valid latitude (-90 to 90) and longitude (-180 to 180).' });
+    }
+    if (!Number.isFinite(radius) || radius < 10 || radius > 50000) {
+      return res.status(400).json({ message: 'Radius must be between 10 and 50000 metres.' });
+    }
+    if (!/^([01]?\d|2[0-3]):[0-5]\d$/.test(String(b.lateAfter || '').trim())) {
+      return res.status(400).json({ message: 'Late time must look like 10:30 (24-hour HH:MM).' });
+    }
+    const by = req.user.name || req.user.email || String(req.user.id || '');
+    await saveAttendanceSettings({
+      officeLat: lat,
+      officeLng: lng,
+      officeRadius: radius,
+      lateAfter: String(b.lateAfter).trim().replace(/^(\d):/, '0$1:'),
+      enforceStaff: !!b.enforceStaff,
+      enforceAdmin: !!b.enforceAdmin,
+    }, by);
+    res.json({ message: 'Attendance settings saved', settings: settingsView() });
+  } catch (error) {
+    console.error('Attendance settings error:', error);
+    res.status(500).json({ message: 'Unable to save attendance settings' });
   }
 });
 // PUT /api/superadmin/users/:id/super-admin   body: { value: true|false }  -> a super admin makes another admin a super admin (or removes it)

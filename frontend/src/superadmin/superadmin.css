@@ -91,3 +91,18 @@
 .co-health.risk { color: #fbbf24; background: rgba(251,191,36,.14); }
 .co-health.critical { color: #f87171; background: rgba(248,113,113,.16); }
 .co-health-note { display: block; margin-top: 6px; font-size: 12px; opacity: .7; }
+
+/* Attendance settings */
+.as-grid { display: grid; gap: 16px; max-width: 760px; }
+.as-grid h2 { display: flex; align-items: center; gap: 8px; }
+.as-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+.as-fields label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600; opacity: .9; }
+.as-fields input { padding: 10px 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; background: rgba(255,255,255,.05); color: inherit; font: inherit; font-size: 14px; }
+.as-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.as-hint { margin: 12px 0 0; font-size: 12.5px; opacity: .7; }
+.as-check { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; cursor: pointer; }
+.as-check input { margin-top: 4px; width: 17px; height: 17px; accent-color: var(--orange); }
+.as-check span { display: flex; flex-direction: column; gap: 2px; }
+.as-check small { font-size: 12px; opacity: .65; }
+.as-save { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.as-save small { opacity: .65; }
