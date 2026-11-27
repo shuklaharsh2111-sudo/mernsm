@@ -8,6 +8,7 @@ import Task from '../sme/Tasks.js';
 import Attendance from '../attendance/Attendance.js';
 import { roleModels, ReportingManager } from '../admin/UserModels.js';
 import { userView, getRoleCollection, validId } from '../admin/userHelpers.js';
+import { creativeItemView } from '../review/reviewCore.js';
 
 // SUPER ADMIN ONLY routes, mounted at /api/superadmin. Every route here is blocked for normal admins.
 const router = express.Router();
@@ -74,6 +75,40 @@ router.put('/users/:id/super-admin', async (req, res) => {
   } catch (error) {
     console.error('Admin super-admin toggle error:', error);
     res.status(500).json({ message: 'Unable to update this admin' });
+  }
+});
+// GET /api/superadmin/pending-creatives  -> every creative (all companies, all SMEs) still waiting for review, oldest first
+router.get('/pending-creatives', async (req, res) => {
+  try {
+    const list = await Creative.find({ status: 'pending' })
+      .sort({ createdAt: 1 })
+      .limit(500)
+      .populate('company', 'name')
+      .populate('user', 'name fullname email')
+      .populate('assignedDesigner', 'name email');
+    res.json({ creatives: list.map(creativeItemView) });
+  } catch (error) {
+    console.error('Pending creatives error:', error);
+    res.status(500).json({ message: 'Unable to load pending creatives' });
+  }
+});
+// GET /api/superadmin/banned  -> every banned account in every department, newest ban first
+router.get('/banned', async (req, res) => {
+  try {
+    const rows = (await Promise.all(Object.entries(roleModels).map(async ([role, Model]) => (
+      (await Model.find({ isBanned: true }).lean()).map((u) => ({ u, collection: getRoleCollection(role) }))
+    )))).flat();
+    // bannedBy is stored as an admin id; show the admin's name instead
+    const adminIds = [...new Set(rows.map(({ u }) => u.bannedBy).filter((id) => id && validId(id)))];
+    const admins = await Admin.find({ _id: { $in: adminIds } }).select('name fullname email').lean();
+    const adminName = Object.fromEntries(admins.map((a) => [String(a._id), a.name || a.fullname || a.email]));
+    const accounts = rows
+      .map(({ u, collection }) => ({ ...userView(u, collection), bannedByName: adminName[u.bannedBy] || '' }))
+      .sort((a, b) => new Date(b.bannedAt || 0) - new Date(a.bannedAt || 0));
+    res.json({ accounts });
+  } catch (error) {
+    console.error('Banned accounts error:', error);
+    res.status(500).json({ message: 'Unable to load banned accounts' });
   }
 });
 const MANAGED_ROLES = ['sme', 'smi', 'des', 'hr'];
