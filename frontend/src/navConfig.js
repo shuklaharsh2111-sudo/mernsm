@@ -2,7 +2,8 @@ import { Navigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Settings, CalendarDays, FolderOpen, Bookmark,
   ChartNoAxesCombined, FileBarChart, Clock, Building2, Receipt,
-  CalendarCheck, Palette, UserCheck, Briefcase, Wifi, MapPin, Music, Megaphone, ListChecks, Lightbulb, FileText
+  CalendarCheck, Palette, UserCheck, Briefcase, Wifi, MapPin, Music, Megaphone, ListChecks, Lightbulb, FileText,
+  ShieldCheck, UserPlus, Crown, KeyRound
 } from 'lucide-react';
 export const RM_NAV = [
   {
@@ -67,6 +68,19 @@ export const ADMIN_NAV = [
       { title: 'Playlist', path: '/admin/playlist', icon: Music }
     ]
   }
+];
+// Super admin: the super-admin pages (see src/superadmin) first, then everything a normal admin has.
+export const SUPER_NAV = [
+  {
+    heading: 'Super Admin', items: [
+      { title: 'Overall Dashboard', path: '/superadmin', icon: ShieldCheck },
+      { title: 'Create Admin', path: '/superadmin/create-admin', icon: UserPlus },
+      { title: 'Manage Admins', path: '/superadmin/manage-admins', icon: Crown },
+      { title: 'Create Employees', path: '/superadmin/create-employee', icon: Users },
+      { title: 'Env Credentials', path: '/superadmin/env-credentials', icon: KeyRound }
+    ]
+  },
+  ...ADMIN_NAV
 ];
 // Operation Manager: the admin menu under /om, minus the user/company setup pages.
 const withBase = (groups, from, to) => groups.map((g) => ({
@@ -216,9 +230,9 @@ export const CLIENT_NAV = [
     ]
   }
 ];
-export const navFor = (role) => {
+export const navFor = (role, isSuper = false) => {
   switch (role) {
-    case 'admin': return ADMIN_NAV;
+    case 'admin': return isSuper ? SUPER_NAV : ADMIN_NAV;
     case 'operation_manager': return OM_NAV;
     case 'reporting_manager': return RM_NAV;
     case 'sme': return SME_NAV;
@@ -229,8 +243,8 @@ export const navFor = (role) => {
     default: return [];
   }
 };
-export const titleFor = (role, pathname) => {
-  const groups = navFor(role);
+export const titleFor = (role, pathname, isSuper = false) => {
+  const groups = navFor(role, isSuper);
   const all = groups.flatMap((g) => g.items);
   const hit = [...all].sort((a, b) => b.path.length - a.path.length)
     .find((i) => pathname === i.path || pathname.startsWith(`${i.path}/`));

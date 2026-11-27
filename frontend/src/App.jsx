@@ -7,6 +7,11 @@ import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import AdminDashboard from './admin/AdminDashboard';
 import AdminUsers from './admin/AdminUsers';
+import SuperOverview from './superadmin/SuperOverview';
+import CreateAdmin from './superadmin/CreateAdmin';
+import ManageAdmins from './superadmin/ManageAdmins';
+import CreateEmployees from './superadmin/CreateEmployees';
+import EnvCredentials from './superadmin/EnvCredentials';
 import AdminCompanies from './admin/AdminCompanies';
 import AdminMeetings from './admin/AdminMeetings';
 import AdminCreatives from './admin/AdminCreatives';
@@ -129,6 +134,12 @@ const ClientLayout = () => {
     </NotificationProvider>
   );
 };
+// Pages only a super admin can open; everyone else goes back to the normal admin dashboard.
+const SuperRoute = () => {
+  const { user } = useAuth();
+  if (!user?.isSuperAdmin) return <Navigate to="/admin" replace />;
+  return <Outlet />;
+};
 const AppRoutes = () => {
   const { user, loading, banned } = useAuth();
   if (loading) return <div className="loading-screen">Loading...</div>;
@@ -142,6 +153,13 @@ const AppRoutes = () => {
         <Route element={<DashboardLayout />}>
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUsers />} />
+          <Route element={<SuperRoute />}>
+            <Route path="/superadmin" element={<SuperOverview />} />
+            <Route path="/superadmin/create-admin" element={<CreateAdmin />} />
+            <Route path="/superadmin/manage-admins" element={<ManageAdmins />} />
+            <Route path="/superadmin/create-employee" element={<CreateEmployees />} />
+            <Route path="/superadmin/env-credentials" element={<EnvCredentials />} />
+          </Route>
           <Route path="/admin/companies" element={<AdminCompanies />} />
           <Route path="/admin/meetings" element={<AdminMeetings />} />
           <Route path="/admin/invoices" element={<Invoices />} />

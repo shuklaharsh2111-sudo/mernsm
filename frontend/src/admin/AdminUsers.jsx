@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { UserPlus, Building2, ClipboardList, Trash2, Mail, Phone, UserCheck, CalendarDays, ImagePlus, Eye, EyeOff, X, Users, Ban, ShieldCheck, KeyRound, Crown } from 'lucide-react';
 import api from '../api';
 import { useAuth } from '../AuthContext';
@@ -18,8 +19,17 @@ const fmtJoined = (d) => {
     ? date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     : '—';
 };
-const AdminUsers = () => {
+// mode: 'all' (Users page) | 'create-admin' | 'admins' (Manage Admins) | 'employees' (Create Employees)
+const initialForm = (mode) => ({ ...emptyForm, role: mode === 'create-admin' ? 'ADMIN' : 'SME' });
+const COPY = {
+  all: { label: 'ADMINISTRATION', title: 'Users', text: null, button: 'Add User', formTitle: 'New User', submit: 'Add User' },
+  'create-admin': { label: 'SUPER ADMIN', title: 'Create Admin', text: 'Create a new admin account. Normal admins cannot see or create other admins.', button: '', formTitle: 'New Admin', submit: 'Create Admin' },
+  admins: { label: 'SUPER ADMIN', title: 'Manage Admins', text: 'Make or remove super admins, change passwords or delete admin accounts.', button: '', formTitle: '', submit: '' },
+  employees: { label: 'SUPER ADMIN', title: 'Create Employees', text: 'Add people to any department, set their reporting manager and assign companies.', button: 'Add Employee', formTitle: 'New Employee', submit: 'Add Employee' },
+};
+const AdminUsers = ({ mode = 'all' }) => {
   const { user: me } = useAuth();
+  const copy = COPY[mode] || COPY.all;
   const [users, setUsers] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [reportingManagers, setReportingManagers] = useState([]);
@@ -28,8 +38,8 @@ const AdminUsers = () => {
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const reload = () => setReloadKey((k) => k + 1);
-  const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState(emptyForm);
+  const [adding, setAdding] = useState(mode === 'create-admin' || mode === 'employees');
+  const [form, setForm] = useState(() => initialForm(mode));
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState('');
@@ -72,7 +82,7 @@ const AdminUsers = () => {
     const { name, value, files } = e.target;
     setForm((prev) => ({ ...prev, [name]: name === 'profileImage' ? files?.[0] || null : value }));
   };
-  const closeForm = () => { setAdding(false); setForm(emptyForm); setShowPassword(false); };
+  const closeForm = () => { setAdding(mode === 'create-admin'); setForm(initialForm(mode)); setShowPassword(false); };
   const addUser = async (e) => {
     e.preventDefault();
     setBusy(true);
@@ -120,7 +130,7 @@ const AdminUsers = () => {
     setError('');
     setCreated('');
     try {
-      await api.put(`/admin/users/${u.id}/super-admin`, { value: make });
+      await api.put(`/superadmin/users/${u.id}/super-admin`, { value: make });
       setCreated(make ? `${u.name} is now a super admin.` : `${u.name} is no longer a super admin.`);
       reload();
     } catch (err) {
@@ -175,14 +185,20 @@ const AdminUsers = () => {
       setPwBusy(false);
     }
   };
-  const counts = users.reduce((acc, u) => ({ ...acc, [u.role]: (acc[u.role] || 0) + 1 }), {});
-  const shown = roleFilter === 'ALL' ? users : users.filter((u) => u.role === roleFilter);
+  // which people this page lists
+  const list = mode === 'admins' ? users.filter((u) => u.collection === 'admins')
+    : mode === 'employees' ? users.filter((u) => u.collection !== 'admins')
+      : users;
+  const showList = mode !== 'create-admin';
+  const formRoles = mode === 'create-admin' ? ['ADMIN'] : ROLES.filter((r) => r !== 'ADMIN' || (me?.isSuperAdmin && mode === 'all'));
+  const counts = list.reduce((acc, u) => ({ ...acc, [u.role]: (acc[u.role] || 0) + 1 }), {});
+  const shown = roleFilter === 'ALL' ? list : list.filter((u) => u.role === roleFilter);
   // Super admin sees every department first (admins included), each as its own section.
-  const grouped = !!me?.isSuperAdmin && roleFilter === 'ALL';
+  const grouped = !!me?.isSuperAdmin && roleFilter === 'ALL' && mode !== 'admins';
   const bySuperFirst = (a, b) => (b.isSuperAdmin ? 1 : 0) - (a.isSuperAdmin ? 1 : 0);
   const departments = [
-    ...ROLES.map((r) => ({ role: r, members: users.filter((u) => u.role === r).sort(bySuperFirst) })),
-    { role: 'OTHER', members: users.filter((u) => !ROLES.includes(u.role)) },
+    ...ROLES.map((r) => ({ role: r, members: list.filter((u) => u.role === r).sort(bySuperFirst) })),
+    { role: 'OTHER', members: list.filter((u) => !ROLES.includes(u.role)) },
   ].filter((d) => d.members.length);
   const renderCard = (u) => {
             const assigned = (u.companies || []).map((id) => byId[id?._id || id]).filter(Boolean);
@@ -234,7 +250,7 @@ const AdminUsers = () => {
                 <dl className="au-meta">
                   <div><dt><Mail size={14} /> Email</dt><dd>{u.email}</dd></div>
                   <div><dt><Phone size={14} /> Contact</dt><dd>{u.contact || '—'}</dd></div>
-                  <div><dt><UserCheck size={14} /> Reporting Manager</dt><dd>{manager ? manager.name : '—'}</dd></div>
+                  {u.collection !== 'admins' && <div><dt><UserCheck size={14} /> Reporting Manager</dt><dd>{manager ? manager.name : '—'}</dd></div>}
                   <div><dt><CalendarDays size={14} /> Joined</dt><dd>{fmtJoined(u.createdAt)}</dd></div>
                 </dl>
                 {u.isBanned && (
@@ -288,20 +304,28 @@ const AdminUsers = () => {
     <div className="dashboard-content scrollable au-page">
       <div className="page-header">
         <div>
-          <span className="page-label">ADMINISTRATION</span>
-          <h1>Users</h1>
-          <p>Add Users, assign companies (max {max} each) and manage their SOPs.</p>
+          <span className="page-label">{copy.label}</span>
+          <h1>{copy.title}</h1>
+          <p>{copy.text || `Add Users, assign companies (max ${max} each) and manage their SOPs.`}</p>
         </div>
-        <button type="button" className="btn-primary" onClick={() => { adding ? closeForm() : setAdding(true); setCreated(''); setError(''); }}>
-          {adding ? <><X size={16} /> Close</> : <><UserPlus size={16} /> Add User</>}
-        </button>
+        {mode === 'admins' ? (
+          <Link to="/superadmin/create-admin" className="btn-primary"><UserPlus size={16} /> Create Admin</Link>
+        ) : mode !== 'create-admin' && (
+          <button type="button" className="btn-primary" onClick={() => { adding ? closeForm() : setAdding(true); setCreated(''); setError(''); }}>
+            {adding ? <><X size={16} /> Close</> : <><UserPlus size={16} /> {copy.button}</>}
+          </button>
+        )}
       </div>
       {error && <p className="error-message" role="alert">{error}</p>}
-      {created && <p className="success-message" role="status">{created}</p>}
-      {adding && (
+      {created && (
+        <p className="success-message" role="status">
+          {created}{mode === 'create-admin' && <> <Link to="/superadmin/manage-admins">Manage admins →</Link></>}
+        </p>
+      )}
+      {adding && mode !== 'admins' && (
         <form className="au-form" onSubmit={addUser}>
           <div className="au-form-head">
-            <h3><UserPlus size={17} /> New User</h3>
+            <h3><UserPlus size={17} /> {copy.formTitle}</h3>
             <p>Fields marked * are required.</p>
           </div>
           <div className="au-form-body">
@@ -337,23 +361,26 @@ const AdminUsers = () => {
                   </button>
                 </div>
               </label>
-              <label className="x-field au-span-2">
-                <span>Reporting Manager</span>
-                <select name="reportingManagerId" value={form.reportingManagerId} onChange={handleChange}>
-                  <option value="">Select Reporting Manager</option>
-                  {reportingManagers.map((manager) => (
-                    <option key={manager.id || manager._id} value={manager.id || manager._id}>
-                      {manager.name || manager.fullname} ({manager.email})
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {form.role !== 'ADMIN' && (
+                <label className="x-field au-span-2">
+                  <span>Reporting Manager</span>
+                  <select name="reportingManagerId" value={form.reportingManagerId} onChange={handleChange}>
+                    <option value="">Select Reporting Manager</option>
+                    {reportingManagers.map((manager) => (
+                      <option key={manager.id || manager._id} value={manager.id || manager._id}>
+                        {manager.name || manager.fullname} ({manager.email})
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
             </div>
           </div>
+          {mode !== 'create-admin' && (
           <div className="au-roles">
             <span>Assign Primary Role *</span>
             <div className="au-role-pills">
-              {ROLES.filter((role) => role !== 'ADMIN' || me?.isSuperAdmin).map((role) => (
+              {formRoles.map((role) => (
                 <label key={role} className={form.role === role ? 'active' : ''}>
                   <input type="radio" name="role" value={role} checked={form.role === role} onChange={handleChange} required />
                   {roleLabel(role)}
@@ -361,15 +388,16 @@ const AdminUsers = () => {
               ))}
             </div>
           </div>
+          )}
           <div className="au-form-actions">
             <button type="button" className="btn-ghost" onClick={closeForm} disabled={busy}>Cancel</button>
             <button type="submit" className="btn-primary" disabled={busy}>
-              {busy ? 'Adding…' : 'Add User'}
+              {busy ? 'Adding…' : copy.submit}
             </button>
           </div>
         </form>
       )}
-      {!loading && users.length > 0 && (
+      {showList && mode !== 'admins' && !loading && list.length > 0 && (
         <div className="au-filters">
           {['ALL', ...ROLES.filter((r) => counts[r])].map((r) => (
             <button key={r} type="button" className={roleFilter === r ? 'active' : ''} onClick={() => setRoleFilter(r)}>
@@ -378,12 +406,12 @@ const AdminUsers = () => {
           ))}
         </div>
       )}
-      {loading ? (
+      {!showList ? null : loading ? (
         <p className="muted">Loading…</p>
-      ) : users.length === 0 ? (
+      ) : list.length === 0 ? (
         <div className="au-empty">
           <Users size={30} />
-          <p>No Users yet. Press “Add User” to create the first one.</p>
+          <p>{mode === 'admins' ? 'No admin accounts found.' : 'No Users yet. Press “Add User” to create the first one.'}</p>
         </div>
       ) : (
         grouped ? (
