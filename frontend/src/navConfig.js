@@ -77,6 +77,7 @@ export const SUPER_NAV = [
       { title: 'Create Admin', path: '/superadmin/create-admin', icon: UserPlus },
       { title: 'Manage Admins', path: '/superadmin/manage-admins', icon: Crown },
       { title: 'Manage Department', path: '/superadmin/departments', icon: Layers },
+      { title: 'Company Overview', path: '/superadmin/companies', icon: Building2 },
       { title: 'Pending Creatives', path: '/superadmin/pending-creatives', icon: Clock },
       { title: 'Banned Accounts', path: '/superadmin/banned', icon: Ban }
     ]

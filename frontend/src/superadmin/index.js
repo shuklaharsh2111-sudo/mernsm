@@ -6,3 +6,4 @@ export { default as ManageAdmins } from './ManageAdmins';
 export { default as ManageDepartment } from './ManageDepartment';
 export { default as PendingCreatives } from './PendingCreatives';
 export { default as BannedAccounts } from './BannedAccounts';
+export { default as CompanyOverview } from './CompanyOverview';
