@@ -75,8 +75,7 @@ export const SUPER_NAV = [
     heading: 'Super Admin', items: [
       { title: 'Overall Dashboard', path: '/superadmin', icon: ShieldCheck },
       { title: 'Create Admin', path: '/superadmin/create-admin', icon: UserPlus },
-      { title: 'Manage Admins', path: '/superadmin/manage-admins', icon: Crown },
-      { title: 'Create Employees', path: '/superadmin/create-employee', icon: Users }
+      { title: 'Manage Admins', path: '/superadmin/manage-admins', icon: Crown }
     ]
   },
   ...ADMIN_NAV

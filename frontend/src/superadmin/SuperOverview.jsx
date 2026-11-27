@@ -22,7 +22,6 @@ const fmtJoined = (d) => {
 const QUICK = [
   { title: 'Create Admin', text: 'Add a new admin account', path: '/superadmin/create-admin', icon: UserPlus },
   { title: 'Manage Admins', text: 'Super admin rights, passwords, removal', path: '/superadmin/manage-admins', icon: Crown },
-  { title: 'Create Employees', text: 'Add people to any department', path: '/superadmin/create-employee', icon: Users },
   { title: 'All Users', text: 'Everyone, department by department', path: '/admin/users', icon: Users },
 ];
 
@@ -152,7 +151,7 @@ const SuperOverview = () => {
               <span className="so-person-text"><strong>{u.name}</strong><small>{roleName(u.role)} · {fmtJoined(u.createdAt)}</small></span>
             </div>
           ))}
-          <Link to="/superadmin/create-employee" className="dash-btn" style={{ marginTop: 14 }}>Create employees <ArrowRight size={15} /></Link>
+          <Link to="/admin/users" className="dash-btn" style={{ marginTop: 14 }}>Open users <ArrowRight size={15} /></Link>
         </div>
       </div>
 
