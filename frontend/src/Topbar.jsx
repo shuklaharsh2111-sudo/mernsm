@@ -18,7 +18,7 @@ const Topbar = ({ onMenu }) => {
     return () => clearInterval(t);
   }, []);
 
-  const found = titleFor(user?.role, pathname);
+  const found = titleFor(user?.role, pathname, !!user?.isSuperAdmin);
   const isHome = ['/sme', '/admin', '/om', '/rm', '/smi', '/des'].includes(pathname);
   const hour = now.getHours();
   const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';

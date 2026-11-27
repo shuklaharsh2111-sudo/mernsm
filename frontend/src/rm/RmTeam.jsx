@@ -99,6 +99,22 @@ const RmTeam = () => {
   };
 
   const pickedCount = Object.keys(picked).length;
+  const pickedList = pool.filter((u) => picked[keyOf(u)]);
+
+  // select / clear everyone selectable in one department group
+  const toggleGroup = (list) => {
+    const selectable = list.filter((u) => !u.reportsTo);
+    if (!selectable.length) return;
+    const allOn = selectable.every((u) => picked[keyOf(u)]);
+    setPicked((p) => {
+      const next = { ...p };
+      selectable.forEach((u) => {
+        if (allOn) delete next[keyOf(u)];
+        else next[keyOf(u)] = { id: u.id, collection: u.collection };
+      });
+      return next;
+    });
+  };
 
   const confirmAdd = async () => {
     if (!pickedCount) return;
@@ -251,6 +267,7 @@ const RmTeam = () => {
       {addOpen && createPortal(
         <div className="modal-overlay" onClick={closeAdd}>
           <div className="modal-card rm-add-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Add team members">
+            {/* 1. header */}
             <div className="rm-add-head">
               <div>
                 <h3>Add team members</h3>
@@ -261,59 +278,84 @@ const RmTeam = () => {
 
             {poolError && <p className="error-message" role="alert">{poolError}</p>}
 
-            <div className="au-filters">
-              <button type="button" className={poolRole === 'ALL' ? 'active' : ''} onClick={() => setPoolRole('ALL')}>
-                All <em>{pool.length}</em>
-              </button>
-              {poolRoles.map((r) => (
-                <button key={r} type="button" className={poolRole === r ? 'active' : ''} onClick={() => setPoolRole(r)}>
-                  {roleName(r)} <em>{pool.filter((u) => u.role === r).length}</em>
-                </button>
-              ))}
-            </div>
-            <div className="rm-add-search">
-              <Search size={15} />
-              <input type="search" value={poolQ} onChange={(e) => setPoolQ(e.target.value)} placeholder="Search name or email…" aria-label="Search people" />
-              {poolQ && <button type="button" onClick={() => setPoolQ('')} aria-label="Clear search"><X size={14} /></button>}
+            {/* 2. one-line toolbar: search + department */}
+            <div className="rm-add-toolbar">
+              <div className="rm-add-search">
+                <Search size={15} />
+                <input type="search" value={poolQ} onChange={(e) => setPoolQ(e.target.value)} placeholder="Search name or email…" aria-label="Search people" />
+                {poolQ && <button type="button" onClick={() => setPoolQ('')} aria-label="Clear search"><X size={14} /></button>}
+              </div>
+              <select className="rm-add-select" value={poolRole} onChange={(e) => setPoolRole(e.target.value)} aria-label="Department">
+                <option value="ALL">All departments ({pool.length})</option>
+                {poolRoles.map((r) => (
+                  <option key={r} value={r}>{roleName(r)} ({pool.filter((u) => u.role === r).length})</option>
+                ))}
+              </select>
             </div>
 
+            {/* 3. who is selected */}
+            {pickedCount > 0 && (
+              <div className="rm-add-selected" aria-label="Selected people">
+                {pickedList.map((u) => (
+                  <span key={keyOf(u)} className="rm-add-chip">
+                    {u.name}
+                    <button type="button" onClick={() => togglePick(u)} aria-label={`Remove ${u.name}`}><X size={12} /></button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* 4. people, department by department (only this part scrolls) */}
             <div className="rm-add-body">
               {poolLoading ? (
                 <p className="muted">Loading…</p>
               ) : poolGroups.length === 0 ? (
                 <div className="au-empty"><Users size={26} /><p>No one available to add.</p></div>
               ) : (
-                poolGroups.map(([role, list]) => (
-                  <section key={role} className="rm-add-group">
-                    <h4>{roleName(role)} <em>{list.length}</em></h4>
-                    {list.map((u) => {
-                      const locked = !!u.reportsTo;
-                      const on = !!picked[keyOf(u)];
-                      return (
-                        <label key={keyOf(u)} className={`rm-add-row${on ? ' on' : ''}${locked ? ' locked' : ''}`}>
-                          <input type="checkbox" checked={on} disabled={locked} onChange={() => togglePick(u)} />
-                          <span className="rm-add-avatar">
-                            {u.profileImage ? <img src={u.profileImage} alt="" /> : <span>{initialsOf(u.name)}</span>}
-                          </span>
-                          <span className="rm-add-text">
-                            <strong>{u.name}</strong>
-                            <small>{u.email}</small>
-                          </span>
-                          {locked && <span className="rm-add-tag" title="Already has a reporting manager">Reports to {u.reportsTo.name}</span>}
-                        </label>
-                      );
-                    })}
-                  </section>
-                ))
+                poolGroups.map(([role, list]) => {
+                  const selectable = list.filter((u) => !u.reportsTo);
+                  const allOn = selectable.length > 0 && selectable.every((u) => picked[keyOf(u)]);
+                  return (
+                    <section key={role} className="rm-add-group">
+                      <h4>
+                        <span>{roleName(role)}</span> <em>{list.length}</em>
+                        {selectable.length > 0 && (
+                          <label className="rm-add-all">
+                            <input type="checkbox" checked={allOn} onChange={() => toggleGroup(list)} />
+                            Select all
+                          </label>
+                        )}
+                      </h4>
+                      {list.map((u) => {
+                        const locked = !!u.reportsTo;
+                        const on = !!picked[keyOf(u)];
+                        return (
+                          <label key={keyOf(u)} className={`rm-add-row${on ? ' on' : ''}${locked ? ' locked' : ''}`}>
+                            <input type="checkbox" checked={on} disabled={locked} onChange={() => togglePick(u)} />
+                            <span className="rm-add-avatar">
+                              {u.profileImage ? <img src={u.profileImage} alt="" /> : <span>{initialsOf(u.name)}</span>}
+                            </span>
+                            <span className="rm-add-text">
+                              <strong>{u.name}</strong>
+                              <small>{u.email}</small>
+                            </span>
+                            {locked && <span className="rm-add-tag" title="Already has a reporting manager">Reports to {u.reportsTo.name}</span>}
+                          </label>
+                        );
+                      })}
+                    </section>
+                  );
+                })
               )}
             </div>
 
+            {/* 5. footer */}
             <div className="rm-add-foot">
               <span>{pickedCount} selected</span>
               <div>
                 <button type="button" className="btn-ghost" onClick={closeAdd} disabled={adding}>Cancel</button>
                 <button type="button" className="btn-primary" onClick={confirmAdd} disabled={adding || !pickedCount}>
-                  {adding ? 'Adding…' : `Add ${pickedCount || ''} to team`.replace('  ', ' ')}
+                  {adding ? 'Adding…' : pickedCount ? `Add ${pickedCount} to team` : 'Add to team'}
                 </button>
               </div>
             </div>

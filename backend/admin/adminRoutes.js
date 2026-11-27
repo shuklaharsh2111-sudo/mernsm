@@ -14,6 +14,7 @@ import Meeting from '../meeting/Meeting.js';
 import { momItemView, creativeItemView, reviewMom, reviewCreative } from '../review/reviewCore.js';
 import { mountIntegrationRoutes } from '../meeting/integrationRoutes.js';
 import Creative from '../sme/Creative.js';
+import Task from '../sme/Tasks.js';
 import Attendance from '../attendance/Attendance.js';
 import { getOfficeConfig } from '../attendance/geo.js';
 import { ReportingManager, Smi, Client, roleModels } from './UserModels.js';
@@ -51,7 +52,7 @@ router.use((req, res, next) => {
   next();
 });
 mountIntegrationRoutes(router);
-const validId = (id) => mongoose.Types.ObjectId.isValid(id);
+export const validId = (id) => mongoose.Types.ObjectId.isValid(id);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const companyView = (c) => ({
   id: String(c._id),
@@ -70,7 +71,7 @@ const sopView = (a) => ({
   doneCount: (a.completions || []).length,
 });
 // ---------------- Users ----------------
-const userView = (u, collection) => ({
+export const userView = (u, collection) => ({
   id: String(u._id),
   name: u.name || u.fullname || u.email,
   email: u.email,
@@ -86,13 +87,19 @@ const userView = (u, collection) => ({
   bannedAt: u.bannedAt || null,
   isSuperAdmin: collection === 'admins' && !!u.isSuperAdmin
 });
-const getRoleCollection = (role) => roleModels[role]?.collection?.collectionName || '';
+export const getRoleCollection = (role) => roleModels[role]?.collection?.collectionName || '';
 router.get('/users', async (req, res) => {
   const collections = Object.entries(roleModels);
   const results = await Promise.all(
     collections.map(async ([role, Model]) => {
       const collection = getRoleCollection(role);
-      const users = await Model.find().sort({ createdAt: -1 }).lean();
+      // Only a super admin can see admin accounts. A normal admin sees only their own account;
+      // an operation manager sees none.
+      let filter = {};
+      if (collection === 'admins' && !req.user.isSuperAdmin) {
+        filter = req.user.role === 'admin' ? { _id: req.user.id } : { _id: null };
+      }
+      const users = await Model.find(filter).sort({ createdAt: -1 }).lean();
       return users.map((u) => userView(u, collection));
     })
   );
@@ -331,25 +338,6 @@ router.put('/users/:id/password', async (req, res) => {
     res.status(500).json({ message: 'Unable to change password' });
   }
 });
-// PUT /api/admin/users/:id/super-admin   body: { value: true|false }  -> a super admin makes another admin a super admin (or removes it)
-router.put('/users/:id/super-admin', async (req, res) => {
-  try {
-    if (!req.user.isSuperAdmin) return res.status(403).json({ message: 'Only a super admin can do this.' });
-    if (!validId(req.params.id)) return res.status(404).json({ message: 'User not found' });
-    const value = req.body.value === true || req.body.value === 'true';
-    const admin = await Admin.findById(req.params.id);
-    if (!admin) return res.status(404).json({ message: 'Admin not found' });
-    if (!value && admin.isSuperAdmin && (await Admin.countDocuments({ isSuperAdmin: true })) <= 1) {
-      return res.status(403).json({ message: 'There must always be at least one super admin.' });
-    }
-    await Admin.collection.updateOne({ _id: admin._id }, { $set: { isSuperAdmin: value } });
-    const fresh = await Admin.findById(admin._id).lean();
-    res.json({ message: value ? 'Made super admin' : 'Super admin removed', user: userView(fresh, 'admins') });
-  } catch (error) {
-    console.error('Admin super-admin toggle error:', error);
-    res.status(500).json({ message: 'Unable to update this admin' });
-  }
-});
 router.delete('/users/:id', async (req, res) => {
   if (!validId(req.params.id)) return res.status(404).json({ message: 'User not found' });
   const collection = String(req.query.collection || '').toLowerCase();
@@ -398,6 +386,10 @@ router.get('/attendance', async (req, res) => {
     if (!isNaN(d)) range.$lte = d;
   }
   if (Object.keys(range).length) filter.loginAt = range;
+  // admin sessions are only visible to a super admin (a normal admin still sees their own)
+  if (!req.user.isSuperAdmin) {
+    filter.$and = [{ $or: [{ role: { $ne: 'admin' } }, ...(req.user.role === 'admin' ? [{ userId: req.user.id }] : [])] }];
+  }
   const limit = Math.min(parseInt(req.query.limit, 10) || 500, 2000);
   const records = await Attendance.find(filter).sort({ loginAt: -1 }).limit(limit).lean();
   const office = getOfficeConfig();

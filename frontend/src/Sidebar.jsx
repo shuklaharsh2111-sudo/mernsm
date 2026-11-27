@@ -10,7 +10,7 @@ const Sidebar = ({ collapsed = false, onToggle, mobileOpen = false, onClose }) =
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const isSME = user?.role === 'sme';
-  const groups = navFor(user?.role);
+  const groups = navFor(user?.role, !!user?.isSuperAdmin);
   const manager =
     user?.reportingManager || user?.reporting_manager || user?.defaultAdmin || user?.adminDetails || null;
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -52,7 +52,7 @@ const Sidebar = ({ collapsed = false, onToggle, mobileOpen = false, onClose }) =
               <NavLink
                 key={path}
                 to={path}
-                end={['/admin', '/om', '/rm', '/sme', '/des', '/smi', '/hr'].includes(path)}
+                end={['/admin', '/superadmin', '/om', '/rm', '/sme', '/des', '/smi', '/hr'].includes(path)}
                 title={collapsed ? title : undefined}
                 className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}
               >
